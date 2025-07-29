@@ -1,0 +1,60 @@
+---
+##
+## Issue : 13
+##
+
+- name: install - prerequirements
+  apt:
+    name:
+      - net-tools # for   netstat
+      - procps #  for free
+      - util-linux #  df ect
+      - coreutils # df ect
+      - sysstat #  iostat
+      - ufw
+    state: present
+    update_cache: yes
+
+  when: ansible_facts.distribution == 'Ubuntu'
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+#
+- name: debug - listening ports
+  shell: netstat -tplnu
+  register: out
+- debug: var=out.stdout_lines
+
+#
+- name: debug - current space
+  shell: df -h
+  register: out_df
+- debug: var=out.stdout_lines
+
+#
+- name: debug - Memory current usage
+  shell: free -mh
+  register: out
+- debug: var=out.stdout_lines
+
+#
+- name: debug -  CPU current usage
+  shell: iostat | head -4
+  register: out
+- debug: var=out.stdout_lines
+
+#
+- name: debug - List current ufw rules
+  shell: ufw status verbose
+  # shell: ufw status numbered
+  register: out
+- debug: var=out.stdout_lines
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+#
+#
+# - name: Current iptables rules
+#   shell: iptables -vnL
+#   register: out_iptables
+# - debug: var=out.stdout_lines
+
