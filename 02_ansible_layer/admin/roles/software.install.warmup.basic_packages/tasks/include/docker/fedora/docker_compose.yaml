@@ -1,0 +1,60 @@
+---
+- name: install docker-compose - prequirements - fedora
+  block:
+    #
+    - name: install docker-compose - dnf install prequirements - fedora
+      ansible.builtin.package:
+        name:
+          - redhat-rpm-config
+          - make
+          - gcc
+          - python3-devel
+          - libffi-devel
+          - cython
+          - libyaml-devel #### #### docker-compose / pyyaml
+          - libxcrypt-compat # #### docker-compose
+          - openssl-devel
+          - dnf-plugins-core # docker CE / docker-compose
+        state: present
+
+    # #
+    # - name: install - docker CE - add docker repository file - fedora
+    #   ansible.builtin.get_url:
+    #     url: "https://download.docker.com/linux/fedora/docker-ce.repo"
+    #     dest: "/etc/yum.repos.d/docker-ce.repo"
+
+  when: ansible_facts.distribution == 'Fedora'
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: install docker-compose - get_url github - fedora
+  block:
+    #
+    - name: install - download docker-compose
+      ansible.builtin.get_url:
+        url: "https://github.com/docker/compose/releases/download/v{{ DOCKER_COMPOSE_VERSION |  default('2.39.1') }} }}/docker-compose-Linux-x86_64"
+        dest: "/usr/local/bin/docker-compose"
+        mode: "0755"
+    #
+    - name: install - chmod +x docker-compose
+      ansible.builtin.file:
+        path: /usr/local/bin/docker-compose
+        mode: "u+x,g+x"
+  when: ansible_facts.distribution == 'Fedora'
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: check docker-compose - checks debug - fedora
+  block:
+    #
+    - name: install - check docker-compose installation
+      ansible.builtin.command:
+        cmd: docker-compose --version
+      register: result
+
+    #
+    - name: install - output docker-compose version
+      ansible.builtin.debug:
+        msg: "{{ result.stdout }}"
+
+  when: ansible_facts.distribution == 'Fedora'

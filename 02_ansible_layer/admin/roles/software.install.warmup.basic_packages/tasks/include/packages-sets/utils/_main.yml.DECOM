@@ -1,0 +1,49 @@
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: install - basics packages - block
+  block:
+    #
+    - name: INCLUDE - install - basics packages - ubuntu
+      ansible.builtin.include_tasks: ./ubuntu/packages_basics.yaml
+      when: ansible_facts.distribution == 'Ubuntu'
+    #
+    - name: INCLUDE - install - basics packages - fedora
+      ansible.builtin.include_tasks: ./fedora/packages_basics.yaml
+      when: ansible_facts.distribution == 'Fedora'
+
+  when: INSTALL_PACKAGES_BASICS | default('NO') == 'YES')
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: install - utils packages - block
+  block:
+    #
+    - name: INCLUDE - install -  network related packages - ubuntu
+      ansible.builtin.include_tasks: ./ubuntu/packages_network.yaml
+      when: ansible_facts.distribution == 'Ubuntu'
+
+    #
+    - name: INCLUDE - install -  network related packages - fedora
+      ansible.builtin.include_tasks: ./fedora/packages_network.yaml
+      when: ansible_facts.distribution == 'Fedora'
+
+  when: (INSTALL_PACKAGES_NETWORK_ANALYSIS | default('NO') == 'YES')
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: install - network utils packages - block
+  block:
+    #
+    - name: INCLUDE - install -  firewalls related packages - ubuntu
+      ansible.builtin.include_tasks: ./ubuntu/packages_firewalls.yaml
+      when: ansible_facts.distribution == 'Ubuntu'
+
+    #
+    - name: INCLUDE - install -  firewalls related packages - fedora
+      ansible.builtin.include_tasks: ./fedora/packages_firewalls.yaml
+      when: ansible_facts.distribution == 'Fedora'
+      
+  when: (INSTALL_PACKAGES_FIREWALLS | default('NO') == 'YES')
+#
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+#

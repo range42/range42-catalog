@@ -1,0 +1,15 @@
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: install - basics packages - block
+  block:
+    #
+    # - name: INCLUDE - remove packages - ubuntu
+    #   ansible.builtin.include_tasks: ./ubuntu/packages_basics.yaml
+    #   when: ansible_facts.distribution == 'Ubuntu'
+    #
+    - name: INCLUDE - remove packages - fedora
+      ansible.builtin.include_tasks: ./fedora/remove_cockpit.yaml
+      when: ansible_facts.distribution == 'Fedora'
+
+  when: SPECIFIC_PACKAGES_CLEANING | default('NO') == 'YES'
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####

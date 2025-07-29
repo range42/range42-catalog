@@ -1,0 +1,28 @@
+---
+#
+- name: INCLUDE - install - docker
+  block:
+    #
+    - name: install - docker - ubuntu
+      ansible.builtin.include_tasks: ./ubuntu/docker.yaml
+      when: ansible_facts.distribution == 'Ubuntu'
+    #
+    - name: install - docker - fedora
+      ansible.builtin.include_tasks: ./fedora/docker.yaml
+      when: ansible_facts.distribution == 'Fedora'
+
+  when: INSTALL_PACKAGES_DOCKER | default('NO') == 'YES'
+
+#
+- name: INCLUDE - install - docker-compose
+  block:
+    #
+    - name: install - docker-compose - ubuntu
+      ansible.builtin.include_tasks: ./ubuntu/docker_compose.yaml
+      when: ansible_facts.distribution == 'Ubuntu'
+    #
+    - name: install - docker-compose - fedora
+      ansible.builtin.include_tasks: ./fedora/docker_compose.yaml
+      when: ansible_facts.distribution == 'Fedora'
+
+  when: INSTALL_PACKAGES_DOCKER_COMPOSE | default('NO') == 'YES'

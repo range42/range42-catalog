@@ -1,0 +1,24 @@
+---
+#
+
+- name: install - basics packages - ubuntu
+  apt:
+    name:
+      - git
+      - zsh
+      - vim
+      - unzip
+      - tar
+      - ca-certificates
+      - apt-transport-https
+      - gnupg
+      - openssl
+      - curl
+      - wget
+      - acl
+      - less
+
+    state: present
+    update_cache: yes
+
+  when: ansible_facts.distribution == 'Ubuntu'

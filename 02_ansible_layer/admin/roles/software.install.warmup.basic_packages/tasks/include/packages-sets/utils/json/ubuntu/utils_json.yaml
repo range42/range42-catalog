@@ -1,0 +1,12 @@
+---
+#
+
+- name: install - utils_json packages - ubuntu
+  apt:
+    name:
+      - jq
+      - wget
+      - curl
+      - parallel
+
+  when: ansible_facts.distribution == 'Ubuntu'

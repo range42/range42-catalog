@@ -1,0 +1,15 @@
+---
+#
+
+- name: install - utils_json  packages - fedora
+  dnf:
+    name:
+      - jq
+      - wget
+      - curl
+      - parallel
+
+    state: present
+    update_cache: yes
+
+  when: ansible_facts.distribution == 'Fedora'

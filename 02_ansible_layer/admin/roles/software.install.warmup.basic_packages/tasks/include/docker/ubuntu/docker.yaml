@@ -1,0 +1,66 @@
+---
+- name: install docker - requirements - fedora
+  block:
+    #
+    - name: install docker - requirements for docker-compose and docker - ubuntu
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - make
+          - gcc
+          - python3-pip
+          - python3-dev
+          - libffi-dev
+          - libssl-dev
+        state: present
+
+    #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+    - name: install docker - add docker official GPG key
+      ansible.builtin.apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    #
+    - name: install docker - add Docker CE repository
+      ansible.builtin.apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+        state: present
+
+    #
+    - name: install docker - docker-ce - ubuntu
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        update_cache: yes
+        state: present
+
+    #
+    - name: install docker - enable docker service
+      ansible.builtin.systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+  when: ansible_facts.distribution == 'Ubuntu'
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: check docker - checks debug - ubuntu
+  block:
+    - name: check - docker installation
+      ansible.builtin.command:
+        cmd: docker version
+      register: result
+
+    - name: check - docker version
+      ansible.builtin.debug:
+        msg: "{{ result.stdout }}"
+      when: result is defined
+
+  when: ansible_facts.distribution == 'Ubuntu'

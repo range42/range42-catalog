@@ -1,0 +1,65 @@
+---
+- name: install docker - install pre-requirements - fedora
+  block:
+    #
+    - name: install - dnf install  - fedora
+      ansible.builtin.package:
+        name:
+          - redhat-rpm-config
+          - make
+          - gcc
+          - python3-devel
+          - libffi-devel
+          - cython
+          - libyaml-devel #### #### docker-compose / pyyaml
+          - libxcrypt-compat # #### docker-compose
+          - openssl-devel
+          - dnf-plugins-core # docker CE / docker-compose
+        state: present
+
+    #
+    - name: install docker - add docker repository file - fedora
+      ansible.builtin.get_url:
+        url: "https://download.docker.com/linux/fedora/docker-ce.repo"
+        dest: "/etc/yum.repos.d/docker-ce.repo"
+
+  when: ansible_facts.distribution == 'Fedora'
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: install docker - fedora
+  block:
+    #
+    - name: install docker - dnf install docker CE - fedora
+      ansible.builtin.package:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        state: present
+
+    #
+    - name: install docker - enable docker service
+      ansible.builtin.systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+  when: ansible_facts.distribution == 'Fedora'
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: check docker - checks debug - fedora
+  block:
+    #
+    - name: install - check docker installation
+      ansible.builtin.command:
+        cmd: docker version
+      register: result
+
+    #
+    - name: install - output docker version
+      ansible.builtin.debug:
+        msg: "{{ result.stdout }}"
+
+  when: ansible_facts.distribution == 'Fedora'

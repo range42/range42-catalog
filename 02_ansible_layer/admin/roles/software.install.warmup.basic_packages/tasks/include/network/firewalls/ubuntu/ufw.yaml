@@ -1,0 +1,9 @@
+---
+#
+
+- name: install - firewall packages - ubuntu
+  apt:
+    name:
+      - ufw
+      
+  when: ansible_facts.distribution == 'Ubuntu'

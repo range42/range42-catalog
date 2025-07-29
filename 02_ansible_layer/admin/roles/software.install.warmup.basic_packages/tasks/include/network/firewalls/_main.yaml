@@ -1,0 +1,16 @@
+---
+#
+
+- name: INCLUDE - install - firewalls related packages
+  block:
+    #
+    - name: install - firewall packages - ubuntu
+      ansible.builtin.include_tasks: ./ubuntu/ufw.yaml
+      when: ansible_facts.distribution == 'Ubuntu'
+
+    #
+    - name: install - firewall packages - fedora
+      ansible.builtin.include_tasks: ./fedora/firewalld.yaml
+      when: ansible_facts.distribution == 'Fedora'
+
+  when: INSTALL_PACKAGES_FIREWALLS | default('NO') == 'YES'

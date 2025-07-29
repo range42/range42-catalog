@@ -1,0 +1,15 @@
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: install - basics packages - block
+  block:
+    #
+    - name: INCLUDE - install - basics packages - ubuntu
+      ansible.builtin.include_tasks: ./ubuntu/packages_basics.yaml
+      when: ansible_facts.distribution == 'Ubuntu'
+    #
+    - name: INCLUDE - install - basics packages - fedora
+      ansible.builtin.include_tasks: ./fedora/packages_basics.yaml
+      when: ansible_facts.distribution == 'Fedora'
+
+  when: INSTALL_PACKAGES_BASICS | default('NO') == 'YES'
+

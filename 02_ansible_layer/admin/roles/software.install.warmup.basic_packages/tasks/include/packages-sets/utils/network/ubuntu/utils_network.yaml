@@ -1,0 +1,11 @@
+---
+#
+
+- name: install - utils_network packages - ubuntu
+  apt:
+    name:
+      - nmap
+      - tcpdump
+      - net-tools
+
+  when: ansible_facts.distribution == 'Ubuntu'
