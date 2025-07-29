@@ -1,0 +1,5 @@
+---
+# defaults file
+
+INSTALL_VIM_DOTFILES: "NO"
+INSTALL_ZSH_DOTFILES: "NO"

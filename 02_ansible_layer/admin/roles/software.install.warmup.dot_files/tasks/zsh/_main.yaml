@@ -1,0 +1,134 @@
+---
+#
+
+- name: install - basics packages
+
+  block:
+    #
+    - name: install zsh and ohmyzsh - prerequirements packages - ubuntu
+      apt:
+        name:
+          - git
+          - zsh
+          - less
+
+        state: present
+        update_cache: yes
+      when: ansible_facts.distribution == 'Ubuntu'
+
+    #
+    - name: install zsh and ohmyzsh - prerequirements packages - fedora
+      dnf:
+        name:
+          - git
+          - zsh
+
+        state: present
+        update_cache: yes
+      when: ansible_facts.distribution == 'Fedora'
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+# - name: configure - oh my zsh configuration
+#   block:
+#     - name: git clone ohmyzsh and chown
+#       shell: "cd /home/{{ OPERATOR_USER}} ; git clone https://github.com/ohmyzsh/ohmyzsh.git /home/{{ OPERATOR_USER }}/.oh-my-zsh ; chown -R {{ OPERATOR_USER }}:{{ OPERATOR_USER }} /home/{{ OPERATOR_USER }}/.oh-my-zsh/"
+#       register: out
+#     - debug: var=out.stdout_lines
+
+#     - name: copy ohmyzsh from user to root and chown
+#       shell: cp -rf /home/{{ OPERATOR_USER }}/.oh-my-zsh/ /root/ && chown -R root:root /root/.oh-my-zsh/
+
+- name: configure ohmyzsh
+  block:
+    #
+    - name: configure ohmyzsh -  git clone ohmyzsh and chown for user
+      ansible.builtin.git:
+        repo: https://github.com/ohmyzsh/ohmyzsh.git
+        dest: /home/{{ OPERATOR_USER }}/.oh-my-zsh
+        update: no
+        version: master
+      become: true
+      become_user: "{{ OPERATOR_USER }}"
+
+    #
+    - name: configure ohmyzsh - chmod - chown files
+      ansible.builtin.file:
+        path: /home/{{ OPERATOR_USER }}/.oh-my-zsh
+        owner: "{{ OPERATOR_USER }}"
+        group: "{{ OPERATOR_USER }}"
+        recurse: yes
+      become: true
+
+    #
+    - name: configure ohmyzsh - copy .oh-my-zsh to /root/.oh-my-zsh
+      ansible.builtin.copy:
+        src: "/home/{{ OPERATOR_USER }}/.oh-my-zsh/"
+        dest: "/root/.oh-my-zsh/"
+        owner: root
+        group: root
+        mode: "0755"
+        remote_src: yes
+      become: true
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: configure zsh
+  block:
+    #
+    - name: configure zsh - upload zshrc to user
+      ansible.builtin.copy:
+        src: "{{ role_path }}/files/generic/zshrc"
+        dest: "/home/{{ OPERATOR_USER }}/.zshrc"
+        owner: "{{ OPERATOR_USER }}"
+        group: "{{ OPERATOR_USER }}"
+        mode: "0600"
+
+    #
+    - name: configure zsh - upload dot files to operator user
+      block:
+        - name: configure zsh - upload zshrc to root
+          ansible.builtin.copy:
+            src: "{{ role_path }}/files/generic/zshrc"
+            dest: /root/.zshrc
+            owner: root
+            group: root
+            mode: "0600"
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: configure zsh - change operator user and root to zsh
+  block:
+    #
+    - name: configure zsh - try to find zsh in common location
+      stat:
+        path: "{{ item }}"
+      register: zsh_check
+      with_items:
+        - /usr/bin/zsh
+      ignore_errors: false
+
+    # - name: set zsh found variable
+    #   set_fact:
+    #     zsh_found: "{{ zsh_check.results | json_query('[*].stat.exists') | select('bool') | list | length > 0 }}"
+
+    #
+    - name: configure zsh - set zsh found variable
+      set_fact:
+        zsh_found: "{{ zsh_check.results | map(attribute='stat.exists') | select | list | length > 0 }}"
+
+    #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+    #
+    - name: configure zsh - change default shell to zsh for '{{ OPERATOR_USER }}'
+      user:
+        name: "{{ OPERATOR_USER }}"
+        shell: /usr/bin/zsh
+      when: zsh_found
+
+    #
+    - name: configure zsh - change default shell to zsh for root
+      user:
+        name: "root"
+        shell: /usr/bin/zsh
+      when: zsh_found

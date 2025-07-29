@@ -1,0 +1,46 @@
+---
+#
+
+- name: install vim - prerequirements packages
+  block:
+    #
+    - name: install - basics packages - ubuntu
+      apt:
+        name:
+          - vim
+          - less
+
+        state: present
+        update_cache: yes
+      when: ansible_facts.distribution == 'Ubuntu'
+
+    #
+    - name: install - basics packages - fedora
+      dnf:
+        name:
+          - vim
+
+        state: present
+        update_cache: yes
+      when: ansible_facts.distribution == 'Fedora'
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: configure vim  - dot files upload
+  block:
+    #
+    - name: configure vim - vimrc to user
+      ansible.builtin.copy:
+        src: "{{ role_path }}/files/generic/vimrc"
+        dest: "/home/{{ OPERATOR_USER }}/.vimrc"
+        owner: "{{ OPERATOR_USER }}"
+        group: "{{ OPERATOR_USER }}"
+        mode: "0600"
+    #
+    - name: configure vim - vimrc to root
+      ansible.builtin.copy:
+        src: "{{ role_path }}/files/generic/vimrc"
+        dest: /root/.vimrc
+        owner: root
+        group: root
+        mode: "0600"

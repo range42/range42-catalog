@@ -1,0 +1,17 @@
+---
+##
+## issue : 8
+##
+
+#
+#
+- name: INCLUDE - install - vim with generic profile
+  ansible.builtin.include_tasks: ./vim/_main.yaml
+
+  when: INSTALL_VIM_DOTFILES | default('NO') == 'YES'
+
+#
+- name: INCLUDE - install - zsh - ohmyzsh with generic profile
+  ansible.builtin.include_tasks: ./zsh/_main.yaml
+
+  when: INSTALL_ZSH_DOTFILES | default('NO') == 'YES'
