@@ -1,0 +1,115 @@
+---
+##
+## Issue 9
+##
+
+- name: configure - copy l.bin files
+  block:
+    #
+    - name: create l.bin directory
+      file:
+        path: "/home/{{ OPERATOR_USER }}/l.bin"
+        state: directory
+        owner: "{{ OPERATOR_USER }}"
+        group: "{{ OPERATOR_USER }}"
+        mode: "0755"
+
+    #
+    - name: configure - copy fedora files to l.bin
+      copy:
+        src: "{{ role_path }}/files/profiles/{{ ansible_facts.distribution | lower }}/"
+        dest: "/home/{{ OPERATOR_USER }}/l.bin"
+        owner: "{{ OPERATOR_USER }}"
+        group: "{{ OPERATOR_USER }}"
+        mode: "0644"
+        remote_src: no
+      when: ansible_facts.distribution == 'Ubuntu' or ansible_facts.distribution == 'Fedora'
+
+    #
+    - name: configure - copy optionnal profile - wazuh - to lbin
+      copy:
+        src: "{{ role_path }}/files/profiles/wazuh/"
+        dest: "/home/{{ OPERATOR_USER }}/l.bin"
+        owner: "{{ OPERATOR_USER }}"
+        group: "{{ OPERATOR_USER }}"
+        mode: "0644"
+        remote_src: no
+      when: SYSTEM_PROFILES == 'wazuh'
+
+    #
+    - name: configure - copy generic files to l.bin
+      copy:
+        src: "{{ role_path }}/files/profiles/generic/"
+        dest: "/home/{{ OPERATOR_USER }}/l.bin"
+        owner: "{{ OPERATOR_USER }}"
+        group: "{{ OPERATOR_USER }}"
+        mode: "0644"
+        remote_src: no
+      when: SYSTEM_PROFILES == 'generic'
+
+    #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: configure - chown and permission in l.bin directory
+  block:
+    - name: configure - chown l.bin directory
+      file:
+        path: "/home/{{ OPERATOR_USER }}/l.bin"
+        state: directory
+        owner: "{{ OPERATOR_USER }}"
+        group: "{{ OPERATOR_USER }}"
+        recurse: yes
+
+    #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+    - name: configure - find shell and bin file in l.lbin
+      find:
+        paths: "/home/{{ OPERATOR_USER }}/l.bin"
+        patterns: "*.sh,*.bin"
+      register: files_to_chmod
+
+    - name: configure - set execute permissions on the found files
+      file:
+        path: "{{ item.path }}"
+        mode: "+x"
+      with_items: "{{ files_to_chmod.files }}"
+      when: files_to_chmod.matched > 0
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: configure - update zshrc
+  block:
+    #
+    - name: configure - pdate zshrc OPERATOR - add l.bin to path
+      blockinfile:
+        path: "/home/{{ OPERATOR_USER }}/.zshrc"
+        block: |
+          ##########################################################################
+          #
+          export PATH="$PATH:/home/{{ OPERATOR_USER }}/l.bin"
+          alias glb="cd /home/{{ OPERATOR_USER }}/l.bin"
+          #
+          ##########################################################################
+        marker: "# {mark} ANSIBLE MANAGED BLOCK"
+        create: yes
+        owner: "{{ OPERATOR_USER }}"
+        group: "{{ OPERATOR_USER }}"
+        mode: "0600"
+        backup: yes
+
+    #
+    - name: configure - update zshrc ROOT - add l.bin - (DANGEROUS)
+      blockinfile:
+        path: "/root/.zshrc"
+        block: |
+          ##########################################################################
+          #
+          export PATH="$PATH:/home/{{ OPERATOR_USER }}/l.bin"
+          alias glb="cd /home/{{ OPERATOR_USER }}/l.bin"
+          #
+          ##########################################################################
+        marker: "# {mark} ANSIBLE MANAGED BLOCK"
+        create: yes
+        owner: "root"
+        group: "root"
+        mode: "0600"
+        backup: yes
