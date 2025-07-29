@@ -1,0 +1,40 @@
+- name: check /etc/default/tailscaled file permissions - ubuntu
+  ansible.builtin.stat:
+    path: /etc/default/tailscaled
+  register: tailscaled_file_stat
+
+- name: modify perm - /etc/default/tailscaled writable - ubuntu
+  ansible.builtin.file:
+    path: /etc/default/tailscaled
+    mode: "0644"
+  when: tailscaled_file_stat.stat.mode != '0644'
+
+- name: add - TS_DEBUG_FIREWALL_MODE=nftables  - ubuntu
+  ansible.builtin.lineinfile:
+    path: /etc/default/tailscaled
+    line: "TS_DEBUG_FIREWALL_MODE=nftables"
+    create: yes
+
+- name: modify perm - /etc/default/tailscaled to read-only - ubuntu
+  ansible.builtin.file:
+    path: /etc/default/tailscaled
+    mode: "0444"
+
+- name: restart service - tailscale
+  ansible.builtin.systemd:
+    name: tailscaled
+    state: restarted
+    enabled: yes
+
+- name: sleep for 5 seconds - tailscale restarting ...
+  ansible.builtin.wait_for:
+    timeout: 5
+
+- name: show service status - tailscale  - ubuntu
+  ansible.builtin.command:
+    cmd: "tailscale status"
+  register: tailscale_out
+
+- name: show service status - tailscale - output - ubuntu
+  ansible.builtin.debug:
+    var: tailscale_out.stdout_lines

@@ -1,0 +1,15 @@
+---
+#
+# ISSUE : 12
+#
+
+- name: collect os information
+  ansible.builtin.setup:
+
+  #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: INCLUDE - tailscale fix ntftable
+  ansible.builtin.include_tasks: ./include/ubuntu_tailscale_fix_ntfables.yaml
+  when: ansible_facts['distribution'] == "Ubuntu"
+
+  #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
