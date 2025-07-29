@@ -1,0 +1,81 @@
+---
+# tasks file
+
+## 
+## ISSUE 6
+##
+
+#
+# to avoid SSL error in case of revert to snapshot
+#
+
+# - name: INCLUDE - install ntp - ubuntu
+#   ansible.builtin.include_tasks: include/ntp_ubuntu.yaml
+#   when: (INSTALL_PACKAGES_NTP_AND_UPDATE_TIME  | default('NO') == 'YES') and (ansible_facts.distribution == 'Ubuntu')
+
+# - name: INCLUDE - install ntp  - fedora
+#   ansible.builtin.include_tasks: include/ntp_fedora.yaml
+#   when: (INSTALL_PACKAGES_NTP_AND_UPDATE_TIME | default('NO') == 'YES') and (ansible_facts.distribution == 'Fedora')
+
+#
+
+- name: install - updates cache and upgrade
+
+  block:
+    - name: debug
+      debug:
+        msg: "check distribution detection - {{ ansible_facts['distribution'] }}"
+
+    #### FIX - remove cdrom install references
+
+    - name: install - update apt source file - ubuntu
+      template:
+        src: "apt_sources.list.{{ UBUNTU_DISTRIBUTION_CODENAME | default('noble')  }}.j2"
+        dest: /etc/apt/sources.list
+        owner: root
+        group: root
+        mode: "0644"
+      when: ansible_facts.distribution == 'Ubuntu'
+      become: true
+
+    ####
+
+    - name: install - update cache and upgrade - ubuntu
+      apt:
+        update_cache: yes
+        upgrade: dist
+        force_apt_get: yes
+        cache_valid_time: 3600
+      when: ansible_facts.distribution == 'Ubuntu'
+
+    - name: install - update cache and upgrade - fedora
+      dnf:
+        name: "*"
+        state: latest
+        update_cache: yes
+      when: ansible_facts.distribution == 'Fedora'
+
+    #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+    - name: check if restart is required
+      stat:
+        path: /var/run/reboot-required
+      register: reboot_required_file
+      when: ansible_facts.distribution == 'Ubuntu'
+
+    - name: Notify if reboot is required
+      debug:
+        msg: "Reboot is required!"
+      when: reboot_required_file.stat.exists and ansible_facts.distribution == 'Ubuntu'
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+#
+- name: WARNING - reboot machines if required
+  reboot:
+    msg: "   !!! reboot in progress !!! "
+    connect_timeout: 5
+    reboot_timeout: 300
+    pre_reboot_delay: 0
+    post_reboot_delay: 30
+    test_command: uptime
+  when: (REBOOT_AFTER_UPDATES == 'YES')
