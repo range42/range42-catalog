@@ -1,0 +1,36 @@
+---
+- name: Include setup-Debian.yml
+  include_tasks: setup-Debian.yml
+  when: ansible_os_family == 'Debian'
+
+- name: Include setup-RedHat.yml
+  include_tasks: setup-RedHat.yml
+  when: ansible_os_family == 'RedHat'
+
+- name: Install tailscale.
+  package:
+    name: tailscale
+    state: present
+
+- name: Ensure service is running as desired.
+  service:
+    name: "{{ tailscale_service_name }}"
+    state: "{{ tailscale_service_state }}"
+    enabled: "{{ tailscale_service_enabled }}"
+
+- name: Include up.yml
+  include_tasks: up.yml
+  when: tailscale_up_node | bool
+
+- name: Include default-options.yml
+  include_tasks: default-options.yml
+  when: tailscale_default_options_enabled | bool
+
+# If /etc/default/tailscaled was modified, run 'restart tailscaled'
+# handler before running `tailscale cert` command.
+- name: Run handlers.
+  meta: flush_handlers
+
+- name: Include cert.yml
+  include_tasks: cert.yml
+  when: tailscale_cert_enabled | bool

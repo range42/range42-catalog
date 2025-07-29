@@ -1,0 +1,25 @@
+---
+dependencies: []
+
+galaxy_info:
+  role_name: tailscale
+  author: jason_riddle
+  description: "Tailscale on Linux."
+  issue_tracker_url: https://github.com/jason-riddle/ansible-role-tailscale/issues
+  license: "MIT"
+  min_ansible_version: 2.4
+  platforms:
+    - name: Debian
+      versions:
+        - buster   # Debian 10
+        - bullseye # Debian 11
+    - name: Ubuntu
+      versions:
+        - bionic # Ubuntu 18.04
+        - focal  # Ubuntu 20.04
+    - name: Fedora
+      versions:
+        - 38
+  galaxy_tags:
+    - system
+    - tailscale
