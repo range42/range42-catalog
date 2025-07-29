@@ -1,0 +1,71 @@
+---
+#
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+# #
+# - name: install ntp package - fedora
+#   block:
+#     - name: install ntp package - fedora
+#       dnf:
+#         name:
+#           - chrony
+#         state: present
+#         update_cache: yes
+#       when: ansible_facts.distribution == 'Fedora'
+
+#     - name: reload chronyd service
+#       systemd:
+#         name: chronyd
+#         state: restarted
+#       when: ansible_facts.distribution == 'Fedora'
+
+#     - name: force update ntp - chronyc
+#       command: chronyc -a makestep
+#       when: ansible_facts.distribution == 'Fedora'
+
+#     # - name: enable chronyd
+#     #   systemd:
+#     #     name: chronyd.servic
+#     #     enabled: yes
+#     #     state: started
+#     #     when: ansible_facts.distribution == 'Fedora'
+
+#   when: ansible_facts.distribution == 'Fedora'
+
+- name: install ntp package - remove chrony or ntp to avoid conflicts - fedora
+  block:
+    - name: remove chrony if present
+      dnf:
+        name: chrony
+        state: absent
+
+    - name: ensure systemd-timesyncd is installed - fedora
+      dnf:
+        name: systemd-timesyncd
+        state: present
+
+    - name: enable and start systemd-timesyncd - fedora
+      systemd:
+        name: systemd-timesyncd
+        enabled: true
+        state: started
+
+    - name: force resync
+      command: timedatectl set-ntp false && timedatectl set-ntp true
+      changed_when: true
+
+    - name: wait time drift - fedora
+      command: timedatectl show -p NTPSynchronized --value
+      register: ntp_sync_check
+      until: ntp_sync_check.stdout == "yes"
+      retries: 10
+      delay: 5
+      changed_when: false
+
+    - name: assert - time is sync - fedora
+      assert:
+        that:
+          - ntp_sync_check.stdout == "yes"
+        fail_msg: " clock is not sync!"
+        success_msg: " clock is synch ! "
+
+  when: ansible_facts.distribution == 'Fedora'

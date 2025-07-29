@@ -1,0 +1,53 @@
+---
+#
+
+- name: install ntp package - remove chrony or ntp to avoid conflicts then enable systemd-timesyncd
+  block:
+    #
+    - name: remove ntp and ntpdate if present
+      apt:
+        name:
+          - ntp
+          - ntpdate
+        state: absent
+
+    #
+    - name: check systemd-timesyncd is installed - ubuntu
+      apt:
+        name: systemd-timesyncd
+        state: present
+
+    #
+    - name: enable and start systemd-timesyncd - ubuntu
+      systemd:
+        name: systemd-timesyncd
+        enabled: true
+        state: started
+
+  when: ansible_facts.distribution == 'Ubuntu'
+
+#
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+#
+
+- name: install ntp package - time sync - time is now !
+
+  block:
+    #
+    - name: wait time drift - ubuntu
+      command: timedatectl show -p NTPSynchronized --value
+      register: ntp_sync_check
+      until: ntp_sync_check.stdout == "yes"
+      retries: 10
+      delay: 5
+      changed_when: false
+
+    #
+    - name: assert - time is sync - ubuntu
+      assert:
+        that:
+          - ntp_sync_check.stdout == "yes"
+        fail_msg: " clock is not sync!"
+        success_msg: " clock is sync !"
+
+  when: ansible_facts.distribution == 'Ubuntu'
