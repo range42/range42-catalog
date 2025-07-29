@@ -1,0 +1,71 @@
+# ---
+#
+
+- name: configure - firewalld - is installed ?
+
+  ansible.builtin.package:
+    name: firewalld
+    state: present
+
+#
+- name: configure - firewall - reload with reset rules
+  ansible.builtin.command:
+    cmd: "firewall-cmd --complete-reload"
+  become: yes
+
+#
+- name: configure - firewalld - enable
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+    enabled: yes
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: configure - firewalld - set default input to drop
+  ansible.builtin.firewalld:
+    state: enabled
+    permanent: true
+    # immediate: yes
+    zone: public
+    target: DROP
+
+#
+- name: configure - firewalld - allow SSH
+  ansible.builtin.firewalld:
+    state: enabled
+    permanent: true
+    immediate: yes
+    service: ssh
+    zone: public
+
+#
+- name: configure - firewalld - all rules from playbook
+  ansible.builtin.firewalld:
+    permanent: true
+    state: enabled
+    immediate: yes
+    rich_rule: >
+      {{
+        'rule family=ipv4 source address=' + item.ip + ' port port=' + (item.port | string) +
+        ' protocol=tcp accept' if item.ip != 'all' else
+        'rule family=ipv4 port port=' + (item.port | string) + ' protocol=tcp accept'
+      }}
+  with_items: "{{ firewall_rules }}"
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: configure - firewalld - reload
+  ansible.builtin.command:
+    cmd: "firewall-cmd --reload"
+
+- name: configure - firewalld - enable again
+  ansible.builtin.service:
+    name: firewalld
+    state: started
+    enabled: yes
+
+- name: configure - firewalld - show active rules
+  shell: "firewall-cmd --list-all --permanent"
+  register: out
+- debug: var=out.stdout_lines

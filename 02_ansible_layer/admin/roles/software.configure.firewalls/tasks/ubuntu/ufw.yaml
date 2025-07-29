@@ -1,0 +1,60 @@
+---
+#
+
+- name: configure - ufw - is installed ?
+  ansible.builtin.package:
+    name: ufw
+    state: present
+
+#
+- name: configure - ufw - reset previous rules
+  ansible.builtin.ufw:
+    state: reset
+
+#
+- name: configure - ufw - enable
+  ansible.builtin.ufw:
+    state: enabled
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: configure - ufw - set default input to drop
+  ansible.builtin.ufw:
+    default: deny
+    direction: incoming
+
+# - name: configure - ufw - allow SSH
+#   ansible.builtin.ufw:
+#     rule: allow
+#     port: 22
+#     proto: tcp
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: configure - ufw - all rules from playbook
+  ansible.builtin.ufw:
+    rule: "{{ 'allow' }}"
+    port: "{{ item.port }}"
+    proto: "{{ item.protocol }}"
+    # proto: tcp
+    from_ip: "{{ item.ip if item.ip != 'all' else 'any' }}"
+  loop: "{{ firewall_rules }}"
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+#
+- name: configure - ufw - reload
+  ansible.builtin.ufw:
+    state: reloaded
+
+#
+- name: configure - ufw - enable - again
+  ansible.builtin.ufw:
+    state: enabled
+
+#
+- name: configure - ufw - show active rules
+  ansible.builtin.command:
+    cmd: "ufw status verbose"
+  register: out
+- debug: var=out.stdout_lines
