@@ -1,18 +1,18 @@
 ---
 ##
 ## ISSUE : 4
-## 
+##
 
 - name: collect os information
   ansible.builtin.setup:
 
 - name: INCLUDE - firewalld tasks - fedora
-  ansible.builtin.include_tasks: ./fedora/firewalld.yaml
+  ansible.builtin.include_tasks: ./fedora/firewalld.yml
   when: ansible_facts['distribution'] == "Fedora"
 
 #
 - name: INCLUDE - ufw tasks - ubuntu
-  ansible.builtin.include_tasks: ./ubuntu/ufw.yaml
+  ansible.builtin.include_tasks: ./ubuntu/ufw.yml
   when: ansible_facts['distribution'] == "Ubuntu"
 
   #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####

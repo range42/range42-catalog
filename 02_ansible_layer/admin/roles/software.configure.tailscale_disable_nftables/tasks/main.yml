@@ -9,7 +9,7 @@
   #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
 
 - name: INCLUDE - tailscale fix ntftable
-  ansible.builtin.include_tasks: ./include/ubuntu_tailscale_fix_ntfables.yaml
+  ansible.builtin.include_tasks: ./include/ubuntu_tailscale_fix_ntfables.yml
   when: ansible_facts['distribution'] == "Ubuntu"
 
   #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####

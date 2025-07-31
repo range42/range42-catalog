@@ -1,17 +1,16 @@
 ---
-
 ##
 ## ISSUE 5
-## 
+##
 
 #
 - name: INCLUDE - install ntp client and force update time - ubuntu
-  ansible.builtin.include_tasks: ./ubuntu/systemd_timesyncd.yaml
+  ansible.builtin.include_tasks: ./ubuntu/systemd_timesyncd.yml
 
   when: ansible_facts.distribution == 'Ubuntu'
 
 #
 - name: INCLUDE - install ntp client and force update time  - fedora
-  ansible.builtin.include_tasks: ./fedora/systemd_timesyncd.yaml
+  ansible.builtin.include_tasks: ./fedora/systemd_timesyncd.yml
 
   when: ansible_facts.distribution == 'Fedora'
