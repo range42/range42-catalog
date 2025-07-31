@@ -1,0 +1,21 @@
+---
+# defaults file
+
+#
+NODE_VERSION: "22"
+#
+LOCAL_CODE_PATH: "./web_app"
+REMOTE_PROJECT_DIR: "/var/www/web_app"
+#
+NPM_COMMAND: "dev" # preview, dev, build
+#
+OPERATOR_USER: "alice"
+
+#
+APP_USER: "web_app_user"
+APP_USER_SHELL: "/usr/sbin/nologin"
+APP_NAME_SYSTEMD: "web_app_systemd"
+
+
+# # to avoid home dir warning in case of no login user  : 
+# ansible_remote_tmp: "/tmp/.ansible-{{ APP_USER }}/tmp"

@@ -1,0 +1,17 @@
+
+[Unit]
+Description=Nodejs App - {{ APP_NAME_SYSTEMD }}
+After=network.target
+
+[Service]
+Type=simple
+User={{ APP_USER }}
+WorkingDirectory={{ REMOTE_PROJECT_DIR }}
+ExecStart=/usr/bin/npm run {{ NPM_COMMAND }}
+Restart=on-failure
+Environment=NODE_ENV=production
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

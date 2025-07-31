@@ -1,0 +1,140 @@
+---
+#
+# ISSUE: #36
+#
+
+- name: INSTALL NODEJS
+  block:
+    #
+    - name: CURL OFFICIAL NODESOURCE SETUP - {{ NODE_VERSION }}.x
+      ansible.builtin.shell: |
+        curl -fsSL https://deb.nodesource.com/setup_{{ NODE_VERSION }}.x | bash -
+      args:
+        executable: /bin/bash
+      become: true
+
+    #
+    - name: INSTALL NODEJS - {{ NODE_VERSION }} VIA APT
+      apt:
+        name: nodejs
+        state: present
+    #
+    #
+    - name: CHECK - SHOW NODE VERSION
+      shell: node -v
+      register: out
+    - debug: var=out.stdout_lines
+
+    #
+    - name: CHECK - SHOW NPM VERSION
+      shell: npm -v
+      register: out
+    - debug: var=out.stdout_lines
+
+- name: WEB USER ENV CREATION
+  block:
+    #
+    - name: WEB USER ENV CREATION - CREATE USER {{ APP_USER }}
+      user:
+        name: "{{ APP_USER }}"
+        system: yes
+        shell: /usr/bin/sh
+        # shell: /usr/sbin/nologin
+        create_home: yes
+
+    #
+    - name: WEB USER ENV CREATION - CREATEE PROJECT DIRECTORY {{ REMOTE_PROJECT_DIR }}
+      file:
+        path: "{{ REMOTE_PROJECT_DIR }}"
+        state: directory
+        owner: "{{ APP_USER }}"
+        group: "{{ APP_USER }}"
+        recurse: yes
+
+- name: WEB APPLICATION COPY
+  block:
+    #
+    - name: WEB APPLICATION COPY - INSTALL rsync
+      apt:
+        name: rsync
+        state: present
+        update_cache: yes
+
+    #
+    - name: WEB APPLICATION COPY - CREATE TMP DIR
+      file:
+        path: "/tmp/{{ APP_NAME_SYSTEMD }}"
+        state: directory
+        owner: "{{ OPERATOR_USER }}"
+        group: "{{ OPERATOR_USER }}"
+        mode: "0755"
+
+    #
+    - name: WEB APPLICATION COPY - SYNC LOCAL TO REMOTE TMP DIR
+      synchronize:
+        src: "{{ LOCAL_CODE_PATH }}/"
+        dest: "/tmp/{{ APP_NAME_SYSTEMD }}/"
+        recursive: yes
+        rsync_opts:
+          - "-e ssh --info=progress2"
+      delegate_to: localhost
+      become: false
+
+    #
+    - name: WEB APPLICATION COPY - IS REMOTE DIR EXIST ?
+      file:
+        path: "{{ REMOTE_PROJECT_DIR }}"
+        state: directory
+        owner: "{{ APP_USER }}"
+        group: "{{ APP_USER }}"
+        mode: "0755"
+        recurse: yes
+
+    #
+    - name: WEB APPLICATION COPY - MOVE TO FINAL WWW DIR {{ REMOTE_PROJECT_DIR }}
+      copy:
+        src: "/tmp/{{ APP_NAME_SYSTEMD }}/"
+        dest: "{{ REMOTE_PROJECT_DIR }}/"
+        owner: "{{ APP_USER }}"
+        group: "{{ APP_USER }}"
+        mode: preserve
+        remote_src: yes
+
+    #
+    - name: WEB APPLICATION COPY - DELETE TMP DIR
+      file:
+        path: "/tmp/{{ APP_NAME_SYSTEMD }}"
+        state: absent
+
+- name: WEB APPLICATION SETUP
+  block:
+    #
+    # - name: WEB APPLICATION SETUP remote_tmp DIR FOR ANSIBLE
+    #   file:
+    #     path: "/tmp/.ansible-{{ APP_USER }}/tmp"
+    #     state: directory
+    #     owner: "{{ APP_USER }}"
+    #     group: "{{ APP_USER }}"
+    #     mode: "0700"
+    #
+    - name: WEB APPLICATION SETUP - npm install
+      npm:
+        path: "{{ REMOTE_PROJECT_DIR }}"
+        production: no
+      become_user: "{{ APP_USER }}"
+
+    #
+    - name: WEB APPLICATION SETUP - CREATE SYSTEMD SERVICE UNIT
+      template:
+        src: app_service.j2
+        dest: "/etc/systemd/system/{{ APP_NAME_SYSTEMD }}.service"
+        mode: "0644"
+      notify:
+        - SYSTEMD_OPS-RELOAD-SYSTEMD
+        - SYSTEMD_OPS
+    #
+    - name: WEB APPLICATION SETUP - ENABLE - START UNIT
+      systemd:
+        name: "{{ APP_NAME_SYSTEMD }}"
+        enabled: yes
+        state: started
