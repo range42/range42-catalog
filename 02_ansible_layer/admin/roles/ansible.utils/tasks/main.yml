@@ -1,0 +1,4 @@
+- name: "DYNAMIC INCLUDE"
+  include_tasks: "{{ item }}"
+  loop: "{{ requested_tasks | default([]) }}"
+  when: item is match(".*\\.(yaml|yml)$")

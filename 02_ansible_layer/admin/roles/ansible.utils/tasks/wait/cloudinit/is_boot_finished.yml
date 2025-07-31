@@ -1,0 +1,11 @@
+---
+##
+## ISSUE - 8
+##
+#
+- name: CLOUD INIT - WAIT END OF SETUP
+  wait_for:
+    path: /var/lib/cloud/instance/boot-finished
+    state: present
+    delay: 10 # WAIT FOR 10seconds
+    timeout: 500 # MAX 5 min

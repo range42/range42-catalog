@@ -1,0 +1,72 @@
+---
+#
+#
+
+# #
+# - name: "CHECK VAR - var ARG_vm_ssh_name "
+#   debug:
+#     msg: "{{ ARG_vm_ssh_name }}"
+# #
+# - name: "CHECK VAR - var ARG_operator_ssh_config_known_hosts "
+#   debug:
+#     msg: "{{ ARG_operator_ssh_config_known_hosts }}"
+#
+
+#
+- name: WAIT FOR SSH - VIA ProxyJump
+  shell: >
+    ssh
+    -o BatchMode=yes
+    -o ConnectTimeout=5
+    -o StrictHostKeyChecking=accept-new
+    -o UserKnownHostsFile={{ ARG_operator_ssh_config_known_hosts }} 
+    {{ ARG_vm_ssh_name }} true
+
+  register: ssh_check
+  retries: 60
+  delay: 5
+  until: ssh_check.rc == 0
+  ignore_errors: true
+  delegate_to: localhost
+#########
+#########
+#########
+
+#### ANOTHER WAY - WILL NOT WORK WITH SSH PROXY JUMP.
+####
+
+# - name: WAIT FOR SSH
+#   wait_for:
+#     # host: "{{ global_vm_ssh_name }}" # THIS WILL NOT WORK - we must the IP + PORT => ssh config will not considered for this test.
+#     host: "{{ global_vm_ci_ip }}"
+#     port: 22
+#     delay: 5
+#     timeout: 300
+#   delegate_to: localhost # must be perform from admin OS
+
+# - name: ADD SSH FINGERPPRINT TO LOCAL known_hosts FILE
+#   # shell: "ssh-keyscan -H {{ global_vm_ci_ip }} >> {{ global_operator_ssh_config_known_hosts }}"
+#   shell: >
+#     ssh -o StrictHostKeyChecking=accept-new
+#         -o UserKnownHostsFile={{ global_operator_ssh_config_known_hosts }}
+#         -o BatchMode=yes
+#         {{ global_vm_ssh_name }} exit
+
+#########
+#########
+#########
+
+# CLASSIC WAY - WILL NOT WORK WITH SSH PROXY JUMP.
+#
+#
+#
+# - name: Debug SSH connection output
+#   debug:
+#     var: ssh_check
+
+#   # ansible.builtin.known_hosts:
+#   #   name: "{{ global_vm_ci_ip }}"
+#   #   key: "{{ lookup('pipe', 'ssh-keyscan -H ' + global_vm_ci_ip) }}"
+#   #   path: "{{ global_operator_ssh_config_known_hosts }}"
+#   delegate_to: localhost
+
