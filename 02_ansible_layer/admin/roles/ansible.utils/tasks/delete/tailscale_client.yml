@@ -1,0 +1,84 @@
+##
+## ISSUE - 37
+##
+
+- block:
+    #
+    # - name: DEBUG
+    #   debug:
+    #     var: tailscale_hostname
+
+    #
+    - name: TAILSCALE - LIST DEVICE -
+      vars:
+        tailscale_api_key: "{{ vault_tailscale_apikey }}"
+      uri:
+        url: "https://api.tailscale.com/api/v2/tailnet/-/devices"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ tailscale_api_key }}"
+        return_content: yes
+      register: ts_call
+
+    #
+    - name: TAILSCALE - LIST DEVICE - PRINT proxmox_call
+      debug:
+        var: ts_call
+      when: CALL_DEBUG
+
+    #
+    - name: TAILSCALE - EXTRACT DEVICE_ID - {{ tailscale_hostname }}
+      set_fact:
+        device_id: >-
+          {{
+            (ts_call.content | from_json).devices
+            | selectattr('hostname', 'equalto', tailscale_hostname | default(''))
+            | map(attribute='id') | first | default('')
+          }}
+
+    #
+    - name: TAILSCALE - LIST DEVICE - PRINT proxmox_call
+      debug:
+        var: device_id
+      when: CALL_DEBUG
+
+    #
+    # - name: TAILSCALE - EXPIRE DEVICE - {{ tailscale_hostname }}
+    #   when: device_id is defined and device_id | length > 0
+    #   uri:
+    #     url: "https://api.tailscale.com/api/v2/device/{{ device_id }}/expire"
+    #     method: POST
+    #     headers:
+    #       Authorization: "Bearer {{ vault_tailscale_apikey }}"
+    #
+    #
+    - name: AILSCALE - DELETE DEVICE - {{ tailscale_hostname }}
+      when: device_id is defined and device_id | length > 0
+      uri:
+        url: "https://api.tailscale.com/api/v2/device/{{ device_id }}"
+        method: DELETE
+        headers:
+          Authorization: "Bearer {{ vault_tailscale_apikey }}"
+
+  vars:
+    CALL_DEBUG: true
+####
+#
+# CALL
+#
+
+# - hosts: r42.admin-web-emp
+#   gather_facts: false
+#   vars_files:
+#     - "../../secrets/px-testing.cr42_tailscale.yml"
+
+#   vars:
+#     tailscale_hostnames:
+#       - "admin-wazuh"
+#       - "admin-builder-api-devkit"
+#       - "admin-builder-docker-registry"
+#       - "admin-web-api-kong"
+#       - "admin-web-builder-api"
+#       - "admin-web-deployer-ui"
+#       - "admin-web-emp"
+#       - "testing-wazuh-client"
