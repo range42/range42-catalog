@@ -1,0 +1,4 @@
+# from inventory
+services:
+  hello:
+    image: hello-world
