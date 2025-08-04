@@ -1,0 +1,82 @@
+---
+#
+#
+
+- name: DEPLOY DOCKER FILES
+  block:
+    #
+    - name: DEPLOY DOCKER FILES  - INSTALL rsync
+      apt:
+        name: rsync
+        state: present
+        update_cache: yes
+
+    #
+    - name: DEPLOY DOCKER FILES  - CREATE TMP DIR
+      file:
+        # path: "/tmp/{{ APP_NAME_SYSTEMD }}"
+        path: "/tmp/deploy"
+        state: directory
+        owner: "{{ OPERATOR_USER }}"
+        group: "{{ OPERATOR_USER }}"
+        mode: "0700"
+
+    #
+    - name: DEPLOY DOCKER FILES - TYPE {{ LABEL_PROJECT_TYPE}}  - LABEL_PROJET_NAME - NO_POC
+      synchronize:
+        src: "{{ LOCAL__PROJECT_DIR }}/"
+        dest: "{{ REMOTE_PROJECT_DIR }}/"
+        recursive: yes
+        rsync_opts:
+          - "--exclude=poc/"
+          - "-e ssh --info=progress2"
+      delegate_to: localhost
+      become: false
+      when: SEND_POC_DIR == "NO"
+
+    #
+    - name: DEPLOY DOCKER FILES - TYPE {{ LABEL_PROJECT_TYPE}}  - LABEL_PROJET_NAME - WITH_POC
+      synchronize:
+        src: "{{ LOCAL__PROJECT_DIR }}/"
+        dest: "{{ REMOTE_PROJECT_DIR }}/"
+        recursive: yes
+        rsync_opts:
+          - "-e ssh --info=progress2"
+      delegate_to: localhost
+      become: false
+      when: SEND_POC_DIR == "YES"
+
+#
+- name: DOCKER OPERATIONS
+  block:
+    #
+    #
+    - name: DOCKER - DOCKER-COMPOSE - RUN
+      community.docker.docker_compose_v2:
+        project_src: "{{ REMOTE_PROJECT_DIR }}"
+        state: present
+    #
+    - name: DOCKER - GET CONTAINER INFO {{ LABEL_PROJET_NAME }}
+      community.docker.docker_container_info:
+        name: "{{ LABEL_PROJET_NAME }}"
+      register: result
+    #
+    - name: DOCKER - IS CONTAINER EXISTS ?
+      ansible.builtin.debug:
+        msg: "The container {{ 'exists' if result.exists else 'does not exist' }}"
+
+    #
+    - name: CONTAINER INFORMATION
+      ansible.builtin.debug:
+        var: result.container
+      when: result.exists
+
+#
+- name: CLEAN UP
+  block:
+    #
+    - name: DELETE DEPLOYED FILES
+      file:
+        path: "{{ REMOTE_PROJECT_DIR }}"
+        state: absent
+      when: CLEAN_UP_DEPLOY_DIR == "YES"

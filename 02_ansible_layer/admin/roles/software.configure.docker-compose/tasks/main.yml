@@ -1,0 +1,14 @@
+---
+##
+## ISSUE :
+##
+
+- name: collect os information
+  ansible.builtin.setup:
+
+#
+- name: INCLUDE - ufw tasks - ubuntu
+  ansible.builtin.include_tasks: ./ubuntu/deploy.yml
+  when: ansible_facts['distribution'] == "Ubuntu"
+
+  #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
