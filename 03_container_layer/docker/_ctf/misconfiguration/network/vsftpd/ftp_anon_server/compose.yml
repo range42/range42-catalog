@@ -1,0 +1,13 @@
+
+
+services:
+  ftp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: vsftpd_anonym0lus
+    ports:
+      - "21:21"
+      - "20:20"
+      - "30000-30009:30000-30009"
+    restart: unless-stopped

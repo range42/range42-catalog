@@ -1,0 +1,28 @@
+FROM debian:bullseye-slim
+
+RUN apt-get update && \
+    apt-get install --no-install-recommends -y vsftpd && \
+    rm -rf /var/lib/apt/lists/*
+
+# RUN mkdir -p /var/ftp/pub && \
+#     chmod 755 /var/ftp && \
+#     chmod 755 /var/ftp/pub && \
+#     echo "confidential_file" > /var/ftp/pub/secret.txt
+
+RUN set -eux; \
+    mkdir -p /var/ftp; \
+    chmod 755 /var/ftp; \
+    mkdir -p /var/ftp/pub; \
+    chmod 755 /var/ftp/pub; \
+    echo "confidential_file" > /var/ftp/pub/secret.txt
+
+RUN mkdir -p /var/empty ; \
+    chmod 755 /var/empty
+
+
+COPY vsftpd.conf /etc/vsftpd.conf
+
+EXPOSE 21 20 30000-30009
+
+CMD ["/usr/sbin/vsftpd", "/etc/vsftpd.conf"]
+
