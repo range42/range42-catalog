@@ -15,14 +15,14 @@
     - name: DEPLOY DOCKER FILES  - CREATE TMP DIR
       file:
         # path: "/tmp/{{ APP_NAME_SYSTEMD }}"
-        path: "/tmp/deploy"
+        path: "{{ REMOTE_PROJECT_DIR }}"
         state: directory
         owner: "{{ OPERATOR_USER }}"
         group: "{{ OPERATOR_USER }}"
         mode: "0700"
 
     #
-    - name: DEPLOY DOCKER FILES - TYPE {{ LABEL_PROJECT_TYPE}}  - LABEL_PROJET_NAME - NO_POC
+    - name: DEPLOY DOCKER FILES - TYPE {{ LABEL_PROJECT_TYPE}} - {{ LABEL_PROJET_NAME }} - NO_POC
       synchronize:
         src: "{{ LOCAL__PROJECT_DIR }}/"
         dest: "{{ REMOTE_PROJECT_DIR }}/"
@@ -35,7 +35,7 @@
       when: SEND_POC_DIR == "NO"
 
     #
-    - name: DEPLOY DOCKER FILES - TYPE {{ LABEL_PROJECT_TYPE}}  - LABEL_PROJET_NAME - WITH_POC
+    - name: DEPLOY DOCKER FILES - TYPE {{ LABEL_PROJECT_TYPE}}  - {{ LABEL_PROJET_NAME }} - WITH_POC
       synchronize:
         src: "{{ LOCAL__PROJECT_DIR }}/"
         dest: "{{ REMOTE_PROJECT_DIR }}/"
