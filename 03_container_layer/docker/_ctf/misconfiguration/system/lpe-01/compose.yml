@@ -1,0 +1,27 @@
+
+
+services:
+  misconfig-linux-lpe-01: &main # set main anchor.
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # ENABLE_SSH: "NO"
+        ENABLE_SSH: "YES"
+    environment:
+      # - ENABLE_SSH=NO
+      - ENABLE_SSH=YES
+    container_name: misconfig-linux-lpe-01
+    ports:
+      - "2222:22"  
+    # command: ["sleep", "infinity"]
+
+# #### #### do not remove.
+#    
+#   debug:
+#     <<: *main
+#     container_name: misconfig-linux-lpe-01-debug
+#     ports:
+#       - "2223:22"
+#     command: ["sleep", "infinity"]
+# #     # command: ["/bin/bash"]

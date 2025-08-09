@@ -1,0 +1,49 @@
+
+
+FROM ubuntu:24.04
+
+ARG ENABLE_SSH=no
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get install -y bash curl vim bash 
+
+#
+# INSTALL SSH IF ENABLE_SSH=YES
+#
+RUN if [ "$ENABLE_SSH" = "YES" ]; then \
+    apt-get install -y openssh-server && \
+    mkdir /var/run/sshd && \
+    sed -i 's/^#\?PermitRootLogin .*/PermitRootLogin yes/' /etc/ssh/sshd_config && \
+    sed -i 's/^#\?PasswordAuthentication .*/PasswordAuthentication yes/' /etc/ssh/sshd_config ; \
+    fi
+
+#
+# INSTALL VIM LESS ECT 
+#
+RUN apt-get update && apt-get install -y sudo vim less
+
+#
+# CREATE USER 
+#
+RUN useradd -m -s /bin/bash lpe && \
+    echo "lpe:lpe" | chpasswd && \
+    usermod -aG sudo lpe
+#
+# EDIT SUDO FILE 
+#
+RUN echo "lpe ALL=(ALL) NOPASSWD: /usr/bin/vim" >> /etc/sudoers
+RUN rm -rf /var/lib/apt/lists/*
+
+#
+# EXPOSE SSH 
+#
+EXPOSE 22022:22
+
+# USER lpe
+# WORKDIR /home/lpe
+
+CMD ["/usr/bin/bash", "-c", "if [ \"$ENABLE_SSH\" = \"YES\" ]; then \
+    /usr/sbin/sshd -D && sleep infinity; \
+    else sleep infinity; fi"]
+
