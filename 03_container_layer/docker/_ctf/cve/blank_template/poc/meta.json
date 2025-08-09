@@ -1,0 +1,18 @@
+{
+    "product": "AAAAA",
+    "version": "1111",
+    "cve_details": {
+        "description": "" ,
+        "id": "CVE-2025-xxxx", 
+        "score": 0,
+        "references": [
+            {
+                "url": "https://nvd.nist.gov/vuln/detail/CVE-2025-xxxx"
+                
+            }
+        ],
+        "classifications": {
+            "type": "AAA"
+        }
+    }
+}
