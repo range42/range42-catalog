@@ -1,13 +1,25 @@
-
+#
+# ISSUE 84 
+#
 
 services:
-  ftp:
+  misconfig-vsftpd-anonymous: &main # set main anchor.
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: vsftpd_anonym0lus
+    container_name: misconfig-vsftpd-anonymous
     ports:
       - "21:21"
       - "20:20"
       - "30000-30009:30000-30009"
     restart: unless-stopped
+#
+# #### #### do not remove.
+#
+#   debug:
+#     <<: *main
+#     container_name: misconfig-vsftpd-anonymous-debug
+#     ports:
+#       - "60443:443"
+#     command: ["sleep", "infinity"]
+#     # command: ["/bin/bash"]
