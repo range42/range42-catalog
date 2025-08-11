@@ -46,3 +46,7 @@
 - name: INCLUDE - specific - cleaning
   ansible.builtin.include_tasks: ./include/packages-sets/cleaning/_main.yaml
   when: SPECIFIC_PACKAGES_CLEANING | default('NO') == 'YES'
+
+- name: INCLUDE - symlinks farm 
+  ansible.builtin.include_tasks: ./include/symlink_farm/pentesting/ubuntu/_main.yml
+  when: SYMLINKS_FARM_PENETEST | default('NO') == 'YES'
