@@ -7,13 +7,12 @@
 - name: install - basics packages - block
   block:
     #
-    - name: INCLUDE - install - utils_json packages - ubuntu
-      ansible.builtin.include_tasks: ./ubuntu/_main.yaml
+    - name: INCLUDE - INSTALL - SYMLINKS FARM - UBUNTU
+      ansible.builtin.include_tasks: ./ubuntu/pentesting/_main.yml
       when: ansible_facts.distribution == 'Ubuntu'
     #
-    # - name: INCLUDE - install - utils_json packages - fedora
-    #   ansible.builtin.include_tasks: ./fedora/utils_json.yaml
+    # - name: INCLUDE - INSTALL - SYMLINKS FARM - FEDORA
+    #   ansible.builtin.include_tasks: ./fedora/_main.yaml
     #   when: ansible_facts.distribution == 'Fedora'
 
   when: SYMLINKS_FARM_PENETEST | default('NO') == 'YES'
-
