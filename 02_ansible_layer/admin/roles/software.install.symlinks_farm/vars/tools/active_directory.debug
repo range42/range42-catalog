@@ -1,0 +1,11 @@
+TOOLS:
+  ####
+  #### Active Directory DIRECTORY
+  ####
+
+  - name: powerview # OK
+    type: pipx
+    source: "git+https://github.com/aniqfakhrul/powerview.py"
+    system_site_packages: true
+    bin_name: "powerview"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"

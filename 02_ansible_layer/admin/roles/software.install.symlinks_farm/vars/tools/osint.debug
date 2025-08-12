@@ -1,0 +1,37 @@
+---
+###
+###
+###
+TOOLS:
+  ####
+  #### OSINT DIRECTORY
+  ####
+  - name: maigret # ok
+    type: pipx
+    source: "git+https://github.com/soxoj/maigret.git"
+    system_site_packages: true
+    bin_name: "maigret"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/osint"
+
+  - name: sherlock # ok
+    type: pipx
+    source: "git+https://github.com/sherlock-project/sherlock.git"
+    system_site_packages: true
+    bin_name: "sherlock"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/osint"
+
+  #### GOLANG
+
+  - name: waybackurls
+    type: go
+    module: "github.com/tomnomnom/waybackurls"
+    version: "latest"
+    bin_name: "waybackurls"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/osint"
+
+  - name: assetfinder
+    type: go
+    module: "github.com/tomnomnom/assetfinder"
+    version: "latest"
+    bin_name: "assetfinder"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/osint"
