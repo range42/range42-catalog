@@ -8,6 +8,10 @@ TOOLS:
   #### C2  DIRECTORY
   ####
 
+  ####
+  #### PIPX
+  ####
+
   - name: pwncat-cs # KO - compilation error
     type: pipx
     source: "pwncat-cs"
@@ -21,3 +25,7 @@ TOOLS:
     system_site_packages: true
     bin_name: "routersploit"
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/c2"
+
+  ####
+  #### GOLANG
+  ####

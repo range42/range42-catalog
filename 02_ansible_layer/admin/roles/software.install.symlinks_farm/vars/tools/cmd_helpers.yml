@@ -8,6 +8,10 @@ TOOLS:
   #### HELPERS -  DIRECTORY
   ####
 
+  ####
+  #### PIPX
+  ####
+
   - name: shellerator # OK
     type: pipx
     source: "git+https://github.com/ShutdownRepo/shellerator"
@@ -41,4 +45,15 @@ TOOLS:
     source: "git+https://github.com/ihebski/DefaultCreds-cheat-sheet"
     system_site_packages: true
     bin_name: "creds"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/cmd_helpers"
+
+  ####
+  #### GOLANG
+  ####
+
+  - name: gf #
+    type: go
+    module: "github.com/tomnomnom/gf@latestt"
+    version: "latest"
+    bin_name: "gf"
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/cmd_helpers"

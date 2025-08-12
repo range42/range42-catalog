@@ -8,6 +8,10 @@ TOOLS:
   #### web -  DIRECTORY
   ####
 
+  ####
+  #### PIPX
+  ####
+
   - name: dirsearch # OK
     type: pipx
     source: "git+https://github.com/maurosoria/dirsearch"
@@ -98,3 +102,119 @@ TOOLS:
   #   system_site_packages: true
   #   bin_name: "AAA"
   #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  ####
+  #### GOLANG
+  ####
+
+  - name: gobuster #
+    type: go
+    module: "github.com/OJ/gobuster/v3@latest"
+    version: "latest"
+    bin_name: "gobuster"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: hakrawler #
+    type: go
+    module: "github.com/hakluke/hakrawler@latest"
+    version: "latest"
+    bin_name: "hakrawler"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: gowitness #
+    type: go
+    module: "github.com/sensepost/gowitness@latest"
+    version: "latest"
+    bin_name: "gowitness"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: wuzz #
+    type: go
+    module: "github.com/asciimoo/wuzz@latest"
+    version: "latest"
+    bin_name: "wuzz"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: byp4xx #
+    type: go
+    module: "github.com/lobuhi/byp4xx@latest"
+    version: "latest"
+    bin_name: "byp4xx"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: nuclei #
+    type: go
+    module: "github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest"
+    version: "latest"
+    bin_name: "nuclei"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: hakrevdns #
+    type: go
+    module: "github.com/hakluke/hakrevdns@latest"
+    version: "latest"
+    bin_name: "hakrevdns"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: hakrevdns #
+    type: go
+    module: "github.com/hakluke/hakrevdns@latest"
+    version: "latest"
+    bin_name: "hakrevdns"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: httprobe #
+    type: go
+    module: "github.com/tomnomnom/httprobe@latest"
+    version: "latest"
+    bin_name: "httprobe"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: httpx #
+    type: go
+    module: "github.com/projectdiscovery/httpx/cmd/httpx@latest"
+    version: "latest"
+    bin_name: "httpx"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: anew #
+    type: go
+    module: "github.com/tomnomnom/anew@latest"
+    version: "latest"
+    bin_name: "anew"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: naabu #
+    type: go
+    module: "github.com/projectdiscovery/naabu/v2/cmd/naabu@latest"
+    version: "latest"
+    bin_name: "naabu"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: jsluice #
+    type: go
+    module: "github.com/BishopFox/jsluice/cmd/jsluice@latest"
+    version: "latest"
+    bin_name: "jsluice"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: katana #
+    type: go
+    module: "github.com/projectdiscovery/katana/cmd/katana@latest"
+    version: "latest"
+    bin_name: "katana"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: ffuf #
+    type: go
+    module: "https://github.com/ffuf/ffuf@latest"
+    version: "latest"
+    bin_name: "ffuf"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+#
+# - name: AAAA #
+#   type: go
+#   module: "github_AAAA@latest"
+#   version: "latest"
+#   bin_name: "AAAA"
+#   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/network"

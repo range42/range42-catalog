@@ -7,6 +7,11 @@ TOOLS:
   ####
   #### OSINT DIRECTORY
   ####
+
+  ####
+  #### PIPX
+  ####
+
   - name: maigret # ok
     type: pipx
     source: "git+https://github.com/soxoj/maigret.git"
@@ -63,7 +68,9 @@ TOOLS:
     bin_name: "sherlock"
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/osint"
 
+  ####
   #### GOLANG
+  ####
 
   - name: waybackurls
     type: go
@@ -78,3 +85,10 @@ TOOLS:
     version: "latest"
     bin_name: "assetfinder"
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/osint"
+#
+# - name: AAAA #
+#   type: go
+#   module: "github_AAAA@latest"
+#   version: "latest"
+#   bin_name: "AAAA"
+#   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/network"

@@ -8,6 +8,10 @@ TOOLS:
   #### mobile -  DIRECTORY
   ####
 
+  ####
+  #### PIPx
+  ####
+
   - name: frida-tools # OK
     type: pipx
     source: "frida-tools"
@@ -28,3 +32,14 @@ TOOLS:
     system_site_packages: true
     bin_name: "androguard"
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/mobile"
+
+  ####
+  #### GOLANG
+  ####
+#
+# - name: AAAA #
+#   type: go
+#   module: "github_AAAA@latest"
+#   version: "latest"
+#   bin_name: "AAAA"
+#   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/network"

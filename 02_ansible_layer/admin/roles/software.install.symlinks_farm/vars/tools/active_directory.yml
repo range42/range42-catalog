@@ -8,6 +8,10 @@ TOOLS:
   #### Active Directory DIRECTORY
   ####
 
+  ####
+  #### PIPX
+  ####
+
   # # - name: AAAA # ok
   # #   type: pipx
   # #   source: AAAA
@@ -279,4 +283,50 @@ TOOLS:
     source: "git+https://github.com/aniqfakhrul/powerview.py"
     system_site_packages: true
     bin_name: "powerview"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  ####
+  #### GOLANG
+  ####
+
+  - name: pretender #
+    type: go
+    module: "github.com/RedTeamPentesting/pretender@latest"
+    version: "latest"
+    bin_name: "pretender"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: amber #
+    type: go
+    module: "github.com/EgeBalci/amber@latest"
+    version: "latest"
+    bin_name: "amber"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: gosecretsdump #
+    type: go
+    module: "github.com/C-Sto/gosecretsdump@latest"
+    version: "latest"
+    bin_name: "gosecretsdump"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: kerbrute #
+    type: go
+    module: "github.com/ropnop/kerbrute@latest"
+    version: "latest"
+    bin_name: "kerbrute"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: kerbrute #
+    type: go
+    module: "github.com/ropnop/kerbrute@latest"
+    version: "latest"
+    bin_name: "kerbrute"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: godap #
+    type: go
+    module: "github.com/Macmod/godap@latest"
+    version: "latest"
+    bin_name: "godap"
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"

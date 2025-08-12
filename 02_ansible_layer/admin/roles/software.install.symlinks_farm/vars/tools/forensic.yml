@@ -8,6 +8,10 @@ TOOLS:
   #### FORENSIC -  DIRECTORY
   ####
 
+  ####
+  #### PIPX
+  ####
+
   - name: volatility3 #  OK
     type: pipx
     source: "git+https://github.com/volatilityfoundation/volatility3"
@@ -21,3 +25,14 @@ TOOLS:
   #   system_site_packages: true
   #   bin_name: "oletools"
   #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  ####
+  #### GOLANG
+  ####
+#
+# - name: AAAA #
+#   type: go
+#   module: "github_AAAA@latest"
+#   version: "latest"
+#   bin_name: "AAAA"
+#   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/network"

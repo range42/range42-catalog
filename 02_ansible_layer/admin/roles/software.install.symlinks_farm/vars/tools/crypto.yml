@@ -8,6 +8,10 @@ TOOLS:
   #### CRYPTO -  DIRECTORY
   ####
 
+  ####
+  #### PIPX
+  ####
+
   - name: name-that-hash # OK
     type: pipx
     source: "name-that-hash"
@@ -28,3 +32,7 @@ TOOLS:
     system_site_packages: true
     bin_name: "RsaCtfTool"
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/crypto"
+
+  ####
+  #### GOLANG
+  ####
