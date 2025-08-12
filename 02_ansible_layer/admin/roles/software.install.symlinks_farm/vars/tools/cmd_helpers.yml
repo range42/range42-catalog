@@ -1,40 +1,39 @@
 TOOLS:
+  ####
+  #### HELPERS -  DIRECTORY
+  ####
 
-      ####
-      #### HELPERS -  DIRECTORY
-      ####
+  - name: shellerator # OK
+    type: pipx
+    source: "git+https://github.com/ShutdownRepo/shellerator"
+    system_site_packages: true
+    bin_name: "shellerator"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/cmd_helpers"
 
-      - name: shellerator # OK
-        type: pipx
-        source: "git+https://github.com/ShutdownRepo/shellerator"
-        system_site_packages: true
-        bin_name: "shellerator"
-        link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/cmd_helpers"
+  - name: uberfile # OK
+    type: pipx
+    source: "git+https://github.com/ShutdownRepo/uberfile"
+    system_site_packages: true
+    bin_name: "uberfile"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/cmd_helpers"
 
-      - name: uberfile # OK
-        type: pipx
-        source: "git+https://github.com/ShutdownRepo/uberfile"
-        system_site_packages: true
-        bin_name: "uberfile"
-        link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/cmd_helpers"
+  - name: arsenal-cli # OK
+    type: pipx
+    source: "git+https://github.com/Orange-Cyberdefense/arsenal"
+    system_site_packages: true
+    bin_name: "arsenal"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/cmd_helpers"
 
-      - name: arsenal-cli # OK
-        type: pipx
-        source: "git+https://github.com/Orange-Cyberdefense/arsenal"
-        system_site_packages: true
-        bin_name: "arsenal"
-        link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/cmd_helpers"
+  - name: whatportis # OK
+    type: pipx
+    source: "whatportis"
+    system_site_packages: true
+    bin_name: "whatportis"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/cmd_helpers"
 
-      - name: whatportis # OK
-        type: pipx
-        source: "whatportis"
-        system_site_packages: true
-        bin_name: "whatportis"
-        link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/cmd_helpers"
-
-      - name: default-creds # OK but perm issue - must be fix by chown.
-        type: pipx
-        source: "git+https://github.com/ihebski/DefaultCreds-cheat-sheet"
-        system_site_packages: true
-        bin_name: "creds"
-        link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/cmd_helpers"
+  - name: default-creds # OK but perm issue - must be fix by chown.
+    type: pipx
+    source: "git+https://github.com/ihebski/DefaultCreds-cheat-sheet"
+    system_site_packages: true
+    bin_name: "creds"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/cmd_helpers"

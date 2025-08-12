@@ -1,19 +1,18 @@
 TOOLS:
-      
-      ####
-      #### C2  DIRECTORY
-      ####
+  ####
+  #### C2  DIRECTORY
+  ####
 
-      - name: pwncat-cs # KO - compilation error
-        type: pipx
-        source: "pwncat-cs"
-        system_site_packages: true
-        bin_name: "pwncat-cs"
-        link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/c2"
+  - name: pwncat-cs # KO - compilation error
+    type: pipx
+    source: "pwncat-cs"
+    system_site_packages: true
+    bin_name: "pwncat-cs"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/c2"
 
-      - name: routersploit # KO - need investigations
-        type: pipx
-        source: "routersploit"
-        system_site_packages: true
-        bin_name: "routersploit"
-        link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/c2"
+  - name: routersploit # KO - need investigations
+    type: pipx
+    source: "routersploit"
+    system_site_packages: true
+    bin_name: "routersploit"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/c2"
