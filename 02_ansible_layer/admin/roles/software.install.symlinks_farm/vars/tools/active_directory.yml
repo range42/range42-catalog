@@ -291,42 +291,42 @@ TOOLS:
 
   - name: pretender #
     type: go
-    module: "github.com/RedTeamPentesting/pretender@latest"
+    module: "github.com/RedTeamPentesting/pretender"
     version: "latest"
     bin_name: "pretender"
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
 
   - name: amber #
     type: go
-    module: "github.com/EgeBalci/amber@latest"
+    module: "github.com/EgeBalci/amber"
     version: "latest"
     bin_name: "amber"
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
 
   - name: gosecretsdump #
     type: go
-    module: "github.com/C-Sto/gosecretsdump@latest"
+    module: "github.com/C-Sto/gosecretsdump"
     version: "latest"
     bin_name: "gosecretsdump"
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
 
   - name: kerbrute #
     type: go
-    module: "github.com/ropnop/kerbrute@latest"
+    module: "github.com/ropnop/kerbrute"
     version: "latest"
     bin_name: "kerbrute"
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
 
   - name: kerbrute #
     type: go
-    module: "github.com/ropnop/kerbrute@latest"
+    module: "github.com/ropnop/kerbrute"
     version: "latest"
     bin_name: "kerbrute"
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
 
   - name: godap #
     type: go
-    module: "github.com/Macmod/godap@latest"
+    module: "github.com/Macmod/godap"
     version: "latest"
     bin_name: "godap"
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"

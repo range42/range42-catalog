@@ -53,7 +53,7 @@ TOOLS:
 
   - name: gf #
     type: go
-    module: "github.com/tomnomnom/gf@latestt"
+    module: "github.com/tomnomnom/gf"
     version: "latest"
     bin_name: "gf"
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/cmd_helpers"

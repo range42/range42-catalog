@@ -22,17 +22,3 @@ TOOLS:
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/osint"
 
   #### GOLANG
-
-  - name: waybackurls
-    type: go
-    module: "github.com/tomnomnom/waybackurls"
-    version: "latest"
-    bin_name: "waybackurls"
-    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/osint"
-
-  - name: assetfinder
-    type: go
-    module: "github.com/tomnomnom/assetfinder"
-    version: "latest"
-    bin_name: "assetfinder"
-    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/osint"

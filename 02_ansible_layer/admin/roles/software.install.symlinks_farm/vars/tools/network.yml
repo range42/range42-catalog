@@ -56,35 +56,36 @@ TOOLS:
 
   - name: udpx #
     type: go
-    module: "github.com/nullt3r/udpx/cmd/udpx@latest"
+    module: "github.com/nullt3r/udpx/cmd/udpx"
+    # module: "github.com/nullt3r/udpx/cmd/udpx"
     version: "latest"
     bin_name: "udpx"
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/network"
 
   - name: chisel #
     type: go
-    module: "github.com/jpillora/chisel@latest"
+    module: "github.com/jpillora/chisel"
     version: "latest"
     bin_name: "chisel"
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/network"
 
   - name: dnsx #
     type: go
-    module: "install -v github.com/projectdiscovery/dnsx/cmd/dnsx@latest"
+    module: "install -v github.com/projectdiscovery/dnsx/cmd/dnsx"
     version: "latest"
     bin_name: "dnsx"
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/network"
 
   - name: shuffledns #
     type: go
-    module: "github.com/projectdiscovery/shuffledns/cmd/shuffledns@latest"
+    module: "github.com/projectdiscovery/shuffledns/cmd/shuffledns"
     version: "latest"
     bin_name: "shuffledns"
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/network"
 #
 # - name: AAAA #
 #   type: go
-#   module: "github_AAAA@latest"
+#   module: "github_AAAA"
 #   version: "latest"
 #   bin_name: "AAAA"
 #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/network"
