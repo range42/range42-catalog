@@ -1,0 +1,95 @@
+TOOLS:
+  ####
+  #### web -  DIRECTORY
+  ####
+
+  - name: dirsearch # OK
+    type: pipx
+    source: "git+https://github.com/maurosoria/dirsearch"
+    system_site_packages: true
+    bin_name: "dirsearch"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: xsrfprobe # OK
+    type: pipx
+    source: "git+https://github.com/0xInfection/XSRFProbe"
+    system_site_packages: true
+    bin_name: "xsrfprobe"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: droopescan # KO bad compilation
+    type: pipx
+    source: "git+https://github.com/droope/droopescan.git"
+    system_site_packages: true
+    bin_name: "droopescan"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: cmsmap # OK
+    type: pipx
+    source: "git+https://github.com/Dionach/CMSmap.git"
+    system_site_packages: true
+    bin_name: "cmsmap"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: robotstester # OK
+    type: pipx
+    source: "git+https://github.com/p0dalirius/robotstester"
+    system_site_packages: true
+    bin_name: "robotstester"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: token-exploiter # OK
+    type: pipx
+    source: "git+https://github.com/psyray/token-exploiter"
+    system_site_packages: true
+    bin_name: "token-exploiter"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: wafw00f # OK
+    type: pipx
+    source: "wafw00f"
+    system_site_packages: true
+    bin_name: "wafw00f"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: updog # OK
+    type: pipx
+    source: "updog"
+    system_site_packages: true
+    bin_name: "updog"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: git-dumper # OK
+    type: pipx
+    source: "git-dumper"
+    system_site_packages: true
+    bin_name: "git-dumper"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: arjun # OK
+    type: pipx
+    source: "arjun"
+    system_site_packages: true
+    bin_name: "arjun"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: bbot # OK
+    type: pipx
+    source: "bbot"
+    system_site_packages: true
+    bin_name: "bbot"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  - name: cewler # OK
+    type: pipx
+    source: "cewler"
+    system_site_packages: true
+    bin_name: "cewler"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/web"
+
+  # - name: AAA #
+  #   type: pipx
+  #   source: "AAA"
+  #   system_site_packages: true
+  #   bin_name: "AAA"
+  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"

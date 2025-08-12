@@ -1,0 +1,46 @@
+TOOLS:
+  ####
+  #### network -  DIRECTORY
+  ####
+
+  - name: autorecon # OK
+    type: pipx
+    source: "git+https://github.com/Tib3rius/AutoRecon"
+    system_site_packages: true
+    bin_name: "autorecon"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/network"
+
+  # - name: divideandscan # KO
+  #   type: pipx
+  #   source: "git+https://github.com/snovvcrash/DivideAndScan"
+  #   system_site_packages: true
+  #   bin_name: "divideandscan"
+  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/network"
+
+  - name: sshuttle # OK
+    type: pipx
+    source: "git+https://github.com/sshuttle/sshuttle.git"
+    system_site_packages: true
+    bin_name: "sshuttle"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/network"
+
+  - name: fierce # OK
+    type: pipx
+    source: "git+https://github.com/mschwager/fierce"
+    system_site_packages: true
+    bin_name: "fierce"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/network"
+
+  - name: ssh-audit # OK
+    type: pipx
+    source: "git+https://github.com/jtesta/ssh-audit"
+    system_site_packages: true
+    bin_name: "ssh-audit"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/network"
+
+  - name: sipvicious # KO bad_bin_name
+    type: pipx
+    source: "git+https://github.com/enablesecurity/sipvicious.git"
+    system_site_packages: true
+    bin_name: "./sipvicious_svmap"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/network"

@@ -1,0 +1,63 @@
+---
+###
+###
+###
+TOOLS:
+      ####
+      #### OSINT DIRECTORY
+      ####
+      - name: maigret # ok
+        type: pipx
+        source: "git+https://github.com/soxoj/maigret.git"
+        system_site_packages: true
+        bin_name: "maigret"
+        link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/osint"
+
+      - name: gitfive # ok
+        type: pipx
+        source: "git+https://github.com/mxrch/gitfive.git"
+        system_site_packages: true
+        bin_name: "gitfive"
+        link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/osint"
+
+      - name: sublist3r #ok
+        type: pipx
+        source: "git+https://github.com/aboul3la/Sublist3r.git"
+        system_site_packages: true
+        bin_name: "sublist3r"
+        link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/osint"
+
+      - name: ignorant # ok
+        type: pipx
+        source: "git+https://github.com/megadose/ignorant.git"
+        system_site_packages: true
+        bin_name: "ignorant"
+        link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/osint"
+
+      - name: youtube-dl # ok
+        type: pipx
+        source: "youtube-dl"
+        system_site_packages: true
+        bin_name: "youtube-dl"
+        link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/osint"
+
+      - name: holehe # ok
+        type: pipx
+        source: "git+https://github.com/megadose/holehe.git"
+        system_site_packages: true
+        bin_name: "holehe"
+        link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/osint"
+
+      - name: h8mail # ok
+        type: pipx
+        source: "git+https://github.com/khast3x/h8mail.git"
+        system_site_packages: true
+        bin_name: "h8mail"
+        link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/osint"
+
+      - name: sherlock # ok
+        type: pipx
+        source: "git+https://github.com/sherlock-project/sherlock.git"
+        system_site_packages: true
+        bin_name: "sherlock"
+        link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/osint"

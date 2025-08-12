@@ -1,0 +1,18 @@
+TOOLS:
+  ####
+  #### FORENSIC -  DIRECTORY
+  ####
+
+  - name: volatility3 #  OK
+    type: pipx
+    source: "git+https://github.com/volatilityfoundation/volatility3"
+    system_site_packages: true
+    bin_name: "vol"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/forensics"
+
+  # - name: oletools # KO - we need to add extra bin.
+  #   type: pipx
+  #   source: "oletools"
+  #   system_site_packages: true
+  #   bin_name: "oletools"
+  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"

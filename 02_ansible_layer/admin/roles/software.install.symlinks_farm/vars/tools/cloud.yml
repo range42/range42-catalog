@@ -1,0 +1,25 @@
+TOOLS:
+  ####
+  #### CLOUD -  DIRECTORY
+  ####
+
+  - name: scoutsuite # OK
+    type: pipx
+    source: "scoutsuite"
+    system_site_packages: true
+    bin_name: "scout"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/cloud"
+
+  - name: cloudsplaining # OK
+    type: pipx
+    source: "cloudsplaining"
+    system_site_packages: true
+    bin_name: "cloudsplaining"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/cloud"
+
+  - name: prowler # OK
+    type: pipx
+    source: "prowler"
+    system_site_packages: true
+    bin_name: "prowler"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/cloud"

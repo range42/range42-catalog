@@ -1,0 +1,25 @@
+TOOLS:
+  ####
+  #### CRYPTO -  DIRECTORY
+  ####
+
+  - name: name-that-hash # OK
+    type: pipx
+    source: "name-that-hash"
+    system_site_packages: true
+    bin_name: "name-that-hash"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/crypto"
+
+  - name: geowordlists # OK
+    type: pipx
+    source: "git+https://github.com/p0dalirius/GeoWordlists"
+    system_site_packages: true
+    bin_name: "geowordlists"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/crypto"
+
+  - name: rsactftool # KO - bad bin name ?
+    type: pipx
+    source: "git+https://github.com/RsaCtfTool/RsaCtfTool"
+    system_site_packages: true
+    bin_name: "RsaCtfTool"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/crypto"
