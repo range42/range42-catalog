@@ -1,0 +1,27 @@
+TOOLS:
+
+      
+      ####
+      #### mobile -  DIRECTORY
+      ####
+
+      - name: frida-tools # OK
+        type: pipx
+        source: "frida-tools"
+        system_site_packages: true
+        bin_name: "frida"
+        link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/mobile"
+
+      - name: objection # OK
+        type: pipx
+        source: "git+https://github.com/sensepost/objection"
+        system_site_packages: true
+        bin_name: "objection"
+        link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/mobile"
+
+      - name: androguard # OK
+        type: pipx
+        source: "git+https://github.com/androguard/androguard"
+        system_site_packages: true
+        bin_name: "androguard"
+        link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/mobile"

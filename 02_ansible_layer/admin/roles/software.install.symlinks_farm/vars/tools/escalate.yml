@@ -1,0 +1,12 @@
+TOOLS:
+
+      ####
+      #### escalate -  DIRECTORY
+      ####
+
+      - name: wesng # OK
+        type: pipx
+        source: "git+https://github.com/bitsadmin/wesng"
+        system_site_packages: true
+        bin_name: "wes"
+        link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/escalate"
