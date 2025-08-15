@@ -16,12 +16,12 @@ TOOLS:
   #### GOLANG
   ####
 
-  - name: bettercap #
-    type: go
-    module: "github.com/bettercap/bettercap@latest"
-    version: "latest"
-    bin_name: "bettercap"
-    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/network"
+  # - name: bettercap #
+  #   type: go
+  #   module: "github.com/bettercap/bettercap/v2"
+  #   version: "latest"
+  #   bin_name: "bettercap"
+  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/network"
 
   # - name: AAAA #
   #   type: go

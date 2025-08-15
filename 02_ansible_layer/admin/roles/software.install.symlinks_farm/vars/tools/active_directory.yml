@@ -12,271 +12,271 @@ TOOLS:
   #### PIPX
   ####
 
-  # # - name: AAAA # ok
-  # #   type: pipx
-  # #   source: AAAA
-  # #   system_site_packages: true
-  # #   bin_name: "AAAA"
-  # #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: mitm6 #  ok
+  # - name: AAAA # ok
   #   type: pipx
-  #   source: mitm6
+  #   source: AAAA
   #   system_site_packages: true
-  #   bin_name: "mitm6"
+  #   bin_name: "AAAA"
   #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
 
-  # - name: lsassy # ok
+  - name: mitm6 #  ok
+    type: pipx
+    source: mitm6
+    system_site_packages: true
+    bin_name: "mitm6"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: lsassy # ok
+    type: pipx
+    source: lsassy
+    system_site_packages: true
+    bin_name: "lsassy"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: pypykatz #  ok
+    type: pipx
+    source: pypykatz
+    system_site_packages: true
+    bin_name: "pypykatz"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: krbjack # ok
+    type: pipx
+    source: krbjack
+    system_site_packages: true
+    bin_name: "krbjack"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: smtp-user-enum # ok
+    type: pipx
+    source: smtp-user-enum
+    system_site_packages: true
+    bin_name: "smtp-user-enum"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: roadrecon # ok
+    type: pipx
+    source: roadrecon
+    system_site_packages: true
+    bin_name: "roadrecon"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: roadtx # ok
+    type: pipx
+    source: roadtx
+    system_site_packages: true
+    bin_name: "roadtx"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: bloodhound-import # ok
+    type: pipx
+    source: bloodhound-import
+    system_site_packages: true
+    bin_name: "bloodhound-import"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: sprayhound # KO - compilation
+    type: pipx
+    source: "git+https://github.com/Hackndo/sprayhound"
+    system_site_packages: true
+    bin_name: "sprayhound"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: asrepcatcher # OK
+    type: pipx
+    source: "git+https://github.com/Yaxxine7/asrepcatcher"
+    system_site_packages: true
+    bin_name: "./ASRepCatcher" #
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: enum4linux-ng # KO - dependence : smbclient
+    type: pipx
+    source: "git+https://github.com/cddmp/enum4linux-ng"
+    system_site_packages: true
+    bin_name: "enum4linux-ng" #
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: aclpwn # OK
+    type: pipx
+    source: "git+https://github.com/aas-n/aclpwn.py"
+    system_site_packages: true
+    bin_name: "aclpwn"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: bloodHound # dir !
+    type: pipx
+    source: "git+https://github.com/fox-it/BloodHound.py"
+    system_site_packages: true
+    bin_name: "bloodHound-python"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: ldapdomaindump # ok
+    type: pipx
+    source: "git+https://github.com/dirkjanm/ldapdomaindump"
+    system_site_packages: true
+    bin_name: "ldapdomaindump"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: smartbrute # ok
+    type: pipx
+    source: "git+https://github.com/ShutdownRepo/smartbrute"
+    system_site_packages: true
+    bin_name: "smartbrute"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: ritm # KO - to analyze.
+    type: pipx
+    source: "git+https://github.com/Tw1sm/RITM"
+    system_site_packages: true
+    bin_name: "ritm"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: masky # OK
+    type: pipx
+    source: "git+https://github.com/Z4kSec/Masky"
+    system_site_packages: true
+    bin_name: "masky"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: msprobe # KO - compilation errors
+    type: pipx
+    source: "git+https://github.com/puzzlepeaches/msprobe"
+    system_site_packages: true
+    bin_name: "msprobe"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: pre2k # OK
+    type: pipx
+    source: "git+https://github.com/garrettfoster13/pre2k"
+    system_site_packages: true
+    bin_name: "pre2k"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: "keepwn" # KO - compilation errors
+    type: pipx
+    source: "git+https://github.com/Orange-Cyberdefense/KeePwn"
+    system_site_packages: true
+    bin_name: "KeePwn"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: certsync # OK
+    type: pipx
+    source: "git+https://github.com/zblurx/certsync"
+    system_site_packages: true
+    bin_name: "certsync"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  # - name: ldeep #  KO
   #   type: pipx
-  #   source: lsassy
+  #   source: "git+https://github.com/franc-pentest/ldeep"
   #   system_site_packages: true
-  #   bin_name: "lsassy"
+  #   bin_name: "ldeep"
   #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
 
-  # - name: pypykatz #  ok
+  - name: webclientservicescanner # OK
+    type: pipx
+    source: "git+https://github.com/Hackndo/WebclientServiceScanner"
+    system_site_packages: true
+    bin_name: "webclientservicescanner"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: donpapi # OK
+    type: pipx
+    source: "git+https://github.com/login-securite/DonPAPI"
+    system_site_packages: true
+    bin_name: "donpapi"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: man-spider # KO - compilation error
+    type: pipx
+    source: "git+https://github.com/blacklanternsecurity/MANSPIDER"
+    system_site_packages: true
+    bin_name: "manspider"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: pywhisker # OK
+    type: pipx
+    source: "git+https://github.com/ShutdownRepo/pywhisker"
+    system_site_packages: true
+    bin_name: "pywhisker"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: coercer # OK
+    type: pipx
+    source: "git+https://github.com/p0dalirius/Coercer"
+    system_site_packages: true
+    bin_name: "coercer"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: adidnsdump # OK
+    type: pipx
+    source: "git+https://github.com/dirkjanm/adidnsdump"
+    system_site_packages: true
+    bin_name: "adidnsdump"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: gpoddity # OK
+    type: pipx
+    source: "git+https://github.com/synacktiv/GPOddity"
+    system_site_packages: true
+    bin_name: "gpoddity"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: pywerview # OK
+    type: pipx
+    source: "git+https://github.com/the-useless-one/pywerview"
+    system_site_packages: true
+    bin_name: "pywerview"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: scrtdnsdump # KO - compilation error
+    type: pipx
+    source: "git+https://github.com/scrt/scrtdnsdump"
+    system_site_packages: true
+    bin_name: "scrtdnsdump"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: abuseacl # OK
+    type: pipx
+    source: "git+https://github.com/AetherBlack/abuseACL"
+    system_site_packages: true
+    bin_name: "abuseACL"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: bloodyad # OK
+    type: pipx
+    source: "git+https://github.com/CravateRouge/bloodyAD"
+    system_site_packages: true
+    bin_name: "bloodyAD"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  # - name: autobloody #  KO
   #   type: pipx
-  #   source: pypykatz
+  #   source: "git+https://github.com/CravateRouge/autobloody"
   #   system_site_packages: true
-  #   bin_name: "pypykatz"
+  #   bin_name: "autobloody"
+  # link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  - name: dploot # OK
+    type: pipx
+    source: "git+https://github.com/zblurx/dploot"
+    system_site_packages: true
+    bin_name: "dploot"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+
+  # - name: conpass #  KO
+  #   type: pipx
+  #   source: "git+https://github.com/login-securite/conpass"
+  #   system_site_packages: true
+  #   bin_name: "conpass"
   #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
 
-  # - name: krbjack # ok
-  #   type: pipx
-  #   source: krbjack
-  #   system_site_packages: true
-  #   bin_name: "krbjack"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: smtp-user-enum # ok
-  #   type: pipx
-  #   source: smtp-user-enum
-  #   system_site_packages: true
-  #   bin_name: "smtp-user-enum"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: roadrecon # ok
-  #   type: pipx
-  #   source: roadrecon
-  #   system_site_packages: true
-  #   bin_name: "roadrecon"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: roadtx # ok
-  #   type: pipx
-  #   source: roadtx
-  #   system_site_packages: true
-  #   bin_name: "roadtx"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: bloodhound-import # ok
-  #   type: pipx
-  #   source: bloodhound-import
-  #   system_site_packages: true
-  #   bin_name: "bloodhound-import"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: sprayhound # KO - compilation
-  #   type: pipx
-  #   source: "git+https://github.com/Hackndo/sprayhound"
-  #   system_site_packages: true
-  #   bin_name: "sprayhound"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: asrepcatcher # OK
-  #   type: pipx
-  #   source: "git+https://github.com/Yaxxine7/asrepcatcher"
-  #   system_site_packages: true
-  #   bin_name: "./ASRepCatcher" #
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: enum4linux-ng # KO - dependence : smbclient
-  #   type: pipx
-  #   source: "git+https://github.com/cddmp/enum4linux-ng"
-  #   system_site_packages: true
-  #   bin_name: "enum4linux-ng" #
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: aclpwn # OK
-  #   type: pipx
-  #   source: "git+https://github.com/aas-n/aclpwn.py"
-  #   system_site_packages: true
-  #   bin_name: "aclpwn"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: bloodHound # dir !
-  #   type: pipx
-  #   source: "git+https://github.com/fox-it/BloodHound.py"
-  #   system_site_packages: true
-  #   bin_name: "bloodHound-python"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: ldapdomaindump # ok
-  #   type: pipx
-  #   source: "git+https://github.com/dirkjanm/ldapdomaindump"
-  #   system_site_packages: true
-  #   bin_name: "ldapdomaindump"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: smartbrute # ok
-  #   type: pipx
-  #   source: "git+https://github.com/ShutdownRepo/smartbrute"
-  #   system_site_packages: true
-  #   bin_name: "smartbrute"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: ritm # KO - to analyze.
-  #   type: pipx
-  #   source: "git+https://github.com/Tw1sm/RITM"
-  #   system_site_packages: true
-  #   bin_name: "ritm"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: masky # OK
-  #   type: pipx
-  #   source: "git+https://github.com/Z4kSec/Masky"
-  #   system_site_packages: true
-  #   bin_name: "masky"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: msprobe # KO - compilation errors
-  #   type: pipx
-  #   source: "git+https://github.com/puzzlepeaches/msprobe"
-  #   system_site_packages: true
-  #   bin_name: "msprobe"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: pre2k # OK
-  #   type: pipx
-  #   source: "git+https://github.com/garrettfoster13/pre2k"
-  #   system_site_packages: true
-  #   bin_name: "pre2k"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: "keepwn" # KO - compilation errors
-  #   type: pipx
-  #   source: "git+https://github.com/Orange-Cyberdefense/KeePwn"
-  #   system_site_packages: true
-  #   bin_name: "KeePwn"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: certsync # OK
-  #   type: pipx
-  #   source: "git+https://github.com/zblurx/certsync"
-  #   system_site_packages: true
-  #   bin_name: "certsync"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # # - name: ldeep #  KO
-  # #   type: pipx
-  # #   source: "git+https://github.com/franc-pentest/ldeep"
-  # #   system_site_packages: true
-  # #   bin_name: "ldeep"
-  # #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: webclientservicescanner # OK
-  #   type: pipx
-  #   source: "git+https://github.com/Hackndo/WebclientServiceScanner"
-  #   system_site_packages: true
-  #   bin_name: "webclientservicescanner"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: donpapi # OK
-  #   type: pipx
-  #   source: "git+https://github.com/login-securite/DonPAPI"
-  #   system_site_packages: true
-  #   bin_name: "donpapi"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: man-spider # KO - compilation error
-  #   type: pipx
-  #   source: "git+https://github.com/blacklanternsecurity/MANSPIDER"
-  #   system_site_packages: true
-  #   bin_name: "manspider"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: pywhisker # OK
-  #   type: pipx
-  #   source: "git+https://github.com/ShutdownRepo/pywhisker"
-  #   system_site_packages: true
-  #   bin_name: "pywhisker"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: coercer # OK
-  #   type: pipx
-  #   source: "git+https://github.com/p0dalirius/Coercer"
-  #   system_site_packages: true
-  #   bin_name: "coercer"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: adidnsdump # OK
-  #   type: pipx
-  #   source: "git+https://github.com/dirkjanm/adidnsdump"
-  #   system_site_packages: true
-  #   bin_name: "adidnsdump"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: gpoddity # OK
-  #   type: pipx
-  #   source: "git+https://github.com/synacktiv/GPOddity"
-  #   system_site_packages: true
-  #   bin_name: "gpoddity"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: pywerview # OK
-  #   type: pipx
-  #   source: "git+https://github.com/the-useless-one/pywerview"
-  #   system_site_packages: true
-  #   bin_name: "pywerview"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: scrtdnsdump # KO - compilation error
-  #   type: pipx
-  #   source: "git+https://github.com/scrt/scrtdnsdump"
-  #   system_site_packages: true
-  #   bin_name: "scrtdnsdump"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: abuseacl # OK
-  #   type: pipx
-  #   source: "git+https://github.com/AetherBlack/abuseACL"
-  #   system_site_packages: true
-  #   bin_name: "abuseACL"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: bloodyad # OK
-  #   type: pipx
-  #   source: "git+https://github.com/CravateRouge/bloodyAD"
-  #   system_site_packages: true
-  #   bin_name: "bloodyAD"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # # - name: autobloody #  KO
-  # #   type: pipx
-  # #   source: "git+https://github.com/CravateRouge/autobloody"
-  # #   system_site_packages: true
-  # #   bin_name: "autobloody"
-  # # link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: dploot # OK
-  #   type: pipx
-  #   source: "git+https://github.com/zblurx/dploot"
-  #   system_site_packages: true
-  #   bin_name: "dploot"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # # - name: conpass #  KO
-  # #   type: pipx
-  # #   source: "git+https://github.com/login-securite/conpass"
-  # #   system_site_packages: true
-  # #   bin_name: "conpass"
-  # #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
-
-  # - name: ad-miner # OK
-  #   type: pipx
-  #   source: "git+https://github.com/Mazars-Tech/AD_Miner"
-  #   system_site_packages: true
-  #   bin_name: "AD-miner"
-  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+  - name: ad-miner # OK
+    type: pipx
+    source: "git+https://github.com/Mazars-Tech/AD_Miner"
+    system_site_packages: true
+    bin_name: "AD-miner"
+    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
 
   - name: powerview # OK
     type: pipx
@@ -296,12 +296,12 @@ TOOLS:
     bin_name: "pretender"
     link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
 
-  - name: amber #
-    type: go
-    module: "github.com/EgeBalci/amber"
-    version: "latest"
-    bin_name: "amber"
-    link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
+  # - name: amber # compilation error - must use the dockerfile.
+  #   type: go
+  #   module: "github.com/EgeBalci/amber"
+  #   version: "latest"
+  #   bin_name: "amber"
+  #   link_dir: "{{ SYMLINKS_FARM_STUDENT_TOOL_DIR }}/active_directory"
 
   - name: gosecretsdump #
     type: go
