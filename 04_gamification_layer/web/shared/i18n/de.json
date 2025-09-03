@@ -1,0 +1,10 @@
+{
+  "title": "Range42 CTF",
+  "subtitle": "Gamification Schicht",
+  "nav": { "home": "Start", "about": "Über" },
+  "controls": { "language": "Sprache", "skin": "Skin" },
+  "content": {
+    "welcome": "Willkommen, Herausforderer! Wähle ein Skin und eine Sprache.",
+    "about": "Dies ist eine einfache, austauschbare UI für Herausforderungen."
+  }
+}

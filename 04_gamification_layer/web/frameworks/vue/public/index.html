@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Range42 – Vue</title>
+  <link rel="stylesheet" href="../../../shared/css/design-system.css">
+  <link id="skin-css" rel="stylesheet" href="./skins/classic/skin.css">
+  <script>window.APP_SHARED_BASE = "../../../shared";</script>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+  <script src="../../../shared/js/skin.js"></script>
+  <script defer src="./app.js"></script>
+</head>
+<body>
+  <div id="app" class="container">
+    <header class="header">
+      <div class="brand">
+        <span class="badge">VUE</span>
+        <div>
+          <div>{{ t('title') }}</div>
+          <div class="muted" style="font-size:12px">{{ t('subtitle') }}</div>
+        </div>
+      </div>
+      <div class="controls">
+        <label><span>{{ t('controls.language') }}</span>:
+          <select v-model="lang" @change="loadI18n">
+            <option value="en">EN</option>
+            <option value="de">DE</option>
+          </select>
+        </label>
+        <label><span>{{ t('controls.skin') }}</span>:
+          <select v-model="skin" @change="applySkin">
+            <option value="classic">Classic</option>
+            <option value="hospital">Hospital</option>
+          </select>
+        </label>
+      </div>
+    </header>
+
+    <nav class="nav">
+      <a href="#">{{ t('nav.home') }}</a>
+      <a href="#">{{ t('nav.about') }}</a>
+    </nav>
+
+    <main class="panel">
+      <h2 class="hero">{{ t('content.welcome') }}</h2>
+      <p>{{ t('content.about') }}</p>
+    </main>
+
+    <footer class="footer">© Range42</footer>
+  </div>
+</body>
+</html>

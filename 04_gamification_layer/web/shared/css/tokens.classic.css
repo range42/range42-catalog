@@ -1,0 +1,9 @@
+/* Classic skin tokens (overrides) */
+:root {
+  --bg: #0b1020;           /* deep navy */
+  --panel: #121931;        /* slate navy panel */
+  --text: #e8ecf4;         /* cool light */
+  --muted: #aab3c7;        /* muted slate */
+  --primary: #eab308;      /* gold */
+  --accent: #b91c1c;       /* deep red */
+}

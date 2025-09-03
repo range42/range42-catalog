@@ -1,0 +1,148 @@
+@import url("../../../../shared/css/tokens.hospital.css");
+/* HTML-specific hospital extras (optional) */
+.hero { border-left: 3px solid var(--accent); padding-left: 12px; }
+
+/* Hospital theme polish */
+:root {
+  --hospital-outline: rgba(6, 182, 212, 0.55);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.32);
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  background: radial-gradient(1200px 400px at 10% -10%, rgba(6, 182, 212, 0.10), transparent),
+              radial-gradient(1200px 400px at 90% -10%, rgba(52, 211, 153, 0.08), transparent),
+              var(--bg);
+}
+
+.header {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 0;
+}
+
+.brand .badge {
+  background: var(--primary);
+  color: #001317;
+  border: 1px solid rgba(255,255,255,0.25);
+  box-shadow: inset 0 -1px 0 rgba(0,0,0,0.2);
+}
+.brand .badge::before { content: "✚"; margin-right: 6px; }
+
+.nav { display: flex; gap: 12px; flex-wrap: wrap; }
+.nav a { color: var(--text); text-decoration: none; opacity: 0.9; padding: 4px 6px; border-bottom: 2px solid transparent; transition: color 120ms ease, border-color 120ms ease; }
+.nav a:hover { color: var(--primary); border-color: var(--accent); }
+
+.panel {
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0)), var(--panel);
+  border: 1px solid rgba(6, 182, 212, 0.18);
+  box-shadow: var(--shadow-lg);
+  border-radius: 10px;
+  padding: 16px;
+}
+
+.hero { background: rgba(6, 182, 212, 0.05); }
+
+select, button {
+  border-color: rgba(6, 182, 212, 0.35);
+  outline: none;
+  transition: box-shadow 120ms ease, border-color 120ms ease;
+}
+select:focus, button:focus {
+  box-shadow: 0 0 0 3px var(--hospital-outline);
+  border-color: var(--accent);
+}
+
+/* Buttons (optional usage) */
+.btn { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+.btn.primary { background: var(--primary); color: #042026; border: none; }
+.btn.primary:hover { filter: brightness(1.05); }
+.btn.ghost { background: transparent; color: var(--text); border: 1px solid rgba(6, 182, 212, 0.35); }
+
+/* Table (optional usage) */
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+.table th { color: var(--muted); font-weight: 600; text-align: left; }
+.table tr:hover td { background: rgba(6, 182, 212, 0.05); }
+
+/* Alerts (optional usage) */
+.alert { padding: 12px 14px; border-radius: 8px; border: 1px solid; }
+.alert.info { background: rgba(6, 182, 212, 0.08); border-color: rgba(6, 182, 212, 0.35); }
+.alert.danger { background: rgba(239, 68, 68, 0.08); border-color: rgba(239, 68, 68, 0.40); }
+
+/* Badges (optional usage) */
+.badge.success { background: var(--accent); color: #002b22; }
+.badge.warn { background: #f59e0b; color: #190f00; }
+
+/* Base layout helpers */
+.container { max-width: 1040px; margin: 0 auto; padding: 24px; }
+.controls { display: flex; gap: 8px; align-items: center; }
+.footer { opacity: 0.7; font-size: 14px; padding: 24px 0; }
+.row { display: flex; gap: 12px; align-items: center; }
+.space { flex: 1 1 auto; }
+
+/* Sections & typography */
+.section { margin-top: 20px; }
+.section-title { font-size: 20px; margin: 0 0 12px; letter-spacing: 0.2px; }
+.lead { color: var(--muted); max-width: 60ch; }
+
+/* Hero layout */
+.hero-section { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 16px; align-items: center; }
+.hero-content h1 { margin: 0 0 8px; font-size: 28px; }
+.hero-content .ctas { margin-top: 8px; }
+.hero-image { width: 100%; height: 260px; object-fit: cover; border-radius: 10px; border: 1px solid rgba(6, 182, 212, 0.18); }
+
+/* Cards & grids */
+.card { background: var(--panel); border: 1px solid rgba(6, 182, 212, 0.18); border-radius: 10px; padding: 14px; }
+.grid { display: grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid.services { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid.providers { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid.testimonials { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+/* Quick links */
+.card.link { display: flex; align-items: center; justify-content: space-between; text-decoration: none; color: var(--text); transition: background 140ms ease, border-color 140ms ease; }
+.card.link:hover { background: rgba(6, 182, 212, 0.06); border-color: rgba(6, 182, 212, 0.35); }
+.pill { background: var(--accent); color: #002b22; padding: 2px 8px; border-radius: 999px; font-size: 12px; border: 1px solid rgba(0,0,0,0.15); }
+
+/* Providers */
+.doctor-card { display: flex; gap: 12px; align-items: center; }
+.doctor-card img { width: 56px; height: 56px; object-fit: cover; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12); }
+
+/* Resources */
+.resource-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.resource-list a { color: var(--text); text-decoration: none; opacity: 0.9; }
+.resource-list a:hover { text-decoration: underline; opacity: 1; }
+
+/* KPIs */
+.kpis { display: grid; gap: 12px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.stat .value { font-size: 24px; font-weight: 700; }
+.stat .label { color: var(--muted); }
+
+/* Testimonials */
+.testimonial { font-style: italic; display: block; }
+.testimonial cite { display: block; margin-top: 8px; color: var(--muted); font-style: normal; }
+
+/* Map */
+.map img { width: 100%; height: 220px; object-fit: cover; border-radius: 8px; margin-bottom: 8px; border: 1px solid rgba(6, 182, 212, 0.18); }
+
+/* Two column split for resources/announcements */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* Responsive */
+@media (max-width: 900px) {
+  .hero-section { grid-template-columns: 1fr; }
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid.providers, .grid.services, .grid.testimonials { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .two-col { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .grid, .grid.providers, .grid.services, .grid.testimonials { grid-template-columns: 1fr; }
+  .kpis { grid-template-columns: 1fr 1fr; }
+}

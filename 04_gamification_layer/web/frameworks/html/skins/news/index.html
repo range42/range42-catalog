@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Range Daily — Breaking News & In‑Depth Stories</title>
+  <!-- Tailwind CSS CDN (no local CSS) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100">
+  <!-- Header -->
+  <header class="border-b border-white/10 bg-slate-900/60 backdrop-blur">
+    <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
+      <a class="font-extrabold tracking-tight text-xl" href="#">Range Daily</a>
+      <nav class="hidden md:flex items-center gap-6 text-sm">
+        <a class="hover:underline" href="#">Top</a>
+        <a class="hover:underline" href="#">World</a>
+        <a class="hover:underline" href="#">Business</a>
+        <a class="hover:underline" href="#">Tech</a>
+        <a class="hover:underline" href="#">Health</a>
+        <a class="hover:underline" href="#">Sports</a>
+        <a class="hover:underline" href="#">Culture</a>
+      </nav>
+      <div class="flex items-center gap-2">
+        <input class="hidden md:block bg-slate-800/70 text-slate-100 placeholder-slate-400 border border-white/10 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400/40" placeholder="Search" />
+        <a href="#" class="px-3 py-2 rounded bg-sky-500 text-slate-900 font-semibold">Subscribe</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto px-4">
+    <!-- Hero / Featured story -->
+    <section class="py-8 grid md:grid-cols-2 gap-6 items-stretch">
+      <div class="flex flex-col justify-between bg-slate-900/50 border border-white/10 rounded-xl overflow-hidden">
+        <img class="h-64 w-full object-cover" src="https://images.unsplash.com/photo-1504711434969-e33886168f5c?q=80&w=1600&auto=format&fit=crop" alt="City skyline at dusk" />
+        <div class="p-5">
+          <a class="inline-block text-xs font-semibold text-sky-400">Breaking</a>
+          <h1 class="mt-2 text-2xl md:text-3xl font-extrabold leading-tight">Markets rally as inflation cools faster than expected</h1>
+          <p class="mt-2 text-sm text-slate-300">Analysts see renewed investor confidence as core prices ease, with tech leading gains.</p>
+          <div class="mt-3 flex items-center gap-3 text-xs text-slate-400">
+            <span>By J. Park</span>
+            <span>•</span>
+            <span>5 min read</span>
+          </div>
+        </div>
+      </div>
+      <div class="grid grid-rows-3 gap-6">
+        <!-- secondary cards -->
+        <article class="grid grid-cols-3 gap-4 bg-slate-900/50 border border-white/10 rounded-xl overflow-hidden">
+          <img class="h-full w-full object-cover col-span-1" src="https://images.unsplash.com/photo-1520975916090-3105956dac38?q=80&w=1200&auto=format&fit=crop" alt="Tech circuit" />
+          <div class="p-4 col-span-2">
+            <a class="inline-block text-xs font-semibold text-emerald-400">Tech</a>
+            <h3 class="font-bold">AI tools reshape creative workflows</h3>
+            <p class="text-xs text-slate-300 mt-1">Studios adopt new pipelines blending human direction with AI speed.</p>
+          </div>
+        </article>
+        <article class="grid grid-cols-3 gap-4 bg-slate-900/50 border border-white/10 rounded-xl overflow-hidden">
+          <img class="h-full w-full object-cover col-span-1" src="https://images.unsplash.com/photo-1451976426598-a7593bd6d0b2?q=80&w=1200&auto=format&fit=crop" alt="Globe" />
+          <div class="p-4 col-span-2">
+            <a class="inline-block text-xs font-semibold text-rose-400">World</a>
+            <h3 class="font-bold">Leaders set new climate targets</h3>
+            <p class="text-xs text-slate-300 mt-1">Agreement centers on energy transition and resilient infrastructure.</p>
+          </div>
+        </article>
+        <article class="grid grid-cols-3 gap-4 bg-slate-900/50 border border-white/10 rounded-xl overflow-hidden">
+          <img class="h-full w-full object-cover col-span-1" src="https://images.unsplash.com/photo-1549924231-f129b911e442?q=80&w=1200&auto=format&fit=crop" alt="Stethoscope" />
+          <div class="p-4 col-span-2">
+            <a class="inline-block text-xs font-semibold text-amber-400">Health</a>
+            <h3 class="font-bold">Hospitals expand virtual care access</h3>
+            <p class="text-xs text-slate-300 mt-1">Rural communities see shorter waits with telehealth services.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Category grid -->
+    <section class="py-6">
+      <div class="flex items-baseline justify-between">
+        <h2 class="text-xl font-extrabold">Latest</h2>
+        <a class="text-sky-400 text-sm hover:underline" href="#">View all</a>
+      </div>
+      <div class="mt-4 grid md:grid-cols-3 gap-6">
+        <!-- repeatable card -->
+        <article class="bg-slate-900/50 border border-white/10 rounded-xl overflow-hidden flex flex-col">
+          <img class="h-40 w-full object-cover" src="https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=1200&auto=format&fit=crop" alt="Newsroom" />
+          <div class="p-4 flex-1 flex flex-col">
+            <div class="text-xs text-violet-400 font-semibold">Culture</div>
+            <h3 class="mt-1 font-bold">Festival season returns with record audiences</h3>
+            <p class="mt-2 text-sm text-slate-300">Organizers cite safety upgrades and immersive formats.</p>
+            <div class="mt-auto pt-3 text-xs text-slate-400">3 min read</div>
+          </div>
+        </article>
+        <article class="bg-slate-900/50 border border-white/10 rounded-xl overflow-hidden flex flex-col">
+          <img class="h-40 w-full object-cover" src="https://images.unsplash.com/photo-1557264337-e8a93017fe92?q=80&w=1200&auto=format&fit=crop" alt="Basketball court" />
+          <div class="p-4 flex-1 flex flex-col">
+            <div class="text-xs text-orange-400 font-semibold">Sports</div>
+            <h3 class="mt-1 font-bold">Underdogs clinch the semifinals in overtime</h3>
+            <p class="mt-2 text-sm text-slate-300">Defense-first strategy stuns analysts.</p>
+            <div class="mt-auto pt-3 text-xs text-slate-400">6 min read</div>
+          </div>
+        </article>
+        <article class="bg-slate-900/50 border border-white/10 rounded-xl overflow-hidden flex flex-col">
+          <img class="h-40 w-full object-cover" src="https://images.unsplash.com/photo-1473186578172-c141e6798cf4?q=80&w=1200&auto=format&fit=crop" alt="Skyscraper" />
+          <div class="p-4 flex-1 flex flex-col">
+            <div class="text-xs text-lime-400 font-semibold">Business</div>
+            <h3 class="mt-1 font-bold">Hiring rebounds across key sectors</h3>
+            <p class="mt-2 text-sm text-slate-300">Employers point to stable demand and easing supply chains.</p>
+            <div class="mt-auto pt-3 text-xs text-slate-400">4 min read</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Newsletter -->
+    <section class="py-10">
+      <div class="bg-slate-900/60 border border-white/10 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row items-center gap-6">
+        <div class="flex-1">
+          <h3 class="text-xl font-extrabold">Stay informed</h3>
+          <p class="text-slate-300 text-sm mt-1">Get headlines and deep dives delivered daily.</p>
+        </div>
+        <form class="flex w-full md:w-auto gap-2">
+          <input type="email" required placeholder="you@example.com" class="flex-1 md:w-80 bg-slate-800/70 text-slate-100 placeholder-slate-400 border border-white/10 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400/40" />
+          <button class="px-4 py-2 rounded bg-sky-500 text-slate-900 font-semibold">Subscribe</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-8 border-t border-white/10 bg-slate-900/60">
+    <div class="max-w-6xl mx-auto px-4 py-6 text-sm text-slate-400 flex flex-col md:flex-row items-center justify-between gap-3">
+      <div>© 2025 Range Daily</div>
+      <div class="flex items-center gap-4">
+        <a class="hover:underline" href="#">About</a>
+        <a class="hover:underline" href="#">Contact</a>
+        <a class="hover:underline" href="#">Privacy</a>
+        <a class="hover:underline" href="#">Terms</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

@@ -1,0 +1,52 @@
+@import url("../../../../../shared/css/tokens.classic.css");
+/* Vue classic extras */
+.hero { border-left: 3px solid var(--primary); padding-left: 12px; }
+
+/* Classic (Government portal) motif */
+:root { --classic-outline: rgba(234, 179, 8, 0.55); --shadow-md: 0 4px 14px rgba(0,0,0,0.28); }
+
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: Georgia, "Times New Roman", Times, serif;
+  background:
+    linear-gradient(135deg, rgba(234,179,8,0.05) 12.5%, transparent 12.5%, transparent 50%, rgba(234,179,8,0.05) 50%, rgba(234,179,8,0.05) 62.5%, transparent 62.5%, transparent 100%),
+    linear-gradient(225deg, rgba(234,179,8,0.03) 12.5%, transparent 12.5%, transparent 50%, rgba(234,179,8,0.03) 50%, rgba(234,179,8,0.03) 62.5%, transparent 62.5%, transparent 100%),
+    var(--bg);
+  background-size: 16px 16px, 16px 16px, auto;
+}
+
+.header { border-bottom: 2px solid rgba(234,179,8,0.25); display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 0; }
+.brand div:first-child, .brand div > div:first-child { font-family: Georgia, "Times New Roman", Times, serif; letter-spacing: 0.3px; }
+.brand .badge { background: transparent; border: 1px solid var(--primary); color: var(--primary); }
+
+.nav { display:flex; gap:12px; flex-wrap:wrap; }
+.nav a { color: var(--text); text-decoration:none; opacity:0.9; padding: 4px 6px; border-bottom: 2px solid transparent; text-transform: uppercase; font-size: 12px; letter-spacing: 0.6px; }
+.nav a:hover { border-color: var(--primary); color: var(--text); }
+
+.panel { border: 1px solid rgba(234,179,8,0.30); box-shadow: var(--shadow-md); background: var(--panel); border-radius:10px; padding:16px; }
+.hero { background: rgba(234,179,8,0.06); }
+
+select, button { border-color: rgba(234,179,8,0.45); outline: none; }
+select:focus, button:focus { box-shadow: 0 0 0 3px var(--classic-outline); border-color: var(--primary); }
+
+.btn { display:inline-flex; align-items:center; gap:8px; padding:8px 12px; border-radius:6px; cursor:pointer; }
+.btn.primary { background: transparent; color: var(--text); border: 1px solid var(--primary); }
+.btn.primary:hover { background: rgba(234,179,8,0.1); }
+.btn.ghost { background: transparent; color: var(--text); border: 1px dashed rgba(234,179,8,0.45); }
+
+.table { width:100%; border-collapse: collapse; }
+.table th, .table td { padding:10px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.table th { font-family: Georgia, "Times New Roman", Times, serif; color: var(--muted); text-transform: uppercase; font-size: 12px; }
+.table tr:hover td { background: rgba(234,179,8,0.06); }
+
+.alert { padding: 12px 14px; border-radius: 6px; border: 1px solid; }
+.alert.info { background: rgba(234,179,8,0.08); border-color: rgba(234,179,8,0.45); }
+.alert.danger { background: rgba(185, 28, 28, 0.08); border-color: rgba(185, 28, 28, 0.40); }
+
+/* Base layout helpers */
+.container { max-width: 1040px; margin: 0 auto; padding: 24px; }
+.controls { display: flex; gap: 8px; align-items: center; }
+.footer { opacity: 0.7; font-size: 14px; padding: 24px 0; }
+.row { display: flex; gap: 12px; align-items: center; }
+.space { flex: 1 1 auto; }

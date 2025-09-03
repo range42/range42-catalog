@@ -1,0 +1,9 @@
+/* Hospital skin tokens (overrides) */
+:root {
+  --bg: #0a101f;
+  --panel: #0f172a;
+  --text: #e6f6ff;
+  --muted: #a3c3d9;
+  --primary: #06b6d4; /* cyan */
+  --accent: #34d399;  /* mint */
+}

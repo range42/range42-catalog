@@ -1,0 +1,6 @@
+{
+  "skins": [
+    { "name": "classic", "label": "Classic", "tokens": "tokens.classic.css" },
+    { "name": "hospital", "label": "Hospital", "tokens": "tokens.hospital.css" }
+  ]
+}

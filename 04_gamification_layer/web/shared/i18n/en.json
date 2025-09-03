@@ -1,0 +1,10 @@
+{
+  "title": "Range42 CTF",
+  "subtitle": "Gamification Layer",
+  "nav": { "home": "Home", "about": "About" },
+  "controls": { "language": "Language", "skin": "Skin" },
+  "content": {
+    "welcome": "Welcome challenger! Pick a skin and language.",
+    "about": "This is a simple, swappable UI used across challenges."
+  }
+}
