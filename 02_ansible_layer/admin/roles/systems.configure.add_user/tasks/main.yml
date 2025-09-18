@@ -1,0 +1,46 @@
+---
+#
+
+- name: check - check provided username
+  ansible.builtin.assert:
+    that:
+      - TARGET_USER is defined
+      - TARGET_USER | length > 0
+    fail_msg: "variable 'TARGET_USER' not provided"
+
+- name: check - check provided pwd
+  ansible.builtin.assert:
+    that:
+      - TARGET_USER is defined
+      - TARGET_USER | length > 0
+    fail_msg: "variable 'TARGET_USER' not provided"
+
+- name: configure - create user, homedir and shell
+  ansible.builtin.user:
+    name: "{{ TARGET_USER }}"
+    state: present
+    create_home: yes
+    shell: "{{ TARGET_SHELL_PATH}}"
+
+    #
+    # set a default pwd just in case next tasks fail.
+    #
+    # password: "{{ (TARGET_PASSWORD | default('aiT9-AhW3-xu7eP-h8ih-u8ePoYi')) | password_hash('sha512') }}"
+    password: "*"
+  become: true
+  no_log: true
+
+#
+- name: configure - reset password account
+  ansible.builtin.shell: |
+    printf '%s:%s\n' "{{ TARGET_USER }}" "{{ TARGET_PASSWORD }}" | chpasswd
+  args:
+    executable: /bin/bash
+  become: true
+  no_log: true
+
+- name: configure - force pwd change on next logon
+  ansible.builtin.command: chage -d 0 {{ TARGET_USER }}
+  become: true
+  no_log: true
+  when: CHANGE_PWD_AT_LOGON | default(false) | bool

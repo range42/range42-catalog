@@ -1,0 +1,4 @@
+TARGET_USER: elliot
+TARGET_PASSWORD: "vohph2iephai1oonoox5ZohlahjeiChu" # will not be use - should be overwrited 
+CHANGE_PWD_AT_LOGON: false
+TARGET_SHELL_PATH: "/bin/sh"
