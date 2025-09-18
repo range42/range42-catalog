@@ -13,4 +13,6 @@
       ansible.builtin.include_tasks: ./fedora/utils_network.yaml
       when: ansible_facts.distribution == 'Fedora'
 
-  when: INSTALL_PACKAGES_UTILS_NETWORK | default('NO') == 'YES'
+  # when: INSTALL_PACKAGES_UTILS_NETWORK | default('NO') == 'YES'
+  when: (INSTALL_PACKAGES_UTILS_NETWORK | default('no') | string | lower) in ['yes', 'true']
+  

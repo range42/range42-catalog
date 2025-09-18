@@ -11,7 +11,8 @@
       ansible.builtin.include_tasks: ./fedora/docker.yaml
       when: ansible_facts.distribution == 'Fedora'
 
-  when: INSTALL_PACKAGES_DOCKER | default('NO') == 'YES'
+  when: (INSTALL_PACKAGES_DOCKER | default('no') | string | lower) in ['yes', 'true']
+  # when: INSTALL_PACKAGES_DOCKER | default('NO') == 'YES'
 
 #
 - name: INCLUDE - install - docker-compose
@@ -25,4 +26,5 @@
       ansible.builtin.include_tasks: ./fedora/docker_compose.yaml
       when: ansible_facts.distribution == 'Fedora'
 
-  when: INSTALL_PACKAGES_DOCKER_COMPOSE | default('NO') == 'YES'
+  when: (INSTALL_PACKAGES_DOCKER_COMPOSE | default('no') | string | lower) in ['yes', 'true']
+  # when: INSTALL_PACKAGES_DOCKER_COMPOSE | default('NO') == 'YES'

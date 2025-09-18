@@ -11,5 +11,6 @@
       ansible.builtin.include_tasks: ./fedora/packages_basics.yaml
       when: ansible_facts.distribution == 'Fedora'
 
-  when: INSTALL_PACKAGES_BASICS | default('NO') == 'YES'
+  when: (INSTALL_PACKAGES_BASICS | default('no') | string | lower) in ['yes', 'true']
+  # when: INSTALL_PACKAGES_BASICS | default('NO') == 'YES'
 

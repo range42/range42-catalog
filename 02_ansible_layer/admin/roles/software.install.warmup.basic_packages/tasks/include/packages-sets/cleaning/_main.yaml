@@ -11,5 +11,6 @@
       ansible.builtin.include_tasks: ./fedora/remove_cockpit.yaml
       when: ansible_facts.distribution == 'Fedora'
 
-  when: SPECIFIC_PACKAGES_CLEANING | default('NO') == 'YES'
-#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+  when: (SPECIFIC_PACKAGES_CLEANING | default('no') | string | lower) in ['yes', 'true']
+  # when: SPECIFIC_PACKAGES_CLEANING | default('NO') == 'YES'
+

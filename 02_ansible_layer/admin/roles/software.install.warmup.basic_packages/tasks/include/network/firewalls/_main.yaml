@@ -13,4 +13,5 @@
       ansible.builtin.include_tasks: ./fedora/firewalld.yaml
       when: ansible_facts.distribution == 'Fedora'
 
-  when: INSTALL_PACKAGES_FIREWALLS | default('NO') == 'YES'
+  when: (INSTALL_PACKAGES_FIREWALLS | default('no') | string | lower) in ['yes', 'true']
+  # when: INSTALL_PACKAGES_FIREWALLS | default('NO') == 'YES'

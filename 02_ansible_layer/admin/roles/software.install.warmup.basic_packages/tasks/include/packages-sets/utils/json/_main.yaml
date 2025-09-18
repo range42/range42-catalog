@@ -11,5 +11,6 @@
       ansible.builtin.include_tasks: ./fedora/utils_json.yaml
       when: ansible_facts.distribution == 'Fedora'
 
-  when: INSTALL_PACKAGES_UTILS_JSON | default('NO') == 'YES'
+  when: (INSTALL_PACKAGES_UTILS_JSON | default('no') | string | lower) in ['yes', 'true']
+  # when: INSTALL_PACKAGES_UTILS_JSON | default('NO') == 'YES'
 
