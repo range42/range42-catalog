@@ -32,7 +32,8 @@ indexer_conf_path: /etc/wazuh-indexer
 indexer_index_path: /var/lib/wazuh-indexer/
 
 # Security password
-indexer_custom_user: ""
+#indexer_custom_user: ""
+indexer_custom_user: null  # fix 
 indexer_custom_user_role: "admin"
 
 # Set JVM memory limits
