@@ -70,6 +70,7 @@
         mode: "0755"
         remote_src: yes
       become: true
+      when: (APPLY_FOR_ROOT | default('no') | string | lower) in ['yes', 'true']
 
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
 
@@ -85,15 +86,15 @@
         mode: "0600"
 
     #
-    - name: configure zsh - upload dot files to operator user
-      block:
-        - name: configure zsh - upload zshrc to root
-          ansible.builtin.copy:
-            src: "{{ role_path }}/files/generic/zshrc"
-            dest: /root/.zshrc
-            owner: root
-            group: root
-            mode: "0600"
+
+    - name: configure zsh - upload zshrc to root
+      ansible.builtin.copy:
+        src: "{{ role_path }}/files/generic/zshrc"
+        dest: /root/.zshrc
+        owner: root
+        group: root
+        mode: "0600"
+      when: (APPLY_FOR_ROOT | default('no') | string | lower) in ['yes', 'true']
 
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
 
@@ -131,4 +132,6 @@
       user:
         name: "root"
         shell: /usr/bin/zsh
-      when: zsh_found
+      when:
+        - zsh_found
+        - (APPLY_FOR_ROOT | default('no') | string | lower) in ['yes', 'true']

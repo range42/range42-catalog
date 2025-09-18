@@ -1,5 +1,9 @@
 ---
 # defaults file
 
-INSTALL_VIM_DOTFILES: "NO"
-INSTALL_ZSH_DOTFILES: "NO"
+INSTALL_VIM_DOTFILES: "NO" # accept also true false
+INSTALL_ZSH_DOTFILES: "NO" # accept also true false
+#
+APPLY_FOR_ROOT: "NO" # accept also true false
+#
+OPERATOR_USER: "alice"
