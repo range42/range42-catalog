@@ -42,6 +42,14 @@ These repositories provide a modular and extensible platform to design, manage a
 This repository contains the deployment cataloga collection of reusable infrastructure bundles.
 Bundles often include Ansible roles, Dockerfiles and/or Docker Compose definitions designed to be orchestrated by the backend API or executed directly via CLI. 
 
+The catalog is currently composed of three parts:
+
+- Ansible roles : act directly on the system to configure misconfigured or vulnerable environments.
+- Docker / Docker compose definitions : setup vulnerable or misconfigured services based on containerized environments.
+- Interface templates : root directory storing themed templates (e.g. fake hospital, fake bank) designed to gamify the deployed misconfigurations and vulnerabilities.
+
+The repository tree is organized to classify misconfigurations and CVEs by technology type. ⚠️ This deep tree structure still volatile and may evolve as the project grows.
+
 ## Contributing
 
 This is a collaborative initiative, developed for applied security training, community integration, and internal capability building.
