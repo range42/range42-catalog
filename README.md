@@ -48,7 +48,7 @@ The catalog is currently composed of three parts:
 - Docker / Docker compose definitions : setup vulnerable or misconfigured services based on containerized environments.
 - Interface templates : root directory storing themed templates (e.g. fake hospital, fake bank) designed to gamify the deployed misconfigurations and vulnerabilities.
 
-The repository tree is organized to classify misconfigurations and CVEs by technology type. ⚠️ This deep tree structure still volatile and may evolve as the project grows.
+The repository tree is organized to classify misconfigurations and CVEs by technology type. *** ⚠️ This deep tree structure still volatile and may evolve as the project grows. ***
 
 ## Contributing
 
