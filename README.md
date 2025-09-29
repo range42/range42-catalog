@@ -33,7 +33,7 @@ We build, deploy, and document offensive, defensive, and hybrid cyber training e
 
 ### Putting it all together
 
-These repositories provide a modular and extensible platform to design, manage and deploy infrastructures automatically  either from the UI (coming soon) or from the CLI through the playbooks repository.
+These repositories provide a modular and extensible platform to design, manage and deploy infrastructures automaticallyeither from the UI (coming soon) or from the CLI through the playbooks repository.
 
 ---
 
@@ -48,7 +48,9 @@ The catalog is currently composed of three parts:
 - Docker / Docker compose definitions : setup vulnerable or misconfigured services based on containerized environments.
 - Interface templates : root directory storing themed templates (e.g. fake hospital, fake bank) designed to gamify the deployed misconfigurations and vulnerabilities.
 
-The repository tree is organized to classify misconfigurations and CVEs by technology type. *** ⚠️ This deep tree structure still volatile and may evolve as the project grows. ***
+Currently, the repository tree is organized to classify misconfigurations and CVEs by technology type.
+
+**⚠️ This deep tree structure still volatile and may evolve as the project grows.**
 
 ## Contributing
 
@@ -58,4 +60,5 @@ We use centralized community health files in Range42 community health.
 ## License
 
 - GPL-3.0 license
+
 
