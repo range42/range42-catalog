@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "range42-catalog",
+  "version": "1.0.0",
+  "description": "A collection of reusable infrastructure bundles for cyber range deployments including Ansible roles, Docker/Docker Compose stacks, and gamification templates.",
+  "license": "GPL-3.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/range42/range42-catalog"
+  },
+  "layers": {
+    "ansible": {
+      "path": "02_ansible_layer",
+      "description": "Ansible roles that configure systems for vulnerable or misconfigured environments",
+      "categories": {
+        "admin": {
+          "path": "admin/roles",
+          "description": "Administrative and infrastructure Ansible roles",
+          "types": [
+            "ansible.utils",
+            "service.reload",
+            "software.configure",
+            "software.install",
+            "systems.checks",
+            "systems.configure"
+          ]
+        },
+        "trainee": {
+          "path": "trainee",
+          "description": "Training-focused Ansible roles for learners"
+        },
+        "ctf": {
+          "path": "_ctf",
+          "description": "Capture The Flag challenge roles",
+          "subcategories": ["cve", "malware", "misconfiguration"]
+        }
+      }
+    },
+    "container": {
+      "path": "03_container_layer",
+      "description": "Docker and LXC container definitions for vulnerable or misconfigured services",
+      "categories": {
+        "docker": {
+          "path": "docker",
+          "description": "Docker and Docker Compose definitions",
+          "subcategories": {
+            "ctf": {
+              "path": "_ctf",
+              "description": "CTF-ready container challenges",
+              "types": {
+                "cve": {
+                  "description": "CVE-based vulnerabilities",
+                  "subcategories": ["crypto", "network", "system", "web"]
+                },
+                "malware": {
+                  "description": "Malware analysis environments"
+                },
+                "misconfiguration": {
+                  "description": "Misconfigured services"
+                }
+              }
+            }
+          }
+        },
+        "lxc": {
+          "path": "lxc",
+          "description": "LXC container templates"
+        }
+      }
+    },
+    "gamification": {
+      "path": "04_gamification_layer",
+      "description": "Themed templates and skins to gamify deployed environments",
+      "categories": {
+        "web": {
+          "path": "web",
+          "description": "Web-based themed templates (fake hospital, fake bank, etc.)",
+          "components": ["frameworks", "shared", "tools"]
+        },
+        "crypto": {
+          "path": "crypto",
+          "description": "Cryptography-themed challenges"
+        },
+        "files": {
+          "path": "files",
+          "description": "File-based challenges"
+        },
+        "network": {
+          "path": "network",
+          "description": "Network-themed challenges"
+        }
+      }
+    }
+  },
+  "conventions": {
+    "ansible_role_naming": {
+      "pattern": "<category>.<action>.<target>",
+      "examples": [
+        "software.install.wazuh",
+        "service.reload.ntp",
+        "systems.configure.add_user"
+      ]
+    },
+    "ctf_structure": {
+      "types": ["cve", "malware", "misconfiguration"],
+      "cve_categories": ["crypto", "network", "system", "web"]
+    }
+  },
+  "compatibility": {
+    "range42_backend_api": ">=1.0.0",
+    "range42_deployer_ui": ">=1.0.0"
+  }
+}
