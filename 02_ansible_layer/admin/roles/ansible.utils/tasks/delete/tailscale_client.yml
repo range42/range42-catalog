@@ -11,7 +11,7 @@
     #
     - name: TAILSCALE - LIST DEVICE -
       vars:
-        tailscale_api_key: "{{ vault_tailscale_apikey }}"
+        tailscale_api_key: "{{ infrastructure_tailscale_apikey }}"
       uri:
         url: "https://api.tailscale.com/api/v2/tailnet/-/devices"
         method: GET
@@ -49,7 +49,7 @@
     #     url: "https://api.tailscale.com/api/v2/device/{{ device_id }}/expire"
     #     method: POST
     #     headers:
-    #       Authorization: "Bearer {{ vault_tailscale_apikey }}"
+    #       Authorization: "Bearer {{ infrastructure_tailscale_apikey }}"
     #
     #
     - name: AILSCALE - DELETE DEVICE - {{ tailscale_hostname }}
@@ -58,7 +58,7 @@
         url: "https://api.tailscale.com/api/v2/device/{{ device_id }}"
         method: DELETE
         headers:
-          Authorization: "Bearer {{ vault_tailscale_apikey }}"
+          Authorization: "Bearer {{ infrastructure_tailscale_apikey }}"
 
   vars:
     CALL_DEBUG: true

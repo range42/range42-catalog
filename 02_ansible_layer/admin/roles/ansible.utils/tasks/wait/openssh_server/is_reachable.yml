@@ -7,9 +7,9 @@
 #   debug:
 #     msg: "{{ ARG_vm_ssh_name }}"
 # #
-# - name: "CHECK VAR - var ARG_operator_ssh_config_known_hosts "
+# - name: "CHECK VAR - var deployer_cli_user_ssh_known_hosts "
 #   debug:
-#     msg: "{{ ARG_operator_ssh_config_known_hosts }}"
+#     msg: "{{ deployer_cli_user_ssh_known_hosts }}"
 #
 
 #
@@ -19,7 +19,7 @@
     -o BatchMode=yes
     -o ConnectTimeout=5
     -o StrictHostKeyChecking=accept-new
-    -o UserKnownHostsFile={{ ARG_operator_ssh_config_known_hosts }} 
+    -o UserKnownHostsFile={{ deployer_cli_user_ssh_known_hosts }} 
     {{ ARG_vm_ssh_name }} true
 
   register: ssh_check
