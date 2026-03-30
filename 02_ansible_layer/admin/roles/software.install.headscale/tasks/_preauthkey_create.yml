@@ -1,0 +1,37 @@
+---
+- name: "PreAuthKey | Check if key exists for user '{{ preauthkey_entry.user }}'"
+  ansible.builtin.set_fact:
+    _preauthkey_exists: "{{ preauthkey_entry.user in headscale_preauthkeys_state and not headscale_preauthkeys_force }}"
+
+- name: "PreAuthKey | Skip — key already exists for '{{ preauthkey_entry.user }}'"
+  ansible.builtin.debug:
+    msg: "Key already exists in state file for user '{{ preauthkey_entry.user }}', skipping."
+  when: _preauthkey_exists | bool
+
+- name: "PreAuthKey | Resolve user ID for '{{ preauthkey_entry.user }}'"
+  ansible.builtin.set_fact:
+    _preauthkey_user_id: "{{ headscale_user_id_map[preauthkey_entry.user] }}"
+  when: not (_preauthkey_exists | bool)
+
+- name: "PreAuthKey | Build CLI arguments for '{{ preauthkey_entry.user }}'"
+  ansible.builtin.set_fact:
+    _preauthkey_args: >-
+      --user {{ _preauthkey_user_id }}
+      {{ '--reusable' if preauthkey_entry.reusable | default(false) else '' }}
+      {{ '--ephemeral' if preauthkey_entry.ephemeral | default(false) else '' }}
+      --expiration {{ preauthkey_entry.expiration | default('1h') }}
+      {{ '--tags ' + (preauthkey_entry.tags | join(',')) if preauthkey_entry.tags | default([]) | length > 0 else '' }}
+  when: not (_preauthkey_exists | bool)
+
+- name: "PreAuthKey | Create key for '{{ preauthkey_entry.user }}'"
+  ansible.builtin.command: "{{ headscale_cli }} preauthkeys create {{ _preauthkey_args | trim }} -o json"
+  register: _preauthkey_result
+  changed_when: true
+  no_log: true
+  when: not (_preauthkey_exists | bool)
+
+- name: "PreAuthKey | Store key in state for '{{ preauthkey_entry.user }}'"
+  ansible.builtin.set_fact:
+    headscale_preauthkeys_state: "{{ headscale_preauthkeys_state | combine({preauthkey_entry.user: (_preauthkey_result.stdout | from_json).key}) }}"
+  no_log: true
+  when: not (_preauthkey_exists | bool)

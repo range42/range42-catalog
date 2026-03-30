@@ -1,0 +1,25 @@
+[Unit]
+Description=Headscale - Tailscale coordination server
+Documentation=https://github.com/juanfont/headscale
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User={{ headscale_user }}
+Group={{ headscale_group }}
+ExecStart={{ headscale_binary_path }} serve --config {{ headscale_config_dir }}/config.yaml
+Restart=on-failure
+RestartSec=5
+RuntimeDirectory=headscale
+RuntimeDirectoryMode=0750
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths={{ headscale_data_dir }} {{ headscale_run_dir }}
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

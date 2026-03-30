@@ -1,0 +1,42 @@
+---
+# Internal constants — not for end-user modification.
+
+headscale_github_base_url: "https://github.com/juanfont/headscale/releases/download"
+
+# Architecture mapping: ansible_architecture → headscale release arch
+headscale_arch_map:
+  x86_64: "amd64"
+  aarch64: "arm64"
+
+# Download URL patterns
+headscale_deb_url: "{{ headscale_github_base_url }}/v{{ headscale_version }}/headscale_{{ headscale_version }}_linux_{{ headscale_arch_map[ansible_architecture] }}.deb"
+headscale_binary_url: "{{ headscale_github_base_url }}/v{{ headscale_version }}/headscale_{{ headscale_version }}_linux_{{ headscale_arch_map[ansible_architecture] }}"
+
+# OS family detection
+headscale_debian_family:
+  - "Debian"
+  - "Ubuntu"
+  - "Pop!_OS"
+  - "Linux Mint"
+
+headscale_redhat_family:
+  - "CentOS"
+  - "RedHat"
+  - "Rocky"
+  - "AlmaLinux"
+  - "Fedora"
+  - "Amazon"
+
+# Package/binary paths
+headscale_binary_path: "/usr/local/bin/headscale"
+headscale_service_name: "headscale"
+
+# Config file paths (resolved at runtime based on install mode)
+headscale_effective_config_dir: "{{ headscale_docker_config_dir if headscale_install_mode == 'docker' else headscale_config_dir }}"
+headscale_effective_data_dir: "{{ headscale_docker_data_dir if headscale_install_mode == 'docker' else headscale_data_dir }}"
+
+# State file for pre-auth key idempotency
+headscale_preauthkeys_state_file: "{{ headscale_effective_data_dir }}/ansible-preauthkeys.json"
+
+# CLI command prefix (direct or via docker exec)
+headscale_cli: "{{ 'docker exec headscale headscale' if headscale_install_mode == 'docker' else 'headscale' }}"

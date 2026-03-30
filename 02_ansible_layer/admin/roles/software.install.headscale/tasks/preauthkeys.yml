@@ -1,0 +1,30 @@
+---
+- name: PreAuthKeys | Read existing state file
+  ansible.builtin.slurp:
+    src: "{{ headscale_preauthkeys_state_file }}"
+  register: headscale_preauthkeys_state_raw
+  failed_when: false
+
+- name: PreAuthKeys | Parse state file
+  ansible.builtin.set_fact:
+    headscale_preauthkeys_state: "{{ (headscale_preauthkeys_state_raw.content | b64decode | from_json) if headscale_preauthkeys_state_raw is not failed else {} }}"
+
+- name: PreAuthKeys | Generate keys for each entry
+  ansible.builtin.include_tasks: _preauthkey_create.yml
+  loop: "{{ headscale_preauthkeys }}"
+  loop_control:
+    loop_var: preauthkey_entry
+
+- name: PreAuthKeys | Write state file
+  become: true
+  ansible.builtin.copy:
+    content: "{{ headscale_preauthkeys_state | to_nice_json }}"
+    dest: "{{ headscale_preauthkeys_state_file }}"
+    owner: "{{ headscale_user if headscale_install_mode == 'package' else 'root' }}"
+    group: "{{ headscale_group if headscale_install_mode == 'package' else 'root' }}"
+    mode: "0600"
+
+- name: PreAuthKeys | Register keys fact
+  ansible.builtin.set_fact:
+    headscale_preauthkeys_generated: "{{ headscale_preauthkeys_state }}"
+  when: headscale_register_key_facts

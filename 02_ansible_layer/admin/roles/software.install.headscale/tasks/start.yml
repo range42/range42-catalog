@@ -1,0 +1,23 @@
+---
+- name: Start | Enable and start systemd service
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ headscale_service_name }}"
+    state: started
+    enabled: true
+    daemon_reload: true
+  when: headscale_install_mode == "package"
+
+- name: Start | Docker compose up
+  community.docker.docker_compose_v2:
+    project_src: "{{ headscale_docker_compose_dir }}"
+    state: present
+  when: headscale_install_mode == "docker"
+
+- name: Start | Wait for headscale to be ready
+  ansible.builtin.command: "{{ headscale_cli }} health"
+  register: headscale_health
+  retries: 10
+  delay: 3
+  until: headscale_health.rc == 0
+  changed_when: false

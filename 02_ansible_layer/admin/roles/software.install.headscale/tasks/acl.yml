@@ -1,0 +1,28 @@
+---
+- name: ACL | Template policy file
+  become: true
+  ansible.builtin.template:
+    src: acl_policy.json.j2
+    dest: "{{ headscale_effective_config_dir }}/acl_policy.json"
+    owner: "{{ headscale_user if headscale_install_mode == 'package' else 'root' }}"
+    group: "{{ headscale_group if headscale_install_mode == 'package' else 'root' }}"
+    mode: "0640"
+  register: headscale_acl_result
+
+- name: ACL | Notify reload if policy changed (package)
+  ansible.builtin.debug:
+    msg: "ACL policy changed, reload triggered."
+  changed_when: headscale_acl_result is changed
+  notify: Reload headscale (package)
+  when:
+    - headscale_install_mode == "package"
+    - headscale_acl_result is changed
+
+- name: ACL | Notify reload if policy changed (docker)
+  ansible.builtin.debug:
+    msg: "ACL policy changed, reload triggered."
+  changed_when: headscale_acl_result is changed
+  notify: Reload headscale (docker)
+  when:
+    - headscale_install_mode == "docker"
+    - headscale_acl_result is changed

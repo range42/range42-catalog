@@ -1,0 +1,58 @@
+---
+- name: Validate | headscale_state must be valid
+  ansible.builtin.fail:
+    msg: "'headscale_state' must be 'present', 'latest', or 'absent'. Got: '{{ headscale_state }}'"
+  when:
+    - headscale_state not in ['present', 'latest', 'absent']
+
+- name: Validate | headscale_install_mode must be valid
+  ansible.builtin.fail:
+    msg: "'headscale_install_mode' must be 'package' or 'docker'. Got: '{{ headscale_install_mode }}'"
+  when:
+    - headscale_install_mode not in ['package', 'docker']
+
+- name: Validate | headscale_server_url is required for install
+  ansible.builtin.fail:
+    msg: "You must set 'headscale_server_url' (e.g. 'https://headscale.example.com')."
+  when:
+    - headscale_state != 'absent'
+    - not headscale_server_url
+
+- name: Validate | headscale_preauthkeys users must exist in headscale_users
+  ansible.builtin.fail:
+    msg: "Pre-auth key references user '{{ item.user }}' which is not in headscale_users."
+  loop: "{{ headscale_preauthkeys }}"
+  when:
+    - headscale_preauthkeys | length > 0
+    - item.user not in (headscale_users | map(attribute='name') | list)
+
+- name: Uninstall Headscale
+  ansible.builtin.include_tasks: uninstall.yml
+  when: headscale_state == 'absent'
+
+- name: Install and configure Headscale
+  when: headscale_state in ['present', 'latest']
+  block:
+    - name: Install Headscale
+      ansible.builtin.include_tasks: install.yml
+
+    - name: Configure Headscale
+      ansible.builtin.include_tasks: configure.yml
+
+    - name: Start Headscale
+      ansible.builtin.include_tasks: start.yml
+
+    - name: Manage users
+      ansible.builtin.include_tasks: users.yml
+      when: headscale_users | length > 0
+
+    - name: Manage pre-auth keys
+      ansible.builtin.include_tasks: preauthkeys.yml
+      when: headscale_preauthkeys | length > 0
+
+    - name: Configure ACL policy
+      ansible.builtin.include_tasks: acl.yml
+      when: headscale_acl_policy | length > 0
+
+    - name: Register facts
+      ansible.builtin.include_tasks: facts.yml

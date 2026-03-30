@@ -1,0 +1,8 @@
+---
+- name: Uninstall | Package mode
+  ansible.builtin.include_tasks: package/uninstall.yml
+  when: headscale_install_mode == "package"
+
+- name: Uninstall | Docker mode
+  ansible.builtin.include_tasks: docker/uninstall.yml
+  when: headscale_install_mode == "docker"

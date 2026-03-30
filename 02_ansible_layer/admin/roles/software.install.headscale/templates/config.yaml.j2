@@ -1,0 +1,70 @@
+# Managed by Ansible — do not edit manually.
+---
+server_url: {{ headscale_server_url }}
+listen_addr: {{ headscale_listen_addr }}
+metrics_listen_addr: {{ headscale_metrics_listen_addr }}
+grpc_listen_addr: {{ headscale_grpc_listen_addr }}
+grpc_allow_insecure: {{ headscale_grpc_allow_insecure | lower }}
+
+noise:
+  private_key_path: {{ headscale_effective_data_dir }}/noise_private.key
+
+prefixes:
+  v4: {{ headscale_ip_prefix_v4 }}
+  v6: {{ headscale_ip_prefix_v6 }}
+  allocation: {{ headscale_ip_allocation }}
+
+derp:
+  server:
+    enabled: false
+  urls:
+{% for url in headscale_derp_urls %}
+    - {{ url }}
+{% endfor %}
+  paths: []
+  auto_update_enabled: {{ headscale_derp_auto_update | lower }}
+  update_frequency: 3h
+
+disable_check_updates: false
+ephemeral_node_inactivity_timeout: 30m
+
+database:
+  type: {{ headscale_database_type }}
+  sqlite:
+    path: {{ headscale_effective_data_dir }}/db.sqlite
+    write_ahead_log: true
+
+log:
+  level: {{ headscale_log_level }}
+  format: {{ headscale_log_format }}
+
+{% if headscale_acl_policy | length > 0 %}
+policy:
+  mode: file
+  path: {{ headscale_effective_config_dir }}/acl_policy.json
+{% endif %}
+
+dns:
+  magic_dns: {{ headscale_dns_magic_dns | lower }}
+  override_local_dns: {{ headscale_dns_override_local | lower }}
+  base_domain: {{ headscale_dns_base_domain }}
+  nameservers:
+    global:
+{% for ns in headscale_dns_nameservers %}
+      - {{ ns }}
+{% endfor %}
+    split: {}
+  search_domains: []
+  extra_records: []
+
+unix_socket: {{ headscale_run_dir if headscale_install_mode == 'package' else '/var/run/headscale' }}/headscale.sock
+unix_socket_permission: "0770"
+
+logtail:
+  enabled: false
+
+randomize_client_port: false
+
+{% for key, value in headscale_extra_config.items() %}
+{{ key }}: {{ value | to_nice_yaml | indent(0) }}
+{% endfor %}

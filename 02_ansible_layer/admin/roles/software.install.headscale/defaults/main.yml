@@ -1,0 +1,88 @@
+---
+# Installation mode: "package" or "docker"
+headscale_install_mode: "package"
+
+# State: "present", "latest", or "absent"
+headscale_state: "present"
+
+# The public URL clients will use to reach this server (REQUIRED)
+headscale_server_url: ""
+
+# Headscale version to install
+headscale_version: "0.28.0"
+
+# Server bind addresses
+headscale_listen_addr: "0.0.0.0:8080"
+headscale_metrics_listen_addr: "0.0.0.0:9090"
+headscale_grpc_listen_addr: "0.0.0.0:50443"
+headscale_grpc_allow_insecure: false
+
+# IP prefixes for the tailnet
+headscale_ip_prefix_v4: "100.64.0.0/10"
+headscale_ip_prefix_v6: "fd7a:115c:a1e0::/48"
+headscale_ip_allocation: "sequential"
+
+# DNS
+headscale_dns_base_domain: "headscale.local"
+headscale_dns_magic_dns: true
+headscale_dns_override_local: true
+headscale_dns_nameservers:
+  - "1.1.1.1"
+  - "8.8.8.8"
+
+# DERP
+headscale_derp_urls:
+  - "https://controlplane.tailscale.com/derpmap/default"
+headscale_derp_auto_update: true
+
+# Database
+headscale_database_type: "sqlite"
+
+# Logging
+headscale_log_level: "info"
+headscale_log_format: "text"
+
+# Escape hatch: extra config keys merged into config.yaml
+headscale_extra_config: {}
+
+# --- User/Key Management ---
+
+headscale_users: []
+# Example:
+# headscale_users:
+#   - name: "range42-admin"
+#   - name: "range42-student"
+
+headscale_preauthkeys: []
+# Example:
+# headscale_preauthkeys:
+#   - user: "range42-admin"
+#     reusable: true
+#     ephemeral: false
+#     expiration: "24h"
+#     tags: ["tag:admin"]
+
+headscale_register_key_facts: true
+headscale_preauthkeys_force: false
+
+# ACL policy (JSON-compatible dict)
+headscale_acl_policy: {}
+
+# --- Docker-specific ---
+
+headscale_docker_image: "headscale/headscale"
+headscale_docker_tag: "{{ headscale_version }}"
+headscale_docker_data_dir: "/opt/headscale/data"
+headscale_docker_config_dir: "/opt/headscale/config"
+headscale_docker_compose_dir: "/opt/headscale"
+
+# --- Package-specific ---
+
+headscale_config_dir: "/etc/headscale"
+headscale_data_dir: "/var/lib/headscale"
+headscale_run_dir: "/var/run/headscale"
+headscale_user: "headscale"
+headscale_group: "headscale"
+
+# Debug output
+verbose: false

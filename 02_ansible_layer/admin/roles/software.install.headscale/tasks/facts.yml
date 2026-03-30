@@ -1,0 +1,17 @@
+---
+- name: Facts | Get headscale version
+  ansible.builtin.command: "{{ headscale_cli }} version"
+  register: headscale_version_output
+  changed_when: false
+
+- name: Facts | Register output facts
+  ansible.builtin.set_fact:
+    headscale_url: "{{ headscale_server_url }}"
+    headscale_version_installed: "{{ headscale_version_output.stdout | regex_search('v?([0-9]+\\.[0-9]+\\.[0-9]+)', '\\1') | first | default(headscale_version) }}"
+
+- name: Facts | Summary
+  ansible.builtin.debug:
+    msg: >
+      Headscale {{ headscale_version_installed }} running at {{ headscale_url }}
+      (mode: {{ headscale_install_mode }})
+      Users: {{ headscale_users_created | default([]) | join(', ') }}

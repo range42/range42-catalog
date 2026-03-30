@@ -1,0 +1,28 @@
+---
+- name: Configure | Template config.yaml
+  become: true
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: "{{ headscale_effective_config_dir }}/config.yaml"
+    owner: "{{ headscale_user if headscale_install_mode == 'package' else 'root' }}"
+    group: "{{ headscale_group if headscale_install_mode == 'package' else 'root' }}"
+    mode: "0640"
+  register: headscale_config_result
+
+- name: Configure | Notify restart if config changed (package)
+  ansible.builtin.debug:
+    msg: "Config changed, restart will be triggered."
+  changed_when: headscale_config_result is changed
+  notify: Restart headscale (package)
+  when:
+    - headscale_install_mode == "package"
+    - headscale_config_result is changed
+
+- name: Configure | Notify restart if config changed (docker)
+  ansible.builtin.debug:
+    msg: "Config changed, restart will be triggered."
+  changed_when: headscale_config_result is changed
+  notify: Restart headscale (docker)
+  when:
+    - headscale_install_mode == "docker"
+    - headscale_config_result is changed

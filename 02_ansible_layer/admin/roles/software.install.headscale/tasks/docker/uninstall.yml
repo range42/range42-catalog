@@ -1,0 +1,29 @@
+---
+- name: Docker Uninstall | Stop and remove containers
+  community.docker.docker_compose_v2:
+    project_src: "{{ headscale_docker_compose_dir }}"
+    state: absent
+    remove_volumes: true
+  failed_when: false
+
+- name: Docker Uninstall | Remove compose file
+  ansible.builtin.file:
+    path: "{{ headscale_docker_compose_dir }}/docker-compose.yml"
+    state: absent
+
+- name: Docker Uninstall | Remove directories
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ headscale_docker_config_dir }}"
+    - "{{ headscale_docker_data_dir }}"
+    - "{{ headscale_docker_compose_dir }}"
+
+- name: Docker Uninstall | Remove image
+  community.docker.docker_image:
+    name: "{{ headscale_docker_image }}"
+    tag: "{{ headscale_docker_tag }}"
+    state: absent
+  failed_when: false

@@ -1,0 +1,45 @@
+---
+- name: Docker | Check Docker is available
+  ansible.builtin.command: docker --version
+  changed_when: false
+  register: docker_check
+  failed_when: false
+
+- name: Docker | Fail if Docker is not installed
+  ansible.builtin.fail:
+    msg: "Docker is required for headscale_install_mode='docker' but was not found."
+  when: docker_check.rc != 0
+
+- name: Docker | Create directories
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+  loop:
+    - "{{ headscale_docker_compose_dir }}"
+    - "{{ headscale_docker_config_dir }}"
+    - "{{ headscale_docker_data_dir }}"
+
+- name: Docker | Pull headscale image
+  community.docker.docker_image:
+    name: "{{ headscale_docker_image }}"
+    tag: "{{ headscale_docker_tag }}"
+    source: pull
+
+- name: Docker | Template docker-compose.yml
+  become: true
+  ansible.builtin.template:
+    src: docker-compose.yml.j2
+    dest: "{{ headscale_docker_compose_dir }}/docker-compose.yml"
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Restart headscale (docker)
+
+- name: Docker | Current image
+  ansible.builtin.debug:
+    msg: "Headscale {{ headscale_docker_image }}:{{ headscale_docker_tag }} ready (mode: docker)"
+  when: verbose

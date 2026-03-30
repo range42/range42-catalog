@@ -1,0 +1,58 @@
+---
+- name: Package Uninstall | Stop and disable service
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ headscale_service_name }}"
+    state: stopped
+    enabled: false
+  failed_when: false
+
+- name: Package Uninstall | Remove .deb package
+  become: true
+  ansible.builtin.apt:
+    name: headscale
+    state: absent
+    purge: true
+  when: ansible_distribution in headscale_debian_family
+  failed_when: false
+
+- name: Package Uninstall | Remove binary
+  become: true
+  ansible.builtin.file:
+    path: "{{ headscale_binary_path }}"
+    state: absent
+  when: ansible_distribution not in headscale_debian_family
+
+- name: Package Uninstall | Remove systemd unit file
+  become: true
+  ansible.builtin.file:
+    path: /etc/systemd/system/headscale.service
+    state: absent
+
+- name: Package Uninstall | Reload systemd daemon
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Package Uninstall | Remove directories
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ headscale_config_dir }}"
+    - "{{ headscale_data_dir }}"
+    - "{{ headscale_run_dir }}"
+
+- name: Package Uninstall | Remove system user
+  become: true
+  ansible.builtin.user:
+    name: "{{ headscale_user }}"
+    state: absent
+    remove: true
+
+- name: Package Uninstall | Remove system group
+  become: true
+  ansible.builtin.group:
+    name: "{{ headscale_group }}"
+    state: absent

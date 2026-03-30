@@ -1,0 +1,27 @@
+---
+- name: Restart headscale (package)
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ headscale_service_name }}"
+    state: restarted
+    daemon_reload: true
+  when: headscale_install_mode == "package"
+
+- name: Restart headscale (docker)
+  community.docker.docker_compose_v2:
+    project_src: "{{ headscale_docker_compose_dir }}"
+    state: restarted
+  when: headscale_install_mode == "docker"
+
+- name: Reload headscale (package)
+  become: true
+  ansible.builtin.systemd:
+    name: "{{ headscale_service_name }}"
+    state: reloaded
+  when: headscale_install_mode == "package"
+
+- name: Reload headscale (docker)
+  community.docker.docker_compose_v2:
+    project_src: "{{ headscale_docker_compose_dir }}"
+    state: restarted
+  when: headscale_install_mode == "docker"

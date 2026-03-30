@@ -1,0 +1,23 @@
+# Managed by Ansible — do not edit manually.
+services:
+  headscale:
+    image: {{ headscale_docker_image }}:{{ headscale_docker_tag }}
+    container_name: headscale
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /var/run/headscale
+    ports:
+      - "{{ headscale_listen_addr }}:8080"
+      - "{{ headscale_metrics_listen_addr }}:9090"
+      - "{{ headscale_grpc_listen_addr }}:50443"
+    volumes:
+      - {{ headscale_docker_config_dir }}:/etc/headscale:ro
+      - {{ headscale_docker_data_dir }}:/var/lib/headscale
+    command: serve
+    healthcheck:
+      test: ["CMD", "headscale", "health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

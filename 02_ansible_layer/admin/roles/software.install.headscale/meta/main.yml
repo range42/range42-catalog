@@ -1,0 +1,32 @@
+---
+galaxy_info:
+  author: "Range42"
+  description: "Install and configure Headscale — self-hosted Tailscale coordination server"
+  license: "GPL-3.0"
+  min_ansible_version: "2.12"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+        - noble
+    - name: Debian
+      versions:
+        - bullseye
+        - bookworm
+    - name: EL
+      versions:
+        - "8"
+        - "9"
+    - name: Fedora
+      versions:
+        - "39"
+        - "40"
+  galaxy_tags:
+    - headscale
+    - tailscale
+    - vpn
+    - wireguard
+    - networking
+
+dependencies: []

@@ -1,0 +1,98 @@
+---
+- name: Package | Check if headscale is already installed
+  ansible.builtin.command: headscale version
+  register: headscale_current_version
+  changed_when: false
+  failed_when: false
+
+- name: Package | Parse installed version
+  ansible.builtin.set_fact:
+    headscale_installed_version: "{{ headscale_current_version.stdout | regex_search('v?([0-9]+\\.[0-9]+\\.[0-9]+)', '\\1') | first | default('') }}"
+  when: headscale_current_version.rc == 0
+
+- name: Package | Determine if install/upgrade is needed
+  ansible.builtin.set_fact:
+    headscale_needs_install: >-
+      {{ headscale_current_version.rc != 0
+         or (headscale_state == 'latest' and (headscale_installed_version | default('')) != headscale_version) }}
+
+- name: Package | Install on Debian family
+  when:
+    - headscale_needs_install | bool
+    - ansible_distribution in headscale_debian_family
+  block:
+    - name: Package | Download .deb
+      ansible.builtin.get_url:
+        url: "{{ headscale_deb_url }}"
+        dest: "/tmp/headscale_{{ headscale_version }}.deb"
+        mode: "0644"
+
+    - name: Package | Install .deb
+      become: true
+      ansible.builtin.apt:
+        deb: "/tmp/headscale_{{ headscale_version }}.deb"
+        state: present
+
+    - name: Package | Clean up .deb
+      ansible.builtin.file:
+        path: "/tmp/headscale_{{ headscale_version }}.deb"
+        state: absent
+
+- name: Package | Install on RedHat family (binary)
+  when:
+    - headscale_needs_install | bool
+    - ansible_distribution in headscale_redhat_family or ansible_distribution not in headscale_debian_family
+  block:
+    - name: Package | Download binary
+      ansible.builtin.get_url:
+        url: "{{ headscale_binary_url }}"
+        dest: "{{ headscale_binary_path }}"
+        mode: "0755"
+        owner: root
+        group: root
+      become: true
+
+    - name: Package | Template systemd unit file
+      become: true
+      ansible.builtin.template:
+        src: headscale.service.j2
+        dest: /etc/systemd/system/headscale.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart headscale (package)
+
+- name: Package | Create headscale system group
+  become: true
+  ansible.builtin.group:
+    name: "{{ headscale_group }}"
+    system: true
+    state: present
+
+- name: Package | Create headscale system user
+  become: true
+  ansible.builtin.user:
+    name: "{{ headscale_user }}"
+    group: "{{ headscale_group }}"
+    system: true
+    shell: /usr/sbin/nologin
+    home: "{{ headscale_data_dir }}"
+    create_home: false
+
+- name: Package | Create directories
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ headscale_user }}"
+    group: "{{ headscale_group }}"
+    mode: "0750"
+  loop:
+    - "{{ headscale_config_dir }}"
+    - "{{ headscale_data_dir }}"
+    - "{{ headscale_run_dir }}"
+
+- name: Package | Current version
+  ansible.builtin.debug:
+    msg: "Headscale {{ headscale_version }} installed (mode: package)"
+  when: verbose
