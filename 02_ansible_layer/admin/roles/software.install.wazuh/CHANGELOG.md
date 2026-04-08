@@ -1,7 +1,132 @@
 # Change Log
 All notable changes to this project will be documented in this file.
 
-## [v4.12.0]
+## [4.14.4]
+
+### Added
+
+- None
+
+### Changed
+
+- Remove custom user configuration and related scripts ([#1967](https://github.com/wazuh/wazuh-ansible/pull/1967))
+- Fix mismatched tags in .j2 template files ([#1930](https://github.com/wazuh/wazuh-ansible/pull/1930))
+- Address Misconfiguration of indexer_cluster_nodes Parameter ([#1929](https://github.com/wazuh/wazuh-ansible/pull/1929))
+- Remove meta yamls that prevent indexer and agent role installation from PR #1806 ([#1921](https://github.com/wazuh/wazuh-ansible/pull/1921))
+- Ensure boolean condition evaluations - from community PR #1897 ([#1916](https://github.com/wazuh/wazuh-ansible/pull/1916))
+
+### Fixed
+
+- None
+
+### Deleted
+
+- None
+
+## [4.14.3]
+
+### Added
+
+- None
+
+### Changed
+
+- None
+
+### Fixed
+
+- Added run_as as true by default ([#1902](https://github.com/wazuh/wazuh-ansible/pull/1902))
+- Changed Wazuh API username to wazuh-wui ([#1901](https://github.com/wazuh/wazuh-ansible/pull/1901))
+
+### Deleted
+
+- None
+
+## [4.14.2]
+
+### Added
+
+- Update Filebeat version ([#1873](https://github.com/wazuh/wazuh-ansible/pull/1873))
+- Add missing parameters SSL ciphers and protocols to opensearch.yml ([#1863](https://github.com/wazuh/wazuh-ansible/pull/1863))
+
+### Changed
+
+- None
+
+### Fixed
+
+- None
+
+### Deleted
+
+- Remove outdated parameters from opensearch template ([#1859](https://github.com/wazuh/wazuh-ansible/pull/1859))
+
+## [4.14.1]
+
+### Added
+
+- None
+
+### Changed
+
+- Packages-dev bucket migration to 4.14.1 ([#1756](https://github.com/wazuh/wazuh-ansible/pull/1756))
+
+### Fixed
+
+- None
+
+### Deleted
+
+- None
+
+## [4.14.0]
+
+### Added
+
+- None
+
+### Changed
+
+- Remove dashboard chat setting ([#1798](https://github.com/wazuh/wazuh-ansible/pull/1798))
+- Rollback data source setting ([#1784](https://github.com/wazuh/wazuh-ansible/pull/1784))
+- Dashboard settings added ([#1783](https://github.com/wazuh/wazuh-ansible/pull/1783))
+- Bucket migrate from packages-dev.wazuh.com to xdrsiem-packages-dev ([#1715](https://github.com/wazuh/wazuh-ansible/pull/1715))
+- Bucket migration for packages-dev.wazuh.com ([#1710](https://github.com/wazuh/wazuh-ansible/pull/1710))
+
+### Fixed
+
+- None
+
+### Deleted
+
+- None
+
+## [4.13.0]
+
+### Added
+
+- Add opensearch_dashboard.yml parameters. ([#1768](https://github.com/wazuh/wazuh-ansible/pull/1768))
+- Add missing malicious-ioc ruleset lists ([#1685](https://github.com/wazuh/wazuh-ansible/pull/1685))
+- Integrate bumper script via GitHub action. ([#1676](https://github.com/wazuh/wazuh-ansible/pull/1676))
+- Added repository_bumper.sh script. ([#1621](https://github.com/wazuh/wazuh-ansible/pull/1621))
+
+### Changed
+
+- Syscollector configuration change ([#1775](https://github.com/wazuh/wazuh-ansible/pull/1775))
+- Bucket migrate from packages-dev.wazuh.com to xdrsiem-packages-dev ([#1716](https://github.com/wazuh/wazuh-ansible/pull/1716))
+- Bucket migration for packages-dev.wazuh.com ([#1712](https://github.com/wazuh/wazuh-ansible/pull/1712))
+
+### Fixed
+
+- Correct filebeat_node_name in distributed playbook and readme ([#1778](https://github.com/wazuh/wazuh-ansible/pull/1778))
+- Fix invalid active response ca_store setting ([#1655](https://github.com/wazuh/wazuh-ansible/pull/1655))
+
+### Deleted
+
+- Remove root-ca.key from the list of certificates copied to indexer nodes ([#1653](https://github.com/wazuh/wazuh-ansible/pull/1653))
+- Remove 'stable' branch ocurrencies ([#1593](https://github.com/wazuh/wazuh-ansible/pull/1593))
+
+## [4.12.0]
 
 ### Added
 

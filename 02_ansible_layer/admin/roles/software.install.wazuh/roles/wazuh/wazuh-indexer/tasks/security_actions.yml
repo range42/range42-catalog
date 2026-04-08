@@ -27,7 +27,6 @@
     mode: 0400
   with_items:
     - root-ca.pem
-    - root-ca.key
     - "{{ indexer_node_name }}-key.pem"
     - "{{ indexer_node_name }}.pem"
     - admin-key.pem
@@ -114,13 +113,6 @@
     timeout: 4
   register: result
   until: result.status in [200,201,401]
-
-  # fix
   when:
-    - indexer_custom_user | default(None) is not none
-    - indexer_custom_user | string | trim | length > 0
+    - indexer_custom_user | default('') | trim | length > 0
     - inventory_hostname == ansible_play_hosts[0]
-
-#
-#    - indexer_custom_user is defined and indexer_custom_user
-#    - inventory_hostname == ansible_play_hosts[0]

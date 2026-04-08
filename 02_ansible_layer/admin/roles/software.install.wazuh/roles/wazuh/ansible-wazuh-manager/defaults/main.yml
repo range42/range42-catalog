@@ -1,13 +1,13 @@
 ---
-wazuh_manager_version: 4.12.0
+wazuh_manager_version: 4.14.4
 
 wazuh_manager_fqdn: "wazuh-server"
 wazuh_manager_package_state: present
 
 # Custom packages installation
 wazuh_custom_packages_installation_manager_enabled: false
-wazuh_custom_packages_installation_manager_deb_url: "https://s3-us-west-1.amazonaws.com/packages-dev.wazuh.com/"
-wazuh_custom_packages_installation_manager_rpm_url: "https://s3-us-west-1.amazonaws.com/packages-dev.wazuh.com/"
+wazuh_custom_packages_installation_manager_deb_url: "https://packages-dev.wazuh.com/"
+wazuh_custom_packages_installation_manager_rpm_url: "https://packages-dev.wazuh.com/"
 
 wazuh_dir: "/var/ossec"
 
@@ -296,6 +296,9 @@ wazuh_manager_ruleset:
     - 'audit-keys'
     - 'security-eventchannel'
     - 'amazon/aws-eventnames'
+    - 'malicious-ioc/malicious-ip'
+    - 'malicious-ioc/malicious-domains'
+    - 'malicious-ioc/malware-hashes'
 
 wazuh_manager_rule_exclude:
   - '0215-policy_rules.xml'
@@ -360,9 +363,6 @@ wazuh_manager_api:
   remote_commands_localfile_exceptions: []
   remote_commands_wodle: yes
   remote_commands_wodle_exceptions: []
-# wazuh_api_users:
-#   - username: custom-user
-#     password: .S3cur3Pa55w0rd*- # Must comply with requirements (8+ length, uppercase, lowercase, specials chars)
 
 # NOTE: As wazuh_manager_config is built dynamically per playbooks and ansible.cfg provided in the repo,
 # we should also cover the case for partial settings in inventory variables overlayed on top of role's

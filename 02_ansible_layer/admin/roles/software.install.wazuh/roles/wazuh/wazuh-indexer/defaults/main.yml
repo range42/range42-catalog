@@ -1,6 +1,6 @@
 ---
 # Cluster Settings
-indexer_version: 4.12.0
+indexer_version: 4.14.4
 
 single_node: false
 indexer_node_name: node-1
@@ -13,7 +13,7 @@ indexer_node_ingest: true
 indexer_start_timeout: 90
 
 indexer_cluster_nodes:
-  - 127.0.0.1
+  - "{{ indexer_node_name }}"
 indexer_discovery_nodes:
   - 127.0.0.1
 
@@ -32,8 +32,7 @@ indexer_conf_path: /etc/wazuh-indexer
 indexer_index_path: /var/lib/wazuh-indexer/
 
 # Security password
-#indexer_custom_user: ""
-indexer_custom_user: null  # fix 
+indexer_custom_user: ""
 indexer_custom_user_role: "admin"
 
 # Set JVM memory limits

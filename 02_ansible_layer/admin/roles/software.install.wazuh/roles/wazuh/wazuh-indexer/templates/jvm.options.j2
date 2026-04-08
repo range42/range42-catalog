@@ -88,7 +88,13 @@
 # JDK 9+ GC logging
 9-:-Xlog:gc*,gc+age=trace,safepoint:file=/var/log/wazuh-indexer/gc.log:utctime,pid,tags:filecount=32,filesize=64m
 
+## Workaround: JVM C2 compiler segfault on Intel i9-14900K (Temurin 21)
+## The C2 JIT compiler crashes with SIGSEGV in String::replace on some Intel CPUs.
+## TieredStopAtLevel=1 forces C1-only compilation, avoiding the crash.
+-XX:TieredStopAtLevel=1
+
 ## Opensearch Performance Analyzer
 -Dclk.tck=100
 -Djdk.attach.allowAttachSelf=true
 -Djava.security.policy=file:///usr/share/wazuh-indexer/plugins/opensearch-performance-analyzer/pa_config/opensearch_security.policy
+

@@ -9,56 +9,13 @@ These playbooks install and configure Wazuh agent, manager and indexer and dashb
 
 ## Branches
 
-- `master` branch contains the latest code, be aware of possible bugs on this branch.
-- `stable` branch on correspond to the last Wazuh stable version.
+- `main` branch contains the latest code, be aware of possible bugs on this branch.
 
 ## Compatibility Matrix
 
 | Wazuh version | Elastic | ODFE   |
 |---------------|---------|--------|
-| v4.12.0       |         |        |
-| v4.11.2       |         |        |
-| v4.11.1       |         |        |
-| v4.11.0       |         |        |
-| v4.10.1       |         |        |
-| v4.10.0       |         |        |
-| v4.9.2        |         |        |
-| v4.9.1        |         |        |
-| v4.9.0        |         |        |
-| v4.8.2        |         |        |
-| v4.8.1        |         |        |
-| v4.8.0        |         |        |
-| v4.7.5        |         |        |
-| v4.7.4        |         |        |
-| v4.7.3        |         |        |
-| v4.7.2        |         |        |
-| v4.7.1        |         |        |
-| v4.7.0        |         |        |
-| v4.6.0        |         |        |
-| v4.5.4        |         |        |
-| v4.5.3        |         |        |
-| v4.5.2        |         |        |
-| v4.5.1        |         |        |
-| v4.5.0        |         |        |
-| v4.4.5        |         |        |
-| v4.4.4        |         |        |
-| v4.4.3        |         |        |
-| v4.4.2        |         |        |
-| v4.4.1        |         |        |
-| v4.4.0        |         |        |
-| v4.3.11       |         |        |
-| v4.3.10       |         |        |
-| v4.4.0        |         |        |
-| v4.3.9        |         |        |
-| v4.3.8        |         |        |
-| v4.3.7        |         |        |
-| v4.3.6        |         |        |
-| v4.3.5        |         |        |
-| v4.3.4        |         |        |
-| v4.3.3        |         |        |
-| v4.3.2        |         |        |
-| v4.3.1        |         |        |
-| v4.3.0        |         |        |
+| v4.3.0+       |   N/A   |   N/A  |
 | v4.2.6        | 7.10.2  | 1.13.2 |
 | v4.2.5        | 7.10.2  | 1.13.2 |
 | v4.2.4        | 7.10.2  | 1.13.2 |
@@ -209,10 +166,10 @@ The hereunder example playbook uses the `wazuh-ansible` role to provision a prod
       roles:
         - role: "../roles/wazuh/ansible-wazuh-manager"
         - role: "../roles/wazuh/ansible-filebeat-oss"
-          filebeat_node_name: node-4
       become: yes
       become_user: root
       vars:
+        filebeat_node_name: node-4
         wazuh_manager_config:
           connection:
               - type: 'secure'
@@ -229,9 +186,6 @@ The hereunder example playbook uses the `wazuh-ansible` role to provision a prod
               nodes:
                   - "{{ hostvars.manager.private_ip }}"
               hidden: 'no'
-        wazuh_api_users:
-          - username: custom-user
-            password: SecretPassword1!
         filebeat_output_indexer_hosts:
                 - "{{ hostvars.wi1.private_ip }}"
                 - "{{ hostvars.wi2.private_ip }}"
@@ -241,10 +195,10 @@ The hereunder example playbook uses the `wazuh-ansible` role to provision a prod
       roles:
         - role: "../roles/wazuh/ansible-wazuh-manager"
         - role: "../roles/wazuh/ansible-filebeat-oss"
-          filebeat_node_name: node-5
       become: yes
       become_user: root
       vars:
+        filebeat_node_name: node-5
         wazuh_manager_config:
           connection:
               - type: 'secure'
@@ -279,8 +233,8 @@ The hereunder example playbook uses the `wazuh-ansible` role to provision a prod
           - id: default
             url: https://{{ hostvars.manager.private_ip }}
             port: 55000
-            username: custom-user
-            password: SecretPassword1!
+            username: "wazuh-wui"
+            password: "wazuh-wui"
         ansible_shell_allow_world_readable_temp: true
 ```
 
@@ -418,9 +372,6 @@ The hereunder example playbook uses the `wazuh-ansible` role to provision a Wazu
               nodes:
                   - "{{ hostvars.manager.private_ip }}"
               hidden: 'no'
-        wazuh_api_users:
-          - username: custom-user
-            password: SecretPassword1!
 
     - hosts: worker01
       roles:

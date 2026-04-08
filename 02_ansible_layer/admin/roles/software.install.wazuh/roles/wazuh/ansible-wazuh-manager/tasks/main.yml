@@ -10,7 +10,7 @@
           - tar
         state: present
       register: package_status
-      until: "package_status is not failed"  
+      until: "package_status is not failed"
       retries: 10
       delay: 10
 
@@ -20,7 +20,7 @@
         state: present
       when: ansible_distribution != "Amazon" and ansible_distribution_version != "2023"
       register: package_status
-      until: "package_status is not failed"  
+      until: "package_status is not failed"
       retries: 10
       delay: 10
 
@@ -30,19 +30,19 @@
         state: present
       when: ansible_distribution == "Amazon" and ansible_distribution_version == "2023"
       register: package_status
-      until: "package_status is not failed"  
+      until: "package_status is not failed"
       retries: 10
       delay: 10
 
-- include_vars: ../../vars/repo_vars.yml
+- include_vars: ../vars/repo_vars.yml
 
-- include_vars: ../../vars/repo.yml
+- include_vars: ../vars/repo.yml
   when: packages_repository == 'production'
 
-- include_vars: ../../vars/repo_pre-release.yml
+- include_vars: ../vars/repo_pre-release.yml
   when: packages_repository == 'pre-release'
 
-- include_vars: ../../vars/repo_staging.yml
+- include_vars: ../vars/repo_staging.yml
   when: packages_repository == 'staging'
 
 - name: Overlay wazuh_manager_config on top of defaults
@@ -73,7 +73,7 @@
   tags:
     - init
     - config
-  
+
 - name: Install expect
   package:
     name: expect
@@ -242,7 +242,7 @@
   notify: restart wazuh-manager
   when:
     - csyslog_enabled.stdout == '0' or "skipped" in csyslog_enabled.stdout
-    - syslog_output is defined and syslog_output
+    - syslog_output is defined and (syslog_output | bool)
   tags:
     - config
 
@@ -303,44 +303,6 @@
     - wazuh_manager_config.authd.use_password == 'yes'
   tags:
     - config
-
-- name: Create custom API user
-  block:
-    - name: Copy create_user script
-      copy:
-        src: create_user.py
-        dest: "{{ wazuh_dir }}/framework/scripts/create_user.py"
-        owner: root
-        group: wazuh
-        mode: 0644
-
-    - name: Create admin.json
-      template:
-        src: templates/admin.json.j2
-        dest: "{{ wazuh_dir }}/api/configuration/admin.json"
-        owner: wazuh
-        group: wazuh
-        mode: 0644
-      no_log: true
-
-    - name: Execute create_user script
-      script:
-        chdir: "{{ wazuh_dir }}/framework/scripts/"
-        cmd: create_user.py --username "{{ item.username }}" --password "{{ item.password }}"
-        executable: "{{ wazuh_dir }}/framework/python/bin/python3"
-      with_items:
-        - "{{ wazuh_api_users }}"
-
-    - name: Delete create_user script
-      file:
-        path: "{{ wazuh_dir }}/framework/scripts/create_user.py"
-        state: absent
-
-  tags:
-    - config_api_users
-  when:
-    - wazuh_api_users is defined
-    - wazuh_manager_config.cluster.node_type == "master"
 
 - name: Agentless Hosts & Passwd
   template:

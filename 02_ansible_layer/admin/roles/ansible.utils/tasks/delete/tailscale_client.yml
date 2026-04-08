@@ -67,7 +67,7 @@
 # CALL
 #
 
-# - hosts: r42.admin-web-emp
+# - hosts: r42.admin-deployer-api-gateway
 #   gather_facts: false
 #   vars_files:
 #     - "../../secrets/px-testing.cr42_tailscale.yml"
@@ -77,8 +77,7 @@
 #       - "admin-wazuh"
 #       - "admin-builder-api-devkit"
 #       - "admin-builder-docker-registry"
-#       - "admin-web-api-kong"
-#       - "admin-web-builder-api"
-#       - "admin-web-deployer-ui"
-#       - "admin-web-emp"
+#       - "admin-deployer-api-gateway"
+#       - "admin-deployer-api-backend"
+#       - "admin-deployer-ui"
 #       - "testing-wazuh-client"
