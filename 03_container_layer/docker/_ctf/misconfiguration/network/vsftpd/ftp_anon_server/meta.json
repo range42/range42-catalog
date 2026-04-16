@@ -1,0 +1,47 @@
+{
+  "x_range42": {
+    "misconfig": {
+      "title": "FTP Anonymous Access Misconfiguration",
+      "description": "vsftpd configured with anonymous login enabled — allows unauthenticated file access",
+      "product": "vsftpd",
+      "category": "network",
+      "classifications": {
+        "cwe": [
+          "CWE-284"
+        ],
+        "owasp": null,
+        "mitre_attack": [
+          "T1078.001"
+        ]
+      }
+    },
+    "exercise": {
+      "id": "r42-misconfig-vsftpd-anon-access",
+      "version": "0.1.0",
+      "type": "docker-compose",
+      "container": true,
+      "difficulty": "beginner",
+      "stack": [
+        "vsftpd",
+        "ftp"
+      ],
+      "estimated_time_minutes": null,
+      "setup_cmd": "make up",
+      "teardown_cmd": "make down",
+      "poc_path": null
+    },
+    "catalog": {
+      "path": "misconfiguration/network/vsftpd/ftp_anon_server",
+      "authors": [
+        "Benjamin Collas"
+      ],
+      "license": "GPL-3.0-or-later",
+      "tags": [
+        "ftp",
+        "anonymous-access",
+        "misconfiguration"
+      ],
+      "status": "active"
+    }
+  }
+}

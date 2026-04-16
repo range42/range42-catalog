@@ -1,0 +1,47 @@
+{
+  "x_range42": {
+    "misconfig": {
+      "title": "Linux Local Privilege Escalation",
+      "description": "SUID binary misconfiguration allowing unprivileged user to escalate to root",
+      "product": "linux",
+      "category": "system",
+      "classifications": {
+        "cwe": [
+          "CWE-732"
+        ],
+        "owasp": null,
+        "mitre_attack": [
+          "T1548.001"
+        ]
+      }
+    },
+    "exercise": {
+      "id": "r42-misconfig-linux-lpe-suid",
+      "version": "0.1.0",
+      "type": "docker-compose",
+      "container": true,
+      "difficulty": "beginner",
+      "stack": [
+        "linux",
+        "bash"
+      ],
+      "estimated_time_minutes": null,
+      "setup_cmd": "make up",
+      "teardown_cmd": "make down",
+      "poc_path": null
+    },
+    "catalog": {
+      "path": "misconfiguration/system/lpe-01",
+      "authors": [
+        "Benjamin Collas"
+      ],
+      "license": "GPL-3.0-or-later",
+      "tags": [
+        "privilege-escalation",
+        "suid",
+        "misconfiguration"
+      ],
+      "status": "active"
+    }
+  }
+}
