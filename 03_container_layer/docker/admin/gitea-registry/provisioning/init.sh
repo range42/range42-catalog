@@ -49,14 +49,19 @@ while [ "${i}" -lt "${admin_count}" ]; do
   password=$(yq e ".admins[${i}].password" "${USERS_FILE}")
 
   echo "[init]   + admin: ${username}"
-  gitea admin user create \
+  cli_out=$(gitea admin user create \
     --config "${GITEA_CONFIG}" \
     --admin \
     --username "${username}" \
     --password "${password}" \
     --email    "${email}" \
-    --must-change-password=false 2>/dev/null \
-    || echo "[warn] ${username} may already exist — skipping"
+    --must-change-password=false 2>&1) || {
+    case "${cli_out}" in
+      *"user already exists"*|*"name already exists"*)
+        echo "[warn] ${username} already exists — skipping" ;;
+      *) echo "[error] Failed to create ${username}: ${cli_out}"; exit 1 ;;
+    esac
+  }
 
   i=$((i + 1))
 done
@@ -72,13 +77,18 @@ while [ "${i}" -lt "${user_count}" ]; do
   password=$(yq e ".users[${i}].password" "${USERS_FILE}")
 
   echo "[init]   + user: ${username}"
-  gitea admin user create \
+  cli_out=$(gitea admin user create \
     --config "${GITEA_CONFIG}" \
     --username "${username}" \
     --password "${password}" \
     --email    "${email}" \
-    --must-change-password=false 2>/dev/null \
-    || echo "[warn] ${username} may already exist — skipping"
+    --must-change-password=false 2>&1) || {
+    case "${cli_out}" in
+      *"user already exists"*|*"name already exists"*)
+        echo "[warn] ${username} already exists — skipping" ;;
+      *) echo "[error] Failed to create ${username}: ${cli_out}"; exit 1 ;;
+    esac
+  }
 
   i=$((i + 1))
 done
