@@ -6,6 +6,9 @@ SERVICE       = gitea
 PROVISIONER   = gitea-provisioner
 DEBUG_SERVICE = $(SERVICE)-debug
 
+.PHONY: up down stop build rebuild build-up rebuild-up reprovision \
+        logs-provisioner term term-debug-build clean print help
+
 help:
 	@echo ""
 	@echo ""
