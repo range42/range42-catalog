@@ -10,9 +10,9 @@ FROM php:8.3-apache-bookworm AS builder
 
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && \
     rm -rf /var/lib/apt/lists/* && \
-    curl -sL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 \
+    curl -sL https://github.com/mikefarah/yq/releases/download/v4.44.1/yq_linux_amd64 \
       -o /usr/local/bin/yq && chmod +x /usr/local/bin/yq && \
-    curl -sL https://github.com/stedolan/jq/releases/latest/download/jq-linux64 \
+    curl -sL https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64 \
       -o /usr/local/bin/jq && chmod +x /usr/local/bin/jq
 
 COPY provisioning/ /provisioning/
