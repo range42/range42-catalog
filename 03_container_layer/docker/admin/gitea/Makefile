@@ -75,12 +75,7 @@ logs-provisioner:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 clean:
-	docker system prune -a --volumes -f
-	-docker stop $(shell docker ps -aq)
-	-docker rm -f $(shell docker ps -aq)
-	-docker rmi -f $(shell docker images -q)
-	-docker volume rm -f $(shell docker volume ls -q)
-	-docker network prune -f
+	docker compose down -v --rmi all
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
