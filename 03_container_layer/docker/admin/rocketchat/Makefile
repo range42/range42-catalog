@@ -6,6 +6,8 @@ SERVICE     = rocketchat
 PROVISIONER = rocketchat-provisioner
 DEBUG_SERVICE = $(SERVICE)-debug
 
+.PHONY: help up down stop stop-debug-build build rebuild build-up rebuild-up tokens reprovision term term-debug-build clean print
+
 help:
 	@echo ""
 	@echo ""
@@ -41,7 +43,7 @@ stop:
 
 stop-debug-build :
 	docker compose stop $(DEBUG_SERVICE) # stop only debug
-	docker compose rm -sf debug
+	docker compose rm -sf $(DEBUG_SERVICE)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -83,11 +85,7 @@ term:
 	docker exec -it $(SERVICE) /bin/sh
 
 term-debug-build:
-	# docker compose down
-	# -docker stop $(shell docker ps -aq) # stop all containers
-	# -docker rm -f $(shell docker ps -aq) # delete all containers
-	# -docker rmi -f $(shell docker images -q) # delete all images
-	# -docker volume rm -f $(shell docker volume ls -q) # delete all volumes
-
-	docker compose up --build -d debug
+	docker compose up --build -d $(DEBUG_SERVICE)
 	docker exec -it $(DEBUG_SERVICE) /bin/sh
+
+print: help
