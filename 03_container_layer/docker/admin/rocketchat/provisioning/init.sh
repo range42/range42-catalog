@@ -146,7 +146,7 @@ generate_token() {
     return
   fi
 
-  echo "[token] ${_username}: ${_pat}"
+  echo "[init]   + token generated for ${_username}"
   echo "${_username}:${_pat}" >> "${TOKENS_FILE}"
 }
 
@@ -214,10 +214,7 @@ echo "[init] Provisioning complete."
 echo "[init] Tokens written to: ${TOKENS_FILE}"
 echo "[init] ──────────────────────────────────────"
 if [ -s "${TOKENS_FILE}" ]; then
-  echo "[init] Token summary:"
-  while IFS= read -r line; do
-    echo "        ${line}"
-  done < "${TOKENS_FILE}"
+  echo "[init] Token file: /tokens/tokens.txt — use 'make tokens' to retrieve."
 fi
 
 touch "${STAMP_FILE}"
