@@ -6,6 +6,8 @@ SERVICE       = gitea-registry
 PROVISIONER   = gitea-registry-provisioner
 DEBUG_SERVICE = $(SERVICE)-debug
 
+.PHONY: help up down stop build rebuild build-up rebuild-up reprovision logs-provisioner tokens term term-debug-build clean print
+
 help:
 	@echo ""
 	@echo ""
