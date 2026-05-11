@@ -49,25 +49,21 @@ create_user() {
   local email="${3}"
   local display_name="${4}"
 
-  echo "[init]   + user: ${username}"
-  payload=$(jq -n \
-    --arg id      "${username}" \
-    --arg pass    "${password}" \
-    --arg email   "${email}" \
-    --arg display "${display_name}" \
-    'if $display != "" then
-       {userid:$id, password:$pass, email:$email, displayName:$display}
-     else
-       {userid:$id, password:$pass, email:$email}
-     end')
-
-  curl -sf -X POST "${NC_URL}/ocs/v1.php/cloud/users" \
+  resp=$(curl -sf -X POST "${NC_URL}/ocs/v1.php/cloud/users" \
     -u "${NC_ADMIN_USER}:${NC_ADMIN_PASS}" \
     -H "OCS-APIRequest: true" \
     -H "Accept: application/json" \
-    -H "Content-Type: application/json" \
-    -d "${payload}" >/dev/null \
-    || echo "[warn] ${username} may already exist — skipping create"
+    --data-urlencode "userid=${username}" \
+    --data-urlencode "password=${password}" \
+    --data-urlencode "email=${email}" \
+    --data-urlencode "displayName=${display_name}" \
+    || echo '{}')
+  status=$(echo "${resp}" | jq -r '.ocs.meta.statuscode // 999' 2>/dev/null || echo 999)
+  case "${status}" in
+    100) echo "[init]   + user created: ${username}" ;;
+    102) echo "[warn]   ${username} already exists — skipping" ;;
+    *) echo "[error]  Failed to create ${username} (OCS status ${status}): $(echo "${resp}" | jq -r '.ocs.meta.message // "unknown error"' 2>/dev/null)"; exit 1 ;;
+  esac
 }
 
 # ── Helper: add a user to the admin group ──────────────────────────────────
@@ -79,9 +75,9 @@ add_to_admin_group() {
     -u "${NC_ADMIN_USER}:${NC_ADMIN_PASS}" \
     -H "OCS-APIRequest: true" \
     -H "Accept: application/json" \
-    -H "Content-Type: application/x-www-form-urlencoded" \
-    -d "userid=${username}" >/dev/null \
-    || echo "[warn] Could not add ${username} to admin group — skipping"
+    --data-urlencode "userid=${username}" \
+    >/dev/null \
+    || echo "[warn] Failed to add ${username} to admin group"
 }
 
 # ── Helper: generate an app password for a user ────────────────────────────
@@ -120,7 +116,6 @@ while [ "${i}" -lt "${admin_count}" ]; do
 
   create_user "${username}" "${password}" "${email}" "${display_name}"
   add_to_admin_group "${username}"
-  generate_app_password "${username}" "${password}"
 
   i=$((i + 1))
 done
@@ -137,8 +132,30 @@ while [ "${i}" -lt "${user_count}" ]; do
   display_name=$(yq e ".users[${i}].display_name // \"\"" "${USERS_FILE}")
 
   create_user "${username}" "${password}" "${email}" "${display_name}"
-  generate_app_password "${username}" "${password}"
 
+  i=$((i + 1))
+done
+
+# ── 4b. Wait for user accounts to be ready before generating app passwords ──
+echo "[init] Waiting for user accounts to be ready ..."
+sleep 2
+
+# ── 4c. Generate app passwords for all users ────────────────────────────────
+echo "[init] Generating app passwords ..."
+
+i=0
+while [ "${i}" -lt "${admin_count}" ]; do
+  username=$(yq e ".admins[${i}].username" "${USERS_FILE}")
+  password=$(yq e ".admins[${i}].password" "${USERS_FILE}")
+  generate_app_password "${username}" "${password}"
+  i=$((i + 1))
+done
+
+i=0
+while [ "${i}" -lt "${user_count}" ]; do
+  username=$(yq e ".users[${i}].username" "${USERS_FILE}")
+  password=$(yq e ".users[${i}].password" "${USERS_FILE}")
+  generate_app_password "${username}" "${password}"
   i=$((i + 1))
 done
 

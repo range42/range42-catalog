@@ -71,19 +71,12 @@ logs-provisioner:
 	docker compose logs -f $(PROVISIONER)
 
 tokens:
-	docker run --rm \
-	  -v nextcloud_nextcloud-tokens:/tokens:ro \
-	  busybox cat /tokens/tokens.txt
+	docker run --rm -v nextcloud_nextcloud-tokens:/tokens alpine cat /tokens/tokens.txt
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 clean:
-	docker system prune -a --volumes -f
-	-docker stop $(shell docker ps -aq)
-	-docker rm -f $(shell docker ps -aq)
-	-docker rmi -f $(shell docker images -q)
-	-docker volume rm -f $(shell docker volume ls -q)
-	-docker network prune -f
+	docker compose down -v --rmi all
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
