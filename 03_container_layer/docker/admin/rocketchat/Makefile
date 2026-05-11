@@ -66,24 +66,16 @@ rebuild-up:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 tokens:
-	@echo ""
-	@echo "  Personal access tokens (from rocketchat-tokens volume):"
-	@echo ""
-	docker run --rm \
-	  -v rocketchat_rocketchat-tokens:/tokens:ro \
-	  busybox cat /tokens/tokens.txt 2>/dev/null || \
-	  echo "  No tokens file yet — run 'make up' first."
-	@echo ""
+	docker run --rm -v rocketchat-tokens:/tokens alpine cat /tokens/tokens.txt
+
+reprovision:
+	docker run --rm -v rocketchat-tokens:/tokens alpine rm -f /tokens/.provisioned
+	docker compose up $(PROVISIONER)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 clean:
-	docker system prune -a --volumes -f
-	-docker stop $(shell docker ps -aq) # stop all containers
-	-docker rm -f $(shell docker ps -aq) # delete all containers
-	-docker rmi -f $(shell docker images -q) # delete all images
-	-docker volume rm -f $(shell docker volume ls -q) # delete all volumes
-	-docker network prune -f # docker unused network int
+	docker compose down -v --rmi all
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 

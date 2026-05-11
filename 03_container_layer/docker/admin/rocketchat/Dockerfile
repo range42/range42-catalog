@@ -7,7 +7,9 @@
 #
 FROM node:20-alpine AS builder
 
-RUN apk add --no-cache yq jq
+RUN apk add --no-cache jq && \
+    wget -q https://github.com/mikefarah/yq/releases/download/v4.44.1/yq_linux_amd64 \
+      -O /usr/bin/yq && chmod +x /usr/bin/yq
 
 COPY provisioning/ /provisioning/
 RUN chmod +x /provisioning/init.sh
