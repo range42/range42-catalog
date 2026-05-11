@@ -74,17 +74,12 @@ logs-provisioner:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 tokens:
-	docker exec $(PROVISIONER) cat /tokens/tokens.txt
+	docker run --rm -v gitea-registry-tokens:/tokens alpine cat /tokens/tokens.txt
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 clean:
-	docker system prune -a --volumes -f
-	-docker stop $(shell docker ps -aq)
-	-docker rm -f $(shell docker ps -aq)
-	-docker rmi -f $(shell docker images -q)
-	-docker volume rm -f $(shell docker volume ls -q)
-	-docker network prune -f
+	docker compose down -v --rmi all
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
@@ -92,7 +87,6 @@ term:
 	docker exec -it $(SERVICE) /bin/sh
 
 term-debug-build:
-	docker compose up --build -d debug
-	docker exec -it $(DEBUG_SERVICE) /bin/sh
+	@echo "Uncomment the 'debug' service in compose.yml first, then re-run."
 
 print: help
