@@ -64,24 +64,19 @@ rebuild-up:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 reprovision:
-	docker exec $(SERVICE) rm -f /tokens/.provisioned
-	docker compose restart $(PROVISIONER)
+	docker run --rm -v mattermost-tokens:/tokens alpine rm -f /tokens/.provisioned
+	docker compose up $(PROVISIONER)
 
 logs-provisioner:
 	docker compose logs -f $(PROVISIONER)
 
 tokens:
-	docker exec $(PROVISIONER) cat /tokens/tokens.txt
+	docker run --rm -v mattermost-tokens:/tokens alpine cat /tokens/tokens.txt
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 clean:
-	docker system prune -a --volumes -f
-	-docker stop $(shell docker ps -aq)
-	-docker rm -f $(shell docker ps -aq)
-	-docker rmi -f $(shell docker images -q)
-	-docker volume rm -f $(shell docker volume ls -q)
-	-docker network prune -f
+	docker compose down -v --rmi all
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
