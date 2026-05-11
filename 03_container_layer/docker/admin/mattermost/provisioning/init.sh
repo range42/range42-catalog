@@ -52,10 +52,11 @@ while [ "${i}" -lt "${admin_count}" ]; do
 
   echo "[init]   + admin: ${username}"
   mattermost --config "${MM_CONFIG}" user create \
-    --email    "${email}" \
+    --email "${email}" \
     --username "${username}" \
     --password "${password}" \
-    --system_admin 2>/dev/null \
+    --system_admin \
+    --email-verified 2>/dev/null \
     || echo "[warn] ${username} may already exist — skipping"
 
   i=$((i + 1))
@@ -73,24 +74,34 @@ while [ "${i}" -lt "${user_count}" ]; do
 
   echo "[init]   + user: ${username}"
   mattermost --config "${MM_CONFIG}" user create \
-    --email    "${email}" \
+    --email "${email}" \
     --username "${username}" \
-    --password "${password}" 2>/dev/null \
+    --password "${password}" \
+    --email-verified 2>/dev/null \
     || echo "[warn] ${username} may already exist — skipping"
 
   i=$((i + 1))
 done
 
 # ── 5. Login as first admin via REST API ─────────────────────────────────────
-echo "[init] Logging in as ${MM_ADMIN_USER} via REST API ..."
-sleep 3
+echo "[init] Waiting for REST API to recognize provisioned users ..."
+mm_token=""
+attempts=0
+until [ -n "${mm_token}" ] && [ "${mm_token}" != "null" ]; do
+  attempts=$((attempts + 1))
+  if [ "${attempts}" -ge 20 ]; then
+    echo "[fatal] Could not log in as admin after 60 s"
+    exit 1
+  fi
+  auth_resp=$(curl -sf -D - -X POST "${MM_URL}/api/v4/users/login" \
+    -H "Content-Type: application/json" \
+    -d "$(jq -n --arg u "${MM_ADMIN_USER}" --arg p "${MM_ADMIN_PASS}" '{"login_id":$u,"password":$p}')" 2>/dev/null || echo "")
+  mm_token=$(echo "${auth_resp}" | grep -i '^Token:' | awk '{print $2}' | tr -d '\r')
+  [ -z "${mm_token}" ] && sleep 3
+done
 
-auth_response=$(curl -sf -D - -X POST "${MM_URL}/api/v4/users/login" \
-  -H "Content-Type: application/json" \
-  -d "$(jq -n --arg u "${MM_ADMIN_USER}" --arg p "${MM_ADMIN_PASS}" \
-    '{"login_id":$u,"password":$p}')")
-
-admin_token=$(printf '%s' "${auth_response}" | grep -i '^Token:' | awk '{print $2}' | tr -d '\r\n')
+auth_response="${auth_resp}"
+admin_token="${mm_token}"
 admin_user=$(printf '%s' "${auth_response}" | tail -1)
 admin_id=$(printf '%s' "${admin_user}" | jq -r '.id')
 
@@ -167,8 +178,8 @@ generate_tokens() {
     token_val=$(printf '%s' "${token_resp}" | jq -r '.token // empty')
 
     if [ -n "${token_val}" ]; then
-      printf '%s:%s\n' "${uname}" "${token_val}" | tee -a "${TOKENS_FILE}"
-      echo "[init]   + token for ${uname}: OK"
+      printf '%s:%s\n' "${uname}" "${token_val}" >> "${TOKENS_FILE}"
+      echo "[init]   + token generated for ${uname}"
     else
       echo "[warn] Could not create token for ${uname}"
     fi
