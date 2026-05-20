@@ -1,0 +1,29 @@
+---
+# --- Feature flags ---
+apt_mirror_enabled: false
+apt_mirror_airgapped: false
+apt_mirror_prewarm: false
+apt_mirror_persistent: false
+
+# --- Network ---
+apt_mirror_port: 3142
+apt_mirror_nginx_port: 80
+apt_mirror_allowed_networks: "0.0.0.0/0"
+
+# --- Scope (acng passthrough; aptly mirror targets) ---
+apt_mirror_debian_stable: true
+apt_mirror_ubuntu_2204: true
+apt_mirror_ubuntu_2404: true
+apt_mirror_backports: false
+apt_mirror_security: false
+
+# --- Deploy paths ---
+apt_mirror_deploy_dir: /opt/apt-mirror
+
+# --- Cache tuning (apt-cacher-ng) ---
+apt_mirror_cache_expire_days: 30
+
+# --- Aptly (air-gapped mode) ---
+apt_mirror_aptly_image: "aptly/aptly:latest"
+apt_mirror_aptly_architectures:
+  - amd64

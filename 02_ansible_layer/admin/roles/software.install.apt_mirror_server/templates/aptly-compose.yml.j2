@@ -1,0 +1,27 @@
+services:
+  apt-mirror-aptly:
+    image: {{ apt_mirror_aptly_image }}
+    container_name: apt-mirror-aptly
+    volumes:
+      - aptly_data:/aptly
+      - ./aptly.conf:/etc/aptly.conf:ro
+    command: ["serve", "-listen=:3142"]
+    ports:
+      - "{{ apt_mirror_port }}:3142"
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: apt-mirror-nginx
+    ports:
+      - "{{ apt_mirror_nginx_port }}:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - apt-mirror-aptly
+    restart: unless-stopped
+
+volumes:
+  aptly_data:
+    name: {% if apt_mirror_persistent %}apt-mirror-aptly-data{% else %}apt-mirror-aptly-data-{{ ansible_date_time.epoch }}{% endif %}
+

@@ -1,0 +1,14 @@
+CacheDir: /var/cache/apt-cacher-ng
+LogDir: /var/log/apt-cacher-ng
+Port: 3142
+ExThreshold: {{ apt_mirror_cache_expire_days }}
+AllowedClients: {{ apt_mirror_allowed_networks }}
+PassThroughPattern: .*
+ReportPage: acng-report.html
+
+Remap-debrep: file:deb_mirror*.gz /debian ; http://deb.debian.org/debian
+Remap-uburep: file:ubuntu_mirrors /ubuntu ; http://archive.ubuntu.com/ubuntu
+Remap-debsec: file:deb_mirror*.gz /debian-security ; http://deb.debian.org/debian-security
+{% if apt_mirror_backports %}
+Remap-debback: file:deb_mirror*.gz /debian-backports ; http://deb.debian.org/debian-backports
+{% endif %}

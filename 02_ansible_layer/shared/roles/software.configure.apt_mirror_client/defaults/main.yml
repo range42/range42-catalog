@@ -1,0 +1,6 @@
+---
+apt_mirror_enabled: false
+apt_proxy_url: ""
+apt_mirror_port: 3142
+apt_mirror_fallback: true
+apt_mirror_connect_timeout: 5

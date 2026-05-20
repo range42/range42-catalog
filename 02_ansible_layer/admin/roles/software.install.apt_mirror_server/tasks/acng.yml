@@ -1,0 +1,49 @@
+---
+- name: Ensure deploy directory exists
+  ansible.builtin.file:
+    path: "{{ apt_mirror_deploy_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Copy Docker Compose stack files
+  ansible.builtin.copy:
+    src: "{{ role_path }}/../../../../../03_container_layer/docker/apt-mirror/"
+    dest: "{{ apt_mirror_deploy_dir }}/"
+    mode: preserve
+
+- name: Template apt-cacher-ng config
+  ansible.builtin.template:
+    src: apt-cacher-ng.conf.j2
+    dest: "{{ apt_mirror_deploy_dir }}/apt-cacher-ng.conf"
+    mode: "0644"
+  notify: Restart apt-mirror stack
+
+- name: Template .env file
+  ansible.builtin.template:
+    src: dot-env.j2
+    dest: "{{ apt_mirror_deploy_dir }}/.env"
+    mode: "0640"
+  notify: Restart apt-mirror stack
+
+- name: Start apt-cacher-ng stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ apt_mirror_deploy_dir }}"
+    state: present
+
+- name: Open firewall port for apt-cacher-ng
+  community.general.ufw:
+    rule: allow
+    port: "{{ apt_mirror_port }}"
+    proto: tcp
+    comment: "apt-mirror acng"
+  when: ansible_facts['distribution'] in ['Ubuntu', 'Debian']
+  ignore_errors: true
+
+- name: Verify | apt-cacher-ng responds
+  ansible.builtin.uri:
+    url: "http://localhost:{{ apt_mirror_port }}/acng-report.html"
+    status_code: 200
+  retries: 5
+  delay: 5
+  register: _acng_check
+  until: _acng_check.status == 200

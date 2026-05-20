@@ -1,0 +1,17 @@
+---
+- name: Validate | apt_mirror_enabled must be set to run this role
+  ansible.builtin.fail:
+    msg: "Set apt_mirror_enabled: true to deploy the mirror server."
+  when: not apt_mirror_enabled | bool
+
+- name: Deploy apt-cacher-ng stack
+  ansible.builtin.include_tasks: acng.yml
+  when: not apt_mirror_airgapped | bool
+
+- name: Deploy aptly full mirror stack
+  ansible.builtin.include_tasks: aptly.yml
+  when: apt_mirror_airgapped | bool
+
+- name: Pre-warm cache
+  ansible.builtin.include_tasks: prewarm.yml
+  when: apt_mirror_prewarm | bool

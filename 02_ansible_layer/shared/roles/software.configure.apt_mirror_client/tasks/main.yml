@@ -1,0 +1,16 @@
+---
+- name: Skip | apt mirror client disabled
+  ansible.builtin.meta: end_play
+  when: not apt_mirror_enabled | bool
+
+- name: Configure | write apt proxy config
+  ansible.builtin.template:
+    src: 01-apt-proxy.conf.j2
+    dest: /etc/apt/apt.conf.d/01proxy
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Update apt cache
+
+- name: Flush handlers to apply proxy before any installs
+  ansible.builtin.meta: flush_handlers

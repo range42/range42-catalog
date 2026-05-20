@@ -1,0 +1,22 @@
+---
+# Trigger cache population by pulling common packages through the proxy.
+# Uses a throwaway container so the mirror host itself is not modified.
+- name: Pre-warm | pull common packages through apt-cacher-ng
+  ansible.builtin.command:
+    cmd: >
+      docker run --rm
+      -e http_proxy=http://localhost:{{ apt_mirror_port }}
+      debian:stable
+      sh -c "apt-get update && apt-get install -y --download-only
+        curl wget git vim openssh-server python3 python3-pip
+        docker.io ufw ntp"
+  when: not apt_mirror_airgapped | bool
+
+- name: Pre-warm | force aptly snapshot publish after mirror update
+  ansible.builtin.command:
+    cmd: >
+      docker exec apt-mirror-aptly aptly publish snapshot
+      -distribution={{ item }} {{ item }}-snap :
+  loop: "{{ _aptly_mirrors | default([]) }}"
+  when: apt_mirror_airgapped | bool
+  ignore_errors: true
