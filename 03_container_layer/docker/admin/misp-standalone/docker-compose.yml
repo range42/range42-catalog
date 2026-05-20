@@ -1,0 +1,86 @@
+services:
+
+  # ── MariaDB ────────────────────────────────────────────────────────────────
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE:      ${MISP_DB_NAME:-misp}
+      MYSQL_USER:          ${MISP_DB_USER:-misp}
+      MYSQL_PASSWORD:      ${MISP_DB_PASSWORD}
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ── Redis ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ── MISP ───────────────────────────────────────────────────────────────────
+  misp:
+    build:
+      context: .
+      target: runtime
+      args:
+        MISP_VERSION: ${MISP_VERSION:-v2.5.37}
+    image: misp-standalone:${MISP_VERSION:-latest}
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${MISP_PORT:-8080}:80"
+    volumes:
+      - misp-files:/var/www/MISP/app/files
+      - misp-attachments:/var/www/MISP/app/attachments
+      - misp-logs:/var/www/MISP/app/tmp/logs
+      - keys:/keys
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost/users/login"]
+      interval: 30s
+      timeout: 10s
+      start_period: 180s
+      retries: 6
+
+  # ── Provisioner ────────────────────────────────────────────────────────────
+  # Runs once after MISP is healthy: creates reader/writer users via REST API,
+  # writes all API keys to /keys/api-keys.txt, then exits.
+  provisioner:
+    build:
+      context: .
+      target: runtime
+      args:
+        MISP_VERSION: ${MISP_VERSION:-v2.5.37}
+    entrypoint: ["/provisioning/provision-users.sh"]
+    env_file: .env
+    volumes:
+      - keys:/keys
+      - ./provisioning/provision-users.sh:/provisioning/provision-users.sh:ro
+    depends_on:
+      misp:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  db-data:
+  misp-files:
+  misp-attachments:
+  misp-logs:
+  keys:
