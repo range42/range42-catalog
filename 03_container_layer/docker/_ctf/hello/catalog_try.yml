@@ -1,0 +1,13 @@
+##
+## catalog_try contract - POC element : hello-world
+##
+## Used by `range42-context catalog-try docker/_ctf/hello` to apply a stricter
+## smoke check (L2) on the container output instead of the default L1 fallback
+## (docker ps -a presence).
+##
+## See range42-playbooks/scenarios/catalog_try/catalog_try.element_deploy.yml
+## for the playbook that consumes these fields.
+##
+
+catalog_try_mode: oneshot
+catalog_try_exit_signature: "Hello from Docker"
