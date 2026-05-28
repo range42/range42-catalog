@@ -1,25 +1,14 @@
 ---
-- name: APT MIRROR CLIENT - CONFIGURE PROXY (apt_mirror_enabled=true)
-  ansible.builtin.copy:
-    dest: /etc/apt/apt.conf.d/00range42-proxy
-    content: |
-      Acquire::http::Proxy "{{ apt_proxy_url }}";
-    owner: root
-    group: root
-    mode: "0644"
-  when:
-    - apt_mirror_enabled | default(false) | bool
-    - apt_proxy_url | default('') | length > 0
+# We use direct URL rewriting to point apt at apt-cacher-ng native URLs.
+# Acquire::http::Proxy is NOT used because it causes apt-cacher-ng to receive
+# proxy-mode requests for itself (confusing proxy mode, 403 error).
 
-- name: APT MIRROR CLIENT - REMOVE PROXY CONFIG (apt_mirror_enabled=false)
+- name: APT MIRROR CLIENT - ensure proxy conf is absent
   ansible.builtin.file:
     path: /etc/apt/apt.conf.d/00range42-proxy
     state: absent
-  when: >-
-    not (apt_mirror_enabled | default(false) | bool)
-    or (apt_proxy_url | default('') | length == 0)
 
-# Debian Trixie uses mirror+file:// with HTTPS URLs which bypass the http proxy.
+# Debian Trixie uses mirror+file:// with HTTPS URLs which bypass http proxy.
 # Rewrite mirror list files to use apt-cacher-ng native HTTP URL format.
 - name: APT MIRROR CLIENT - DEBIAN - check mirror list files exist
   ansible.builtin.stat:
@@ -63,8 +52,8 @@
     - _debian_mirror_lists.results[1].stat.exists
   notify: apt update
 
-# Ubuntu Noble cloud images use plain http:// URIs, but rewriting them directly
-# to apt-cacher-ng native URLs is more reliable than relying on the http proxy setting.
+# Ubuntu Noble cloud images use plain http:// URIs in ubuntu.sources.
+# Rewrite them directly to apt-cacher-ng native URLs.
 - name: APT MIRROR CLIENT - UBUNTU - check ubuntu.sources exists
   ansible.builtin.stat:
     path: /etc/apt/sources.list.d/ubuntu.sources
