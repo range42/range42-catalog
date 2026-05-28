@@ -1,0 +1,20 @@
+---
+- name: APT MIRROR CLIENT - CONFIGURE PROXY (apt_mirror_enabled=true)
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/00range42-proxy
+    content: |
+      Acquire::http::Proxy "{{ apt_proxy_url }}";
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - apt_mirror_enabled | default(false) | bool
+    - apt_proxy_url | default('') | length > 0
+
+- name: APT MIRROR CLIENT - REMOVE PROXY CONFIG (apt_mirror_enabled=false)
+  ansible.builtin.file:
+    path: /etc/apt/apt.conf.d/00range42-proxy
+    state: absent
+  when: >-
+    not (apt_mirror_enabled | default(false) | bool)
+    or (apt_proxy_url | default('') | length == 0)
