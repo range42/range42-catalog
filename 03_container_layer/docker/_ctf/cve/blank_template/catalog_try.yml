@@ -1,0 +1,17 @@
+##
+## catalog_try contract - POC element : blank_template (Tomcat CVE-2025-24813)
+##
+## Used by `range42-context catalog-try docker/_ctf/cve/blank_template` to apply
+## a stricter smoke check (L2 HTTP poll) on the Tomcat root endpoint instead of
+## the default L1 fallback (docker ps presence).
+##
+## init_timeout set to 120s : Tomcat first-time boot + Docker pull can take ~60-90s.
+##
+## See range42-playbooks/scenarios/catalog_try/catalog_try.element_deploy.yml
+## for the playbook that consumes these fields.
+##
+
+catalog_try_mode: service
+catalog_try_port: 8080
+catalog_try_endpoint: /
+catalog_try_init_timeout: 120
