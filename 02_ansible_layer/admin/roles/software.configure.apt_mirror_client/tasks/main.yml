@@ -19,7 +19,7 @@
     not (apt_mirror_enabled | default(false) | bool)
     or (apt_proxy_url | default('') | length == 0)
 
-# Debian Trixie uses mirror+file:// with HTTPS URLs which bypass http proxy.
+# Debian Trixie uses mirror+file:// with HTTPS URLs which bypass the http proxy.
 # Rewrite mirror list files to use apt-cacher-ng native HTTP URL format.
 - name: APT MIRROR CLIENT - DEBIAN - check mirror list files exist
   ansible.builtin.stat:
@@ -61,4 +61,39 @@
     - apt_proxy_url | default('') | length > 0
     - ansible_facts.distribution == 'Debian'
     - _debian_mirror_lists.results[1].stat.exists
+  notify: apt update
+
+# Ubuntu Noble cloud images use plain http:// URIs, but rewriting them directly
+# to apt-cacher-ng native URLs is more reliable than relying on the http proxy setting.
+- name: APT MIRROR CLIENT - UBUNTU - check ubuntu.sources exists
+  ansible.builtin.stat:
+    path: /etc/apt/sources.list.d/ubuntu.sources
+  register: _ubuntu_sources
+  when:
+    - apt_mirror_enabled | default(false) | bool
+    - apt_proxy_url | default('') | length > 0
+    - ansible_facts.distribution == 'Ubuntu'
+
+- name: APT MIRROR CLIENT - UBUNTU - rewrite archive URI to use apt-cacher-ng
+  ansible.builtin.replace:
+    path: /etc/apt/sources.list.d/ubuntu.sources
+    regexp: 'http://archive\.ubuntu\.com/ubuntu'
+    replace: "{{ apt_proxy_url }}/archive.ubuntu.com/ubuntu"
+  when:
+    - apt_mirror_enabled | default(false) | bool
+    - apt_proxy_url | default('') | length > 0
+    - ansible_facts.distribution == 'Ubuntu'
+    - _ubuntu_sources.stat.exists
+  notify: apt update
+
+- name: APT MIRROR CLIENT - UBUNTU - rewrite security URI to use apt-cacher-ng
+  ansible.builtin.replace:
+    path: /etc/apt/sources.list.d/ubuntu.sources
+    regexp: 'http://security\.ubuntu\.com/ubuntu'
+    replace: "{{ apt_proxy_url }}/security.ubuntu.com/ubuntu"
+  when:
+    - apt_mirror_enabled | default(false) | bool
+    - apt_proxy_url | default('') | length > 0
+    - ansible_facts.distribution == 'Ubuntu'
+    - _ubuntu_sources.stat.exists
   notify: apt update
