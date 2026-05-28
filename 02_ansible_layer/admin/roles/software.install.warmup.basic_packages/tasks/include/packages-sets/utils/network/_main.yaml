@@ -9,6 +9,11 @@
       when: ansible_facts.distribution == 'Ubuntu'
 
     #
+    - name: INCLUDE - install -  network related packages - debian
+      ansible.builtin.include_tasks: ./debian/utils_network.yaml
+      when: ansible_facts.distribution == 'Debian'
+
+    #
     - name: INCLUDE - install -  network related packages - fedora
       ansible.builtin.include_tasks: ./fedora/utils_network.yaml
       when: ansible_facts.distribution == 'Fedora'

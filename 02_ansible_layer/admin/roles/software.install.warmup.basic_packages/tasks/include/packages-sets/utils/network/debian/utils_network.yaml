@@ -1,0 +1,12 @@
+---
+#
+
+- name: install - utils_network packages - debian
+  apt:
+    name:
+      - nmap
+      - tcpdump
+      - net-tools
+      - iputils-ping
+
+  when: ansible_facts.distribution == 'Debian'

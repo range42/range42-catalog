@@ -7,6 +7,11 @@
       ansible.builtin.include_tasks: ./ubuntu/packages_basics.yaml
       when: ansible_facts.distribution == 'Ubuntu'
     #
+    - name: INCLUDE - install - basics packages - debian
+      ansible.builtin.include_tasks: ./debian/packages_basics.yaml
+      when: ansible_facts.distribution == 'Debian'
+
+    #
     - name: INCLUDE - install - basics packages - fedora
       ansible.builtin.include_tasks: ./fedora/packages_basics.yaml
       when: ansible_facts.distribution == 'Fedora'

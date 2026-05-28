@@ -8,6 +8,12 @@
       when: ansible_facts.distribution == 'Ubuntu'
 
     #
+    - name: INCLUDE - install ntp client and force update time - debian
+      ansible.builtin.include_tasks: ./debian/systemd_timesyncd.yaml
+
+      when: ansible_facts.distribution == 'Debian'
+
+    #
     - name: INCLUDE - install ntp client and force update time  - fedora
       ansible.builtin.include_tasks: ./fedora/systemd_timesyncd.yaml
 

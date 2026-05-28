@@ -9,6 +9,11 @@
       when: ansible_facts.distribution == 'Ubuntu'
 
     #
+    - name: install - firewall packages - debian
+      ansible.builtin.include_tasks: ./debian/ufw.yaml
+      when: ansible_facts.distribution == 'Debian'
+
+    #
     - name: install - firewall packages - fedora
       ansible.builtin.include_tasks: ./fedora/firewalld.yaml
       when: ansible_facts.distribution == 'Fedora'
