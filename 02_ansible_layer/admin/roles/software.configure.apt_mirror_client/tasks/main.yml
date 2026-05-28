@@ -18,3 +18,47 @@
   when: >-
     not (apt_mirror_enabled | default(false) | bool)
     or (apt_proxy_url | default('') | length == 0)
+
+# Debian Trixie uses mirror+file:// with HTTPS URLs which bypass http proxy.
+# Rewrite mirror list files to use apt-cacher-ng native HTTP URL format.
+- name: APT MIRROR CLIENT - DEBIAN - check mirror list files exist
+  ansible.builtin.stat:
+    path: "{{ item }}"
+  register: _debian_mirror_lists
+  loop:
+    - /etc/apt/mirrors/debian.list
+    - /etc/apt/mirrors/debian-security.list
+  when:
+    - apt_mirror_enabled | default(false) | bool
+    - apt_proxy_url | default('') | length > 0
+    - ansible_facts.distribution == 'Debian'
+
+- name: APT MIRROR CLIENT - DEBIAN - rewrite debian.list to use apt-cacher-ng
+  ansible.builtin.copy:
+    dest: /etc/apt/mirrors/debian.list
+    content: |
+      {{ apt_proxy_url }}/deb.debian.org/debian
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - apt_mirror_enabled | default(false) | bool
+    - apt_proxy_url | default('') | length > 0
+    - ansible_facts.distribution == 'Debian'
+    - _debian_mirror_lists.results[0].stat.exists
+  notify: apt update
+
+- name: APT MIRROR CLIENT - DEBIAN - rewrite debian-security.list to use apt-cacher-ng
+  ansible.builtin.copy:
+    dest: /etc/apt/mirrors/debian-security.list
+    content: |
+      {{ apt_proxy_url }}/security.debian.org
+    owner: root
+    group: root
+    mode: "0644"
+  when:
+    - apt_mirror_enabled | default(false) | bool
+    - apt_proxy_url | default('') | length > 0
+    - ansible_facts.distribution == 'Debian'
+    - _debian_mirror_lists.results[1].stat.exists
+  notify: apt update
