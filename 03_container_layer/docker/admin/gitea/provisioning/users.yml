@@ -1,0 +1,33 @@
+# Declarative user provisioning for the Gitea instance.
+# Processed by provisioning/init.sh on first container start.
+#
+# !! CHANGE ALL PASSWORDS BEFORE DEPLOYING !!
+# Passwords here are committed in plaintext. Use strong, unique values in production.
+#
+# SSH public keys must be real ed25519 / rsa / ecdsa keys.
+# Replace the placeholder key strings with actual public keys before deploying.
+#
+# To scale: add/remove entries under admins: or users:
+# The provisioner is idempotent — re-running skips already-created accounts.
+
+admins:
+  - username: gitea-admin
+    email: admin@range42.local
+    password: "Admin1234!"
+    ssh_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleAdminKeyReplaceMeBeforeDeployment admin@range42"
+
+users:
+  - username: trainee01
+    email: trainee01@range42.local
+    password: "Trainee1234!"
+    ssh_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleTrainee01KeyReplaceMeBeforeDeployment trainee01@range42"
+  - username: trainee02
+    email: trainee02@range42.local
+    password: "Trainee1234!"
+    ssh_keys: []
+  - username: trainee03
+    email: trainee03@range42.local
+    password: "Trainee1234!"
+    ssh_keys: []
