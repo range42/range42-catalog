@@ -1,0 +1,22 @@
+# !! CHANGE ALL PASSWORDS BEFORE DEPLOYING !!
+# Personal access tokens are auto-generated and written to /tokens/tokens.txt
+
+admins:
+  - username: rc-admin2
+    email: admin2@range42.local
+    password: "Admin1234!"
+    name: "RC Admin 2"
+
+users:
+  - username: trainee01
+    email: trainee01@range42.local
+    password: "Trainee1234!"
+    name: "Trainee 01"
+  - username: trainee02
+    email: trainee02@range42.local
+    password: "Trainee1234!"
+    name: "Trainee 02"
+  - username: trainee03
+    email: trainee03@range42.local
+    password: "Trainee1234!"
+    name: "Trainee 03"
