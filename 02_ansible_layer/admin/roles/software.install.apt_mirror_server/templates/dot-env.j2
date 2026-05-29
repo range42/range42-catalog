@@ -1,4 +1,0 @@
-ACNG_PORT={{ apt_mirror_port }}
-NGINX_PORT={{ apt_mirror_nginx_port }}
-CACHE_VOLUME_NAME={% if apt_mirror_persistent %}apt-mirror-cache{% else %}apt-mirror-cache-{{ ansible_date_time.epoch }}{% endif %}
-
