@@ -1,0 +1,90 @@
+#
+# ISSUE 143
+#
+
+services:
+
+  db:
+    image: postgres:16-alpine
+    container_name: mattermost-db
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-mattermost}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-mattermost}
+      POSTGRES_DB:       ${POSTGRES_DB:-mattermost}
+    volumes:
+      - mattermost-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mattermost}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  mattermost: &main
+    image: mattermost/mattermost-team-edition:latest
+    container_name: mattermost
+    environment:
+      MM_SQLSETTINGS_DRIVERNAME:        postgres
+      MM_SQLSETTINGS_DATASOURCE:        "postgres://${POSTGRES_USER:-mattermost}:${POSTGRES_PASSWORD:-mattermost}@db:5432/${POSTGRES_DB:-mattermost}?sslmode=disable&connect_timeout=10"
+      MM_SERVICESETTINGS_SITEURL:       ${MM_BASE_URL:-http://localhost:8065}
+      MM_SERVICESETTINGS_ENABLEUSERSTATUSESFORPOSTS: "false"
+      MM_SERVICESETTINGS_ENABLEAPITEAMCREATION: "true"
+      MM_SERVICESETTINGS_ENABLEAPICREATEACCOUNT: "true"
+      MM_SERVICESETTINGS_ENABLEUSERACCESSTOKENS: "true"
+      MM_TEAMSETTINGS_MAXUSERSPERTEAM:  "200"
+      MM_TEAMSETTINGS_ENABLEOPENSERVER: "true"
+      MM_EMAILSETTINGS_SENDEMAILNOTIFICATIONS: "false"
+      MM_EMAILSETTINGS_REQUIREEMAILVERIFICATION: "false"
+      MM_LOGSETTINGS_CONSOLELEVEL:      "ERROR"
+      MM_LOGSETTINGS_ENABLEFILE:        "false"
+    volumes:
+      - mattermost-data:/mattermost/data
+      - mattermost-logs:/mattermost/logs
+      - mattermost-config:/mattermost/config
+      - mattermost-plugins:/mattermost/plugins
+    ports:
+      - "${HTTP_PORT:-8065}:8065"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8065/api/v4/system/ping"]
+      interval: 15s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+    restart: unless-stopped
+#
+# #### #### do not remove.
+#
+#   debug:
+#     <<: *main
+#     container_name: mattermost-debug
+#     command: ["sleep", "infinity"]
+
+  provisioner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: mattermost-provisioner
+    environment:
+      MM_URL:        http://mattermost:8065
+      MM_ADMIN_USER: ${MM_ADMIN_USER:-mm-admin}
+      MM_ADMIN_PASS: ${MM_ADMIN_PASS:-Admin1234!}
+      MM_TEAM_NAME:  ${MM_TEAM_NAME:-range42}
+      USERS_FILE:    /provisioning/users.yml
+    volumes:
+      - mattermost-config:/mattermost/config
+      - mattermost-tokens:/tokens
+    depends_on:
+      mattermost:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  mattermost-db-data:
+  mattermost-data:
+  mattermost-logs:
+  mattermost-config:
+  mattermost-plugins:
+  mattermost-tokens:
