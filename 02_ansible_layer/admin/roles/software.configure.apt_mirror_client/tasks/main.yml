@@ -2,6 +2,29 @@
 # We use direct URL rewriting to point apt at apt-cacher-ng native URLs.
 # Acquire::http::Proxy is NOT used because it causes apt-cacher-ng to receive
 # proxy-mode requests for itself (confusing proxy mode, 403 error).
+#
+# In airgapped mode (apt_mirror_airgapped: true) apt-mirror is used instead of
+# apt-cacher-ng.  apt-mirror preserves the upstream directory structure under
+# /var/spool/apt-mirror/mirror, served by nginx on http_port (default 80).
+# The resulting URLs are identical in shape to the apt-cacher-ng native URLs —
+# only the base host (and absence of :3142) differs — so the same rewrite
+# tasks handle both modes via _apt_effective_url.
+
+- name: APT MIRROR CLIENT - assert apt_mirror_vm_ip is set in airgapped mode
+  ansible.builtin.assert:
+    that:
+      - apt_mirror_vm_ip | length > 0
+    fail_msg: "apt_mirror_airgapped is true but apt_mirror_vm_ip is empty — set apt_mirror_vm_ip in your inventory."
+  when: apt_mirror_airgapped | default(false) | bool
+
+- name: APT MIRROR CLIENT - compute effective mirror base URL
+  ansible.builtin.set_fact:
+    _apt_effective_url: >-
+      {{
+        'http://' ~ apt_mirror_vm_ip ~ ':' ~ apt_mirror_http_port
+        if apt_mirror_airgapped | default(false) | bool
+        else apt_proxy_url | default('')
+      }}
 
 - name: APT MIRROR CLIENT - ensure proxy conf is absent
   ansible.builtin.file:
@@ -19,20 +42,20 @@
     - /etc/apt/mirrors/debian-security.list
   when:
     - apt_mirror_enabled | default(false) | bool
-    - apt_proxy_url | default('') | length > 0
+    - _apt_effective_url | length > 0
     - ansible_facts.distribution == 'Debian'
 
 - name: APT MIRROR CLIENT - DEBIAN - rewrite debian.list to use apt-cacher-ng
   ansible.builtin.copy:
     dest: /etc/apt/mirrors/debian.list
     content: |
-      {{ apt_proxy_url }}/deb.debian.org/debian
+      {{ _apt_effective_url }}/deb.debian.org/debian
     owner: root
     group: root
     mode: "0644"
   when:
     - apt_mirror_enabled | default(false) | bool
-    - apt_proxy_url | default('') | length > 0
+    - _apt_effective_url | length > 0
     - ansible_facts.distribution == 'Debian'
     - _debian_mirror_lists.results[0].stat.exists
   notify: apt update
@@ -41,13 +64,13 @@
   ansible.builtin.copy:
     dest: /etc/apt/mirrors/debian-security.list
     content: |
-      {{ apt_proxy_url }}/security.debian.org
+      {{ _apt_effective_url }}/security.debian.org
     owner: root
     group: root
     mode: "0644"
   when:
     - apt_mirror_enabled | default(false) | bool
-    - apt_proxy_url | default('') | length > 0
+    - _apt_effective_url | length > 0
     - ansible_facts.distribution == 'Debian'
     - _debian_mirror_lists.results[1].stat.exists
   notify: apt update
@@ -60,17 +83,17 @@
   register: _ubuntu_sources
   when:
     - apt_mirror_enabled | default(false) | bool
-    - apt_proxy_url | default('') | length > 0
+    - _apt_effective_url | length > 0
     - ansible_facts.distribution == 'Ubuntu'
 
 - name: APT MIRROR CLIENT - UBUNTU - rewrite archive URI to use apt-cacher-ng
   ansible.builtin.replace:
     path: /etc/apt/sources.list.d/ubuntu.sources
     regexp: 'http://archive\.ubuntu\.com/ubuntu'
-    replace: "{{ apt_proxy_url }}/archive.ubuntu.com/ubuntu"
+    replace: "{{ _apt_effective_url }}/archive.ubuntu.com/ubuntu"
   when:
     - apt_mirror_enabled | default(false) | bool
-    - apt_proxy_url | default('') | length > 0
+    - _apt_effective_url | length > 0
     - ansible_facts.distribution == 'Ubuntu'
     - _ubuntu_sources.stat.exists
   notify: apt update
@@ -79,10 +102,10 @@
   ansible.builtin.replace:
     path: /etc/apt/sources.list.d/ubuntu.sources
     regexp: 'http://security\.ubuntu\.com/ubuntu'
-    replace: "{{ apt_proxy_url }}/security.ubuntu.com/ubuntu"
+    replace: "{{ _apt_effective_url }}/security.ubuntu.com/ubuntu"
   when:
     - apt_mirror_enabled | default(false) | bool
-    - apt_proxy_url | default('') | length > 0
+    - _apt_effective_url | length > 0
     - ansible_facts.distribution == 'Ubuntu'
     - _ubuntu_sources.stat.exists
   notify: apt update

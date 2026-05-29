@@ -1,3 +1,6 @@
 ---
 apt_mirror_enabled: false
 apt_proxy_url: ""
+apt_mirror_airgapped: false
+apt_mirror_vm_ip: ""
+apt_mirror_http_port: 80
