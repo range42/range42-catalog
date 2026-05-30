@@ -1,0 +1,19 @@
+##
+## catalog_try contract - Mattermost (Team Edition, standalone Docker)
+##
+## Used by `range42-context catalog-try docker/admin/mattermost` to apply a
+## stricter smoke check (L2 HTTP poll on /api/v4/system/ping) instead of the
+## default L1 fallback (docker ps -a presence).
+##
+## init_timeout = 120s : Postgres + Mattermost cold init reaches `200 OK` on
+## /api/v4/system/ping within 60-90s typically, up to ~120s on the first run
+## (DB schema migration + JS bundle warm-up).
+##
+## See range42-playbooks/scenarios/catalog_try/catalog_try.element_deploy.yml
+## for the playbook that consumes these fields.
+##
+
+catalog_try_mode: service
+catalog_try_port: 8065
+catalog_try_endpoint: /api/v4/system/ping
+catalog_try_init_timeout: 120

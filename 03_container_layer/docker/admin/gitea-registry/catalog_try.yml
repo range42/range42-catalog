@@ -1,0 +1,18 @@
+##
+## catalog_try contract - Gitea-registry (Gitea configured as OCI registry)
+##
+## Used by `range42-context catalog-try docker/admin/gitea-registry` to apply a
+## stricter smoke check (L2 HTTP poll on /api/v1/version) instead of the default
+## L1 fallback (docker ps -a presence).
+##
+## init_timeout = 90s : same shape as the standalone gitea element (sister
+## element ; only differs in GITEA__packages__ENABLED=true at runtime).
+##
+## See range42-playbooks/scenarios/catalog_try/catalog_try.element_deploy.yml
+## for the playbook that consumes these fields.
+##
+
+catalog_try_mode: service
+catalog_try_port: 3000
+catalog_try_endpoint: /api/v1/version
+catalog_try_init_timeout: 90

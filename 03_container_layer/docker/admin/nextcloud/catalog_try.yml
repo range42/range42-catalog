@@ -1,0 +1,26 @@
+##
+## catalog_try contract - Nextcloud (standalone Docker)
+##
+## Used by `range42-context catalog-try docker/admin/nextcloud` to apply a
+## stricter smoke check (L2 HTTP poll on /status.php) instead of the default
+## L1 fallback (docker ps -a presence).
+##
+## Port 8080 is the externally-mapped port (compose maps `8080:80` from host
+## to container). The smoke check hits the host port 8080 from outside the VM.
+##
+## init_timeout = 180s : Nextcloud cold init is one of the slowest in this set
+## (Postgres + Redis + PHP-FPM warm-up + first-run config writing).
+##
+## Note : /status.php returns 200 with JSON early in the init (with
+## `"installed": false`) and stays 200 once `"installed": true`. The smoke
+## check is HTTP-200 only, not body-content. L1 -> L2 still strict enough to
+## prove the service is serving HTTP.
+##
+## See range42-playbooks/scenarios/catalog_try/catalog_try.element_deploy.yml
+## for the playbook that consumes these fields.
+##
+
+catalog_try_mode: service
+catalog_try_port: 8080
+catalog_try_endpoint: /status.php
+catalog_try_init_timeout: 180

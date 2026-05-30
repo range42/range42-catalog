@@ -1,0 +1,19 @@
+##
+## catalog_try contract - Gitea (standalone Docker)
+##
+## Used by `range42-context catalog-try docker/admin/gitea` to apply a stricter
+## smoke check (L2 HTTP poll on /api/v1/version) instead of the default L1
+## fallback (docker ps -a presence).
+##
+## init_timeout = 90s : Gitea image pull + Postgres + provisioner sidecar
+## typically reach `200 OK` on /api/v1/version within 30-60s on a warm host,
+## up to ~90s cold.
+##
+## See range42-playbooks/scenarios/catalog_try/catalog_try.element_deploy.yml
+## for the playbook that consumes these fields.
+##
+
+catalog_try_mode: service
+catalog_try_port: 3000
+catalog_try_endpoint: /api/v1/version
+catalog_try_init_timeout: 90
