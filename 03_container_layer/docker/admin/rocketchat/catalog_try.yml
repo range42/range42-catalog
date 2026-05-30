@@ -1,0 +1,19 @@
+##
+## catalog_try contract - Rocket.Chat (standalone Docker)
+##
+## Used by `range42-context catalog-try docker/admin/rocketchat` to apply a
+## stricter smoke check (L2 HTTP poll on /api/v1/info) instead of the default
+## L1 fallback (docker ps -a presence).
+##
+## init_timeout = 180s : Rocket.Chat is the slowest cold-start in this set
+## (Mongo replica set election + Meteor server warm-up). 90-150s typical, up
+## to ~180s on first run.
+##
+## See range42-playbooks/scenarios/catalog_try/catalog_try.element_deploy.yml
+## for the playbook that consumes these fields.
+##
+
+catalog_try_mode: service
+catalog_try_port: 3000
+catalog_try_endpoint: /api/v1/info
+catalog_try_init_timeout: 180
