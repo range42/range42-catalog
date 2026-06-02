@@ -12,6 +12,7 @@
 ##
 
 catalog_try_mode: service
-catalog_try_port: 8080
+catalog_try_port:
+  - 8080   # Tomcat HTTP
 catalog_try_endpoint: /
 catalog_try_init_timeout: 120

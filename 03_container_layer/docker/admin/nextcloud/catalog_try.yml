@@ -21,6 +21,7 @@
 ##
 
 catalog_try_mode: service
-catalog_try_port: 8080
+catalog_try_port:
+  - 8080   # HTTP (host-mapped from container :80)
 catalog_try_endpoint: /status.php
 catalog_try_init_timeout: 180
