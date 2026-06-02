@@ -36,7 +36,14 @@ services:
       GITEA__server__HTTP_PORT:      "3000"
       GITEA__server__SSH_DOMAIN:     ${GITEA_DOMAIN:-localhost}
       GITEA__server__START_SSH_SERVER: "true"
-      GITEA__server__SSH_LISTEN_PORT: "22"
+      # SSH_LISTEN_PORT inside the container is moved off :22 to avoid colliding
+      # with the system openssh shipped enabled in the gitea-alpine image (both
+      # would try to bind :22 -> Gitea built-in fails at boot with
+      # "listen tcp :22: bind: address already in use"). The Gitea built-in
+      # SSH listens on :2022 instead, and the ports mapping below routes
+      # host:<SSH_PORT> -> container:2022. SSH_PORT (the externally advertised
+      # port in clone URLs) is unchanged.
+      GITEA__server__SSH_LISTEN_PORT: "2022"
       GITEA__server__SSH_PORT:        "${SSH_PORT:-2222}"
       GITEA__service__DISABLE_REGISTRATION: "true"
       GITEA__security__INSTALL_LOCK:    "true"
@@ -48,7 +55,10 @@ services:
       - /etc/localtime:/etc/localtime:ro
     ports:
       - "${HTTP_PORT:-3000}:3000"
-      - "${SSH_PORT:-2222}:22"
+      # SSH port maps host -> container:2022 (Gitea built-in SSH).
+      # Image's system openssh stays on container:22 but is not externally
+      # mapped (idle process, harmless).
+      - "${SSH_PORT:-2222}:2022"
     depends_on:
       db:
         condition: service_healthy
