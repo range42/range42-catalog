@@ -2,6 +2,7 @@ id: student-box
 api_version: 1
 description: Student / trainee workstation box.
 role: student
+os: ubuntu
 default_inventory_group: r42_student_box_group
 spec: "2cpu/4gb/32gb"
 default_attachments:
