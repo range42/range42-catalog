@@ -72,7 +72,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         || (pecl install gnupg \
             && echo "extension=gnupg.so" > /etc/php/8.3/apache2/conf.d/20-gnupg.ini \
             && echo "extension=gnupg.so" > /etc/php/8.3/cli/conf.d/20-gnupg.ini) \
-    && a2enmod rewrite headers expires \
+    && a2enmod rewrite headers expires ssl \
     && rm -rf /var/lib/apt/lists/*
 
 # ── Application ───────────────────────────────────────────────────────────────
@@ -124,9 +124,13 @@ RUN mkdir -p \
 # Shared volume — admin auth-key written by entrypoint, read by provisioner
 RUN mkdir -p /keys && chmod 770 /keys
 
-EXPOSE 80
+# TLS cert storage — entrypoint generates self-signed here on first boot;
+# operators can pre-populate via a bind mount or named volume.
+RUN mkdir -p /certs && chmod 700 /certs
+
+EXPOSE 80 443
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=180s --retries=6 \
-    CMD curl -sf http://localhost/users/login | grep -qi "misp" || exit 1
+    CMD curl -sfk https://localhost/users/login | grep -qi "misp" || exit 1
 
 ENTRYPOINT ["/entrypoint.sh"]

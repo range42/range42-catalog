@@ -86,7 +86,7 @@ log "Applying MISP settings …"
 SALT="${MISP_SALT:-}"
 [ -z "${SALT}" ] && SALT="$(openssl rand -hex 32)"
 
-${CAKE} Admin setSetting "MISP.baseurl"                    "${MISP_BASEURL:-http://localhost}"  || true
+${CAKE} Admin setSetting "MISP.baseurl"                    "${MISP_BASEURL:-https://localhost}" || true
 ${CAKE} Admin setSetting "MISP.org"                        "${MISP_ORG:-Default Organisation}"  || true
 ${CAKE} Admin setSetting "MISP.host_org_id"                "1"                                  || true
 ${CAKE} Admin setSetting "Security.salt"                   "${SALT}"                             || true
