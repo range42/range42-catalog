@@ -1,10 +1,14 @@
 id: debian-jump
 api_version: 1
-description: Debian 13 (trixie) student jump box — example of an os=debian box.
+description: Debian 13 (trixie) student jump box — example of an image=debian_trixie box.
 role: student
 image: debian_trixie
 default_inventory_group: r42_student_box_group
 spec: "2cpu/4gb/32gb"
 default_attachments:
-  - {kind: role, catalog_ref: software.configure.firewalls, params: {}}
+  - kind: role
+    catalog_ref: software.configure.firewalls
+    params:
+      firewall_rules:
+        - {ip: "all", port: 22, protocol: "tcp"}    # ssh
   - {kind: role, catalog_ref: software.install.warmup.basic_packages, params: {}}

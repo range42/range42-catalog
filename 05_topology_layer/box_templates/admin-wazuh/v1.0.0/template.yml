@@ -6,5 +6,12 @@ image: ubuntu_noble
 default_inventory_group: r42_admin_group
 spec: "4cpu/8gb/64gb"
 default_attachments:
-  - {kind: role, catalog_ref: software.configure.firewalls, params: {}}
+  - kind: role
+    catalog_ref: software.configure.firewalls
+    params:
+      firewall_rules:
+        - {ip: "all", port: 22, protocol: "tcp"}    # ssh
+        - {ip: "all", port: 443, protocol: "tcp"}   # dashboard
+        - {ip: "all", port: 1514, protocol: "tcp"}  # wazuh agent events
+        - {ip: "all", port: 1515, protocol: "tcp"}  # wazuh agent enrollment
   - {kind: role, catalog_ref: software.install.wazuh, params: {}}
