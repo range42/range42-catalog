@@ -2,7 +2,7 @@ id: debian-jump
 api_version: 1
 description: Debian 13 (trixie) student jump box — example of an os=debian box.
 role: student
-os: debian
+image: debian_trixie
 default_inventory_group: r42_student_box_group
 spec: "2cpu/4gb/32gb"
 default_attachments:

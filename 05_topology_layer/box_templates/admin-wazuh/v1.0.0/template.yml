@@ -2,7 +2,7 @@ id: admin-wazuh
 api_version: 1
 description: Wazuh SIEM admin box (indexer + manager + dashboard).
 role: admin
-os: ubuntu
+image: ubuntu_noble
 default_inventory_group: r42_admin_group
 spec: "4cpu/8gb/64gb"
 default_attachments:

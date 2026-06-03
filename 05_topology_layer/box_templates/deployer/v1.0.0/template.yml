@@ -2,7 +2,7 @@ id: deployer
 api_version: 1
 description: range42 deployer platform box (api-gateway / api-backend / ui).
 role: admin
-os: ubuntu
+image: ubuntu_noble
 default_inventory_group: r42_admin_group
 spec: "2cpu/4gb/32gb"
 default_attachments:
