@@ -1,0 +1,15 @@
+id: flat-open
+api_version: 1
+kind: isolation-policy
+description: >-
+  No-isolation baseline — all declared zones may reach each other. Useful for
+  early bring-up and debugging before an isolation policy is applied.
+zones:
+  - {name: admin}
+  - {name: ctf}
+defaults:
+  default_action: accept
+  accept_established_related: true
+  allow_intra_zone: true
+  airgap_zones: []
+matrix: []

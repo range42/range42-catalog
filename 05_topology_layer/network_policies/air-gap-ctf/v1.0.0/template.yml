@@ -1,0 +1,31 @@
+id: air-gap-ctf
+api_version: 1
+kind: isolation-policy
+description: >-
+  Admin/CTF zone isolation with Wazuh agent exceptions and a CTF air-gap.
+  Symbolic generalization of demo_lab_network's hardcoded 05_network_isolation
+  FORWARD rules — the topology binds `admin`/`ctf` to concrete subnets/bridges
+  and `siem` to the Wazuh IP, so no addresses are baked into this template.
+params:
+  # siem_ip is the default Wazuh address; a topology overrides it via
+  # service_bindings at compile time (P3). Kept here for documentation.
+  siem_ip: "192.168.142.100"
+zones:
+  - {name: admin}
+  - {name: ctf}
+  - {name: wan, wan: true}
+services:
+  - name: siem
+    zone: admin
+    ports:
+      - {proto: tcp, port: 1514}   # wazuh agent events
+      - {proto: tcp, port: 1515}   # wazuh agent enrollment
+defaults:
+  default_action: drop
+  accept_established_related: true
+  allow_intra_zone: true
+  airgap_zones: [ctf]              # ctf -> wan DROP (air-gap)
+matrix:
+  - {src: admin, dst: ctf, action: accept, comment: "admin manages vuln boxes"}
+  - {src: ctf, dst: "svc:siem", action: accept, comment: "wazuh agent events + enrollment"}
+  - {src: ctf, dst: admin, action: drop, comment: "zone isolation"}
