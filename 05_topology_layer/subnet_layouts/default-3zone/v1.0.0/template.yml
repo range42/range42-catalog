@@ -4,7 +4,7 @@ description: >-
   Reference 3-zone layout — admin (vmbr142), student (vmbr143), ctf (vmbr144).
   Mirrors the demo_lab / demo_lab_network bridge plan.
 subnets:
-  - {name: admin, cidr: "192.168.142.0/24", bridge: vmbr142, gateway: "192.168.142.1", section: 02_admin_infrastructure, label: "ADMIN INFRASTRUCTURE INIT"}
-  - {name: student, cidr: "192.168.143.0/24", bridge: vmbr143, section: 03_student_infrastructure, label: "TRAINEE INFRASTRUCTURE INIT"}
-  - {name: ctf, cidr: "192.168.144.0/24", bridge: vmbr144, section: 04_ctf_infrastructure, label: "CTF INFRASTRUCTURE INIT"}
+  - {name: admin, cidr: "192.168.142.0/24", bridge: vmbr142, gateway: "192.168.142.1"}
+  - {name: student, cidr: "192.168.143.0/24", bridge: vmbr143}
+  - {name: ctf, cidr: "192.168.144.0/24", bridge: vmbr144}
 template_subnet: {cidr: "192.168.140.0/24", bridge: vmbr140}
