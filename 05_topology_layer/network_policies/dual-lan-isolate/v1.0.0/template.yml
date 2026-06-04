@@ -12,7 +12,7 @@ zones:
   - {name: wan, wan: true}
 services: []
 defaults:
-  default_action: drop
+  default_action: accept
   accept_established_related: true
   allow_intra_zone: true
   airgap_zones: []
