@@ -2,7 +2,7 @@ id: ubuntu_noble
 api_version: 1
 distro: ubuntu
 codename: noble
-description: Ubuntu 24.04 LTS (Noble Numbat) — default base image for range42 labs
+description: Ubuntu 24.04 LTS (Noble Numbat)
 cloud_image:
   url: "https://cloud-images.ubuntu.com/minimal/daily/noble/current/noble-minimal-cloudimg-amd64.img"
   filename: "noble-minimal-cloudimg-amd64.img"

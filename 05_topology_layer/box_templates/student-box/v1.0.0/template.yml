@@ -1,7 +1,6 @@
 id: student-box
 api_version: 1
 description: Student / trainee workstation box.
-role: student
 template_vm: "template-vm-ubuntu-noble-small-01-4g-32g"
 default_inventory_group: r42_student_box_group
 default_attachments:

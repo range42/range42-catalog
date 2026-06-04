@@ -1,7 +1,6 @@
 id: vuln-box
 api_version: 1
 description: CTF vulnerable target box — Docker-hosted CVE / misconfig stacks.
-role: ctf
 template_vm: "template-vm-ubuntu-noble-small-01-4g-32g"
 default_inventory_group: r42_vuln_box_group
 default_attachments:
