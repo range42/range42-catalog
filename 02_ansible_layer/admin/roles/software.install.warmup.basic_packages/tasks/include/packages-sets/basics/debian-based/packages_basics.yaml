@@ -1,7 +1,7 @@
 ---
 #
 
-- name: install - basics packages - ubuntu
+- name: install - basics packages - debian-based
   apt:
     name:
       - git
@@ -21,4 +21,4 @@
     state: present
     update_cache: yes
 
-  when: ansible_facts.distribution == 'Ubuntu'
+  when: ansible_facts.distribution in ['Ubuntu', 'Debian']

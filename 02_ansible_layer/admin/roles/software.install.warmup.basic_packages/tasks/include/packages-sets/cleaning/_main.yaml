@@ -3,9 +3,9 @@
 - name: install - basics packages - block
   block:
     #
-    # - name: INCLUDE - remove packages - ubuntu
-    #   ansible.builtin.include_tasks: ./ubuntu/packages_basics.yaml
-    #   when: ansible_facts.distribution == 'Ubuntu'
+    # - name: INCLUDE - remove packages - debian-based
+    #   ansible.builtin.include_tasks: ./debian-based/packages_basics.yaml
+    #   when: ansible_facts.distribution in ['Ubuntu', 'Debian']
     #
     - name: INCLUDE - remove packages - fedora
       ansible.builtin.include_tasks: ./fedora/remove_cockpit.yaml

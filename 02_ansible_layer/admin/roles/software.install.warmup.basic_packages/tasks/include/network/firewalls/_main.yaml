@@ -4,9 +4,9 @@
 - name: INCLUDE - install - firewalls related packages
   block:
     #
-    - name: install - firewall packages - ubuntu
-      ansible.builtin.include_tasks: ./ubuntu/ufw.yaml
-      when: ansible_facts.distribution == 'Ubuntu'
+    - name: install - firewall packages - debian-based
+      ansible.builtin.include_tasks: ./debian-based/ufw.yaml
+      when: ansible_facts.distribution in ['Ubuntu', 'Debian']
 
     #
     - name: install - firewall packages - fedora

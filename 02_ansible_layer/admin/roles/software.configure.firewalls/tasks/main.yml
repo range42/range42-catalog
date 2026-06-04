@@ -11,8 +11,8 @@
   when: ansible_facts['distribution'] == "Fedora"
 
 #
-- name: INCLUDE - ufw tasks - ubuntu
-  ansible.builtin.include_tasks: ./ubuntu/ufw.yml
-  when: ansible_facts['distribution'] == "Ubuntu"
+- name: INCLUDE - ufw tasks - debian-based
+  ansible.builtin.include_tasks: ./debian-based/ufw.yml
+  when: ansible_facts['distribution'] in ['Ubuntu', 'Debian']
 
   #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
