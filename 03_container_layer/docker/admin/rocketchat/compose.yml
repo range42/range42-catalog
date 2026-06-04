@@ -1,0 +1,96 @@
+#
+# ISSUE 147
+#
+
+services:
+
+  mongodb:
+    image: mongo:6.0
+    container_name: rocketchat-mongodb
+    command: mongod --replSet rs0 --oplogSize 128
+    volumes:
+      - rocketchat-mongodb-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "try { rs.status().ok } catch(e) { 0 }"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  mongo-init-replica:
+    image: mongo:6.0
+    container_name: rocketchat-mongo-init
+    command: >
+      bash -c "
+        until mongosh mongodb:27017/admin --eval 'db.adminCommand(\"ping\")' >/dev/null 2>&1; do sleep 2; done;
+        mongosh mongodb:27017/admin --eval '
+          try { rs.status().ok } catch(e) {
+            rs.initiate({ _id: \"rs0\", members: [{ _id: 0, host: \"mongodb:27017\" }] })
+          }';
+        until mongosh mongodb:27017/admin --eval 'rs.isMaster().ismaster' 2>/dev/null | grep -q true; do sleep 2; done;
+        echo \"Replica set PRIMARY ready\"
+      "
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    restart: "no"
+
+  rocketchat: &main
+    image: rocketchat/rocket.chat:latest
+    container_name: rocketchat
+    environment:
+      MONGO_URL:      "mongodb://mongodb:27017/rocketchat?replicaSet=rs0"
+      MONGO_OPLOG_URL: "mongodb://mongodb:27017/local?replicaSet=rs0"
+      ROOT_URL:       ${RC_BASE_URL:-http://localhost:3000}
+      PORT:           "3000"
+      DEPLOY_PLATFORM: docker
+      ADMIN_USERNAME: ${RC_ADMIN_USER:-rc-admin}
+      ADMIN_PASS:     ${RC_ADMIN_PASS:-Admin1234!}
+      ADMIN_EMAIL:    ${RC_ADMIN_EMAIL:-admin@range42.local}
+      OVERWRITE_SETTING_Show_Setup_Wizard: completed
+    volumes:
+      - rocketchat-uploads:/app/uploads
+    ports:
+      - "${HTTP_PORT:-3000}:3000"
+    depends_on:
+      mongodb:
+        condition: service_healthy
+      mongo-init-replica:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/info"]
+      interval: 20s
+      timeout: 10s
+      retries: 15
+      start_period: 60s
+    restart: unless-stopped
+#
+# #### #### do not remove.
+#
+#   debug:
+#     <<: *main
+#     container_name: rocketchat-debug
+#     command: ["sleep", "infinity"]
+
+  provisioner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rocketchat-provisioner
+    environment:
+      RC_URL:        http://rocketchat:3000
+      RC_ADMIN_USER: ${RC_ADMIN_USER:-rc-admin}
+      RC_ADMIN_PASS: ${RC_ADMIN_PASS:-Admin1234!}
+      USERS_FILE:    /provisioning/users.yml
+    volumes:
+      - rocketchat-tokens:/tokens
+    depends_on:
+      rocketchat:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  rocketchat-mongodb-data:
+  rocketchat-uploads:
+  rocketchat-tokens:

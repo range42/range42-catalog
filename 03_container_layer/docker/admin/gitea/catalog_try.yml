@@ -1,0 +1,21 @@
+##
+## catalog_try contract - Gitea (standalone Docker)
+##
+## Used by `range42-context catalog-try docker/admin/gitea`. The L2 service
+## smoke check verifies that all listed ports are bound on the VM via
+## `ss -tplln`. Gitea exposes two ports : HTTP (3000) for the web UI / API
+## and SSH (2222) for git clone over SSH.
+##
+## init_timeout = 90s : Gitea image pull + Postgres + provisioner sidecar
+## typically bind the ports within 30-60s on a warm host, up to ~90s cold.
+##
+## See range42-playbooks/scenarios/catalog_try/catalog_try.element_deploy.yml
+## for the playbook that consumes these fields.
+##
+
+catalog_try_mode: service
+catalog_try_port:
+  - 3000   # HTTP (web UI + API)
+  - 2222   # SSH (git clone)
+catalog_try_endpoint: /api/v1/version
+catalog_try_init_timeout: 90
