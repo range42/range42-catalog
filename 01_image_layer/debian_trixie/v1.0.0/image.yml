@@ -1,0 +1,5 @@
+id: debian_trixie
+api_version: 1
+distro: debian
+codename: trixie
+description: Debian 13 (Trixie)
