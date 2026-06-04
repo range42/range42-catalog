@@ -70,10 +70,12 @@ services:
       target: runtime
       args:
         MISP_VERSION: ${MISP_VERSION:-v2.5.37}
-    entrypoint: ["/provisioning/provision-users.sh"]
+    entrypoint: ["/provisioning/provision.sh"]
     env_file: .env
     volumes:
       - keys:/keys
+      - ./provisioning/provision.sh:/provisioning/provision.sh:ro
+      - ./provisioning/provision-orgs.sh:/provisioning/provision-orgs.sh:ro
       - ./provisioning/provision-users.sh:/provisioning/provision-users.sh:ro
     depends_on:
       misp:

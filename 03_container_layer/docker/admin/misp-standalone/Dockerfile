@@ -80,6 +80,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder --chown=www-data:www-data /build/misp /var/www/MISP
 COPY --from=builder /opt/misp-venv /opt/misp-venv
 
+# Permissions on the MISP tree are set immediately after the COPY so this
+# slow layer stays cached even when config or provisioning files change below.
+# chmod -R on the full submodule tree is unavoidable; no second chown pass.
+RUN mkdir -p \
+        /var/www/MISP/app/tmp/cache/models \
+        /var/www/MISP/app/tmp/cache/persistent \
+        /var/www/MISP/app/tmp/logs \
+        /var/www/MISP/app/webroot/img/orgs \
+        /var/www/MISP/app/webroot/img/custom \
+        /var/www/MISP/app/files \
+        /var/www/MISP/app/attachments \
+    && chmod -R 750 /var/www/MISP \
+    && chmod -R 770 \
+        /var/www/MISP/app/tmp \
+        /var/www/MISP/app/webroot/img/orgs \
+        /var/www/MISP/app/webroot/img/custom \
+        /var/www/MISP/app/files \
+        /var/www/MISP/app/attachments \
+    && mkdir -p /keys  && chmod 770 /keys \
+    && mkdir -p /certs && chmod 700 /certs
+
 # ── Apache ────────────────────────────────────────────────────────────────────
 
 COPY config/apache-misp.conf /etc/apache2/sites-available/misp.conf
@@ -99,34 +120,6 @@ RUN chmod +x \
         /entrypoint.sh \
         /provisioning/configure-misp.sh \
         /provisioning/wait-for-tcp.sh
-
-# ── Writable directories ──────────────────────────────────────────────────────
-
-# COPY --chown already set ownership; only chmod is needed here.
-# chmod -R 750 on the full tree is slow but unavoidable — don't add a second
-# chown pass on top of it.
-RUN mkdir -p \
-        /var/www/MISP/app/tmp/cache/models \
-        /var/www/MISP/app/tmp/cache/persistent \
-        /var/www/MISP/app/tmp/logs \
-        /var/www/MISP/app/webroot/img/orgs \
-        /var/www/MISP/app/webroot/img/custom \
-        /var/www/MISP/app/files \
-        /var/www/MISP/app/attachments \
-    && chmod -R 750 /var/www/MISP \
-    && chmod -R 770 \
-        /var/www/MISP/app/tmp \
-        /var/www/MISP/app/webroot/img/orgs \
-        /var/www/MISP/app/webroot/img/custom \
-        /var/www/MISP/app/files \
-        /var/www/MISP/app/attachments
-
-# Shared volume — admin auth-key written by entrypoint, read by provisioner
-RUN mkdir -p /keys && chmod 770 /keys
-
-# TLS cert storage — entrypoint generates self-signed here on first boot;
-# operators can pre-populate via a bind mount or named volume.
-RUN mkdir -p /certs && chmod 700 /certs
 
 EXPOSE 80 443
 

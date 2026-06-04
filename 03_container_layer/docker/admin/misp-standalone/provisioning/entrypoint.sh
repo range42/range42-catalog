@@ -4,7 +4,7 @@
 # On subsequent boots: skips bootstrap and starts Apache directly.
 set -euo pipefail
 
-SENTINEL="/var/www/MISP/.bootstrapped"
+SENTINEL="/keys/.bootstrapped"
 
 log() { echo "[entrypoint] $*"; }
 

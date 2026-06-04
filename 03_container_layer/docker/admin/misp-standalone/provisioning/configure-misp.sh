@@ -77,7 +77,8 @@ ${CAKE} Admin runUpdates 2>&1 || true
 # ── 5. Initial admin user ─────────────────────────────────────────────────────
 
 log "Creating initial admin via userInit …"
-${CAKE} userInit -q 2>&1 || true
+_INIT_OUT=$(${CAKE} userInit 2>&1 || true)
+log "userInit output: ${_INIT_OUT}"
 
 # ── 6. Core MISP settings ─────────────────────────────────────────────────────
 
@@ -86,27 +87,43 @@ log "Applying MISP settings …"
 SALT="${MISP_SALT:-}"
 [ -z "${SALT}" ] && SALT="$(openssl rand -hex 32)"
 
-${CAKE} Admin setSetting "MISP.baseurl"                    "${MISP_BASEURL:-https://localhost}" || true
-${CAKE} Admin setSetting "MISP.org"                        "${MISP_ORG:-Default Organisation}"  || true
-${CAKE} Admin setSetting "MISP.host_org_id"                "1"                                  || true
-${CAKE} Admin setSetting "Security.salt"                   "${SALT}"                             || true
-${CAKE} Admin setSetting "MISP.disable_emailing"           "true"  --force                      || true
-${CAKE} Admin setSetting "SimpleBackgroundJobs.enabled"    "true"                               || true
-${CAKE} Admin setSetting "SimpleBackgroundJobs.redis_host" "${REDIS_HOST:-redis}"               || true
-${CAKE} Admin setSetting "SimpleBackgroundJobs.redis_port" "${REDIS_PORT:-6379}"                || true
+${CAKE} Admin setSetting "MISP.baseurl"                        "${MISP_BASEURL:-https://localhost}" || true
+${CAKE} Admin setSetting "MISP.org"                            "${MISP_ORG:-Default Organisation}"  || true
+${CAKE} Admin setSetting "MISP.host_org_id"                    "1"                                  || true
+${CAKE} Admin setSetting "Security.salt"                       "${SALT}"                             || true
+${CAKE} Admin setSetting "MISP.disable_emailing"               "true"  --force                      || true
+${CAKE} Admin setSetting "SimpleBackgroundJobs.enabled"        "true"                               || true
+${CAKE} Admin setSetting "SimpleBackgroundJobs.redis_host"     "${REDIS_HOST:-redis}"               || true
+${CAKE} Admin setSetting "SimpleBackgroundJobs.redis_port"     "${REDIS_PORT:-6379}"                || true
+${CAKE} Admin setSetting "MISP.default_event_distribution"     "0"                                  || true
+${CAKE} Admin setSetting "MISP.default_attribute_distribution" "0"                                  || true
 
 # ── 7. Retrieve admin auth-key ────────────────────────────────────────────────
 
 log "Generating admin auth-key …"
 # Advanced authkeys are enabled in MISP v2.5 — getAuthkey is blocked.
 # change_authkey rotates to a new key and prints it.
-ADMIN_KEY=$(${CAKE} user change_authkey "admin@admin.test" 2>/dev/null \
-    | grep -oP '(?<=new key created: )\S+' || true)
+# Retry up to 5 times in case the DB write takes a moment after migrations.
+ADMIN_KEY=""
+_CAKE_OUT=""
+# Try the default seed email first, then the operator-configured email in case
+# a previous provisioner run already renamed the account.
+for _email in "admin@admin.test" "${MISP_ADMIN_EMAIL:-admin@misp.local}"; do
+    _CAKE_OUT=$(${CAKE} user change_authkey "${_email}" 2>&1 || true)
+    log "change_authkey(${_email}) output: ${_CAKE_OUT}"
+    ADMIN_KEY=$(echo "${_CAKE_OUT}" | grep -oP 'new key created: \K\S+' || true)
+    [ -n "${ADMIN_KEY}" ] || ADMIN_KEY=$(echo "${_CAKE_OUT}" | grep -oP 'New authkey for [^:]+: \K\S+' || true)
+    [ -n "${ADMIN_KEY}" ] || ADMIN_KEY=$(echo "${_CAKE_OUT}" | grep -oP 'New key: \K\S+' || true)
+    [ -n "${ADMIN_KEY}" ] && break
+done
 
 if [ -z "${ADMIN_KEY}" ]; then
-    log "WARNING: could not generate auth-key — provisioner may fail."
+    log "ERROR: could not generate admin auth-key after 5 attempts. Last output: ${_CAKE_OUT}"
+    exit 1
 fi
 
-echo "${ADMIN_KEY}" > /keys/admin-authkey
+# Only write the file once we have a real key so provisioners waiting on
+# a non-empty file are not unblocked by a blank line.
+printf '%s' "${ADMIN_KEY}" > /keys/admin-authkey
 chmod 600 /keys/admin-authkey
 log "Admin auth-key written to /keys/admin-authkey"
