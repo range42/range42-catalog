@@ -2,9 +2,8 @@ id: debian-jump
 api_version: 1
 description: Debian 13 (trixie) student jump box — example of an image=debian_trixie box.
 role: student
-image: debian_trixie
+template_vm: "template-vm-debian-trixie-small"
 default_inventory_group: r42_student_box_group
-spec: "2cpu/4gb/32gb"
 default_attachments:
   - kind: role
     catalog_ref: software.configure.firewalls
