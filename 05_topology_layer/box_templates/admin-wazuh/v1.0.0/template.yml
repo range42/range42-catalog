@@ -2,7 +2,6 @@ id: admin-wazuh
 api_version: 1
 description: Wazuh SIEM admin box (indexer + manager + dashboard).
 template_vm: "template-vm-ubuntu-noble-medium-04-8g-64g"
-default_inventory_group: r42_admin_group
 default_attachments:
   - kind: role
     catalog_ref: software.configure.firewalls
