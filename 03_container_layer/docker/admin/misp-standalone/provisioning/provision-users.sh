@@ -17,8 +17,10 @@ set -euo pipefail
 
 MISP_URL="https://misp"
 KEYS_FILE="/keys/api-keys.txt"
+CREDS_JSON_FILE="/keys/misp-credentials.json"
 ADMIN_KEY_FILE="/keys/admin-authkey"
 ORG_IDS_FILE="/keys/org-ids.env"
+CREDS_TMP="/keys/.creds.tmp"
 
 log()  { echo "[provisioner] $*" >&2; }
 fail() { echo "[provisioner] ERROR: $*" >&2; exit 1; }
@@ -78,6 +80,20 @@ gen_password() {
     printf 'R42!%s' "$(openssl rand -base64 16 | tr -d '/+=')" | head -c 20
 }
 
+# ── JSON credentials accumulator ─────────────────────────────────────────────
+# Writes one JSON object per call to CREDS_TMP; wrapped into misp-credentials.json at the end.
+
+printf '[\n' > "${CREDS_TMP}"
+_CRED_FIRST=true
+
+append_cred() {
+    local username="$1" role="$2" org="$3" api_key="$4"
+    "${_CRED_FIRST}" || printf ',\n' >> "${CREDS_TMP}"
+    _CRED_FIRST=false
+    python3 -c "import json,sys; print(json.dumps({'username':sys.argv[1],'role':sys.argv[2],'org':sys.argv[3],'api_key':sys.argv[4]}))" \
+        "${username}" "${role}" "${org}" "${api_key}" >> "${CREDS_TMP}"
+}
+
 # ── User creation helper ──────────────────────────────────────────────────────
 # Prints the authkey on stdout; all logs go to stderr.
 
@@ -113,6 +129,7 @@ misp_put "/admin/users/edit/1" "$(cat <<JSON
 JSON
 )" > /dev/null
 log "Admin account updated."
+append_cred "${MISP_ADMIN_EMAIL:-admin@misp.local}" "site_admin" "${MISP_ORG:-Range42}" "${ADMIN_KEY}"
 
 # ── 2. Optional second admin ──────────────────────────────────────────────────
 
@@ -132,6 +149,7 @@ if [ -n "${MISP_ADMIN2_EMAIL:-}" ] && [ -n "${MISP_ADMIN2_PASSWORD:-}" ]; then
 JSON
 )" | extract_key)
     log "Second admin created."
+    append_cred "${MISP_ADMIN2_EMAIL}" "site_admin" "${MISP_ORG:-Range42}" "${ADMIN2_KEY}"
 fi
 
 # ── 3. Reader user (role_id=6 — Read Only) ───────────────────────────────────
@@ -142,6 +160,7 @@ READER_KEY=$(create_user \
     "${MISP_READER_PASSWORD:-Reader1234!XYZ}" \
     6 1)
 log "Reader created."
+append_cred "${MISP_READER_EMAIL:-reader@misp.local}" "read_only" "${MISP_ORG:-Range42}" "${READER_KEY}"
 
 # ── 4. Writer user (role_id=4 — Publisher) ───────────────────────────────────
 
@@ -151,6 +170,7 @@ WRITER_KEY=$(create_user \
     "${MISP_WRITER_PASSWORD:-Writer1234!XYZ}" \
     4 1)
 log "Writer created."
+append_cred "${MISP_WRITER_EMAIL:-writer@misp.local}" "publisher" "${MISP_ORG:-Range42}" "${WRITER_KEY}"
 
 # ── 5. Team users ─────────────────────────────────────────────────────────────
 # Reads org IDs from /keys/org-ids.env (written by provision-orgs.sh).
@@ -181,6 +201,7 @@ else
             pass=$(gen_password)
             key=$(create_user "${email}" "${pass}" 2 "${INSTR_ORG_ID}")
             log "Created instructor: ${email}"
+            append_cred "${email}" "org_admin" "${INSTRUCTOR_ORG}" "${key}"
             TEAM_LINES+="# instructor${suffix} — org: ${INSTRUCTOR_ORG}, role: Org Admin"$'\n'
             TEAM_LINES+="MISP_INSTRUCTOR${i}_EMAIL=${email}"$'\n'
             TEAM_LINES+="MISP_INSTRUCTOR${i}_PASSWORD=${pass}"$'\n'
@@ -211,6 +232,7 @@ else
         lead_pass=$(gen_password)
         lead_key=$(create_user "${lead_email}" "${lead_pass}" 2 "${TEAM_ORG_ID}")
         log "Created ${team} lead: ${lead_email}"
+        append_cred "${lead_email}" "org_admin" "${team}" "${lead_key}"
         TEAM_LINES+="# ${team} lead — role: Org Admin"$'\n'
         TEAM_LINES+="MISP_${TEAM_UP}_LEAD_EMAIL=${lead_email}"$'\n'
         TEAM_LINES+="MISP_${TEAM_UP}_LEAD_PASSWORD=${lead_pass}"$'\n'
@@ -222,6 +244,7 @@ else
             user_pass=$(gen_password)
             user_key=$(create_user "${user_email}" "${user_pass}" 3 "${TEAM_ORG_ID}")
             log "Created ${team} user${i}: ${user_email}"
+            append_cred "${user_email}" "user" "${team}" "${user_key}"
             TEAM_LINES+="# ${team} user${i} — role: User"$'\n'
             TEAM_LINES+="MISP_${TEAM_UP}_USER${i}_EMAIL=${user_email}"$'\n'
             TEAM_LINES+="MISP_${TEAM_UP}_USER${i}_PASSWORD=${user_pass}"$'\n'
@@ -257,6 +280,29 @@ log "Writing ${KEYS_FILE} …"
 } > "${KEYS_FILE}"
 
 chmod 600 "${KEYS_FILE}"
+
+# ── Write misp-credentials.json ───────────────────────────────────────────────
+
+printf '\n]\n' >> "${CREDS_TMP}"
+python3 -c "
+import json, sys, os
+with open(sys.argv[1]) as f:
+    users = json.load(f)
+creds = {
+    'service': 'misp',
+    'version': os.environ.get('MISP_VERSION', 'unknown'),
+    'baseurl': os.environ.get('MISP_BASEURL', 'https://localhost'),
+    'generated_at': sys.argv[2],
+    'users': users,
+    'service_specific': {
+        'admin_org': os.environ.get('MISP_ORG', 'Range42')
+    }
+}
+print(json.dumps(creds, indent=2))
+" "${CREDS_TMP}" "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" > "${CREDS_JSON_FILE}"
+chmod 600 "${CREDS_JSON_FILE}"
+rm -f "${CREDS_TMP}"
+log "Credentials JSON written to ${CREDS_JSON_FILE}"
 
 log "Provisioning complete."
 log "Retrieve keys: docker compose exec misp cat ${KEYS_FILE}"

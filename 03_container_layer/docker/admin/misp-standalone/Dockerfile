@@ -6,7 +6,7 @@
 # ──────────────────────────────────────────────────────────────────────────────
 FROM ubuntu:24.04 AS builder
 
-ARG MISP_VERSION=v2.5.37
+ARG MISP_VERSION=v2.5.39
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -105,6 +105,10 @@ RUN mkdir -p \
 
 COPY config/apache-misp.conf /etc/apache2/sites-available/misp.conf
 RUN a2ensite misp.conf && a2dissite 000-default.conf
+
+# PHP tuning: raise memory limit so warninglist/galaxy/taxonomy updates don't OOM
+COPY config/php-misp.ini /etc/php/8.3/apache2/conf.d/99-misp.ini
+COPY config/php-misp.ini /etc/php/8.3/cli/conf.d/99-misp.ini
 
 # ── Supervisor ────────────────────────────────────────────────────────────────
 

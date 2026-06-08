@@ -24,7 +24,7 @@ class DATABASE_CONFIG {
         'password'    => '${MISP_DB_PASSWORD}',
         'database'    => '${MISP_DB_NAME:-misp}',
         'port'        => '${DB_PORT:-3306}',
-        'encoding'    => 'utf8mb4',
+        'encoding'    => 'utf8mb4 COLLATE utf8mb4_unicode_ci',
     ];
 }
 PHP
@@ -41,6 +41,12 @@ for tmpl in config core bootstrap; do
         chmod 640 "${MISP_CONFIG_DIR}/${tmpl}.php"
     fi
 done
+
+# config.default.php ships with 'live' => false. Patch it to true immediately so
+# Apache never serves the "MISP is not live" login message, even if the cake
+# Admin setSetting call at step 6 fails or behaves differently across MISP versions.
+sed -i "s/'live'\s*=>\s*false/'live' => true/g" "${MISP_CONFIG_DIR}/config.php"
+log "Patched config.php: MISP.live => true"
 
 # ── 3. Seed base schema (only when DB is empty) ───────────────────────────────
 #
@@ -74,11 +80,25 @@ fi
 log "Running pending DB migrations …"
 ${CAKE} Admin runUpdates 2>&1 || true
 
+log "Loading bundled warning lists …"
+${CAKE} Admin updateWarninglists 2>&1 || true
+
 # ── 5. Initial admin user ─────────────────────────────────────────────────────
 
 log "Creating initial admin via userInit …"
 _INIT_OUT=$(${CAKE} userInit 2>&1 || true)
 log "userInit output: ${_INIT_OUT}"
+
+# ── 5b. Remove initial-install news thread ────────────────────────────────────
+# userInit (and the bundled MYSQL.sql schema) create a "Initial Install" thread
+# that appears as a news item on the MISP home page after every login.
+# Delete it directly in the DB before Apache starts so no user ever sees it.
+log "Removing initial-install news thread …"
+mysql -h "${DB_HOST:-db}" -P "${DB_PORT:-3306}" \
+    -u "${MISP_DB_USER:-misp}" -p"${MISP_DB_PASSWORD}" \
+    "${MISP_DB_NAME:-misp}" \
+    -e "SET FOREIGN_KEY_CHECKS=0; DELETE FROM posts; DELETE FROM threads; SET FOREIGN_KEY_CHECKS=1;" \
+    2>&1 | grep -v "^$" || true
 
 # ── 6. Core MISP settings ─────────────────────────────────────────────────────
 
@@ -87,16 +107,90 @@ log "Applying MISP settings …"
 SALT="${MISP_SALT:-}"
 [ -z "${SALT}" ] && SALT="$(openssl rand -hex 32)"
 
+# ── Core identity & connectivity ─────────────────────────────────────────────
 ${CAKE} Admin setSetting "MISP.baseurl"                        "${MISP_BASEURL:-https://localhost}" || true
+${CAKE} Admin setSetting "MISP.external_baseurl"               "${MISP_BASEURL:-https://localhost}" || true
 ${CAKE} Admin setSetting "MISP.org"                            "${MISP_ORG:-Default Organisation}"  || true
 ${CAKE} Admin setSetting "MISP.host_org_id"                    "1"                                  || true
-${CAKE} Admin setSetting "Security.salt"                       "${SALT}"                             || true
-${CAKE} Admin setSetting "MISP.disable_emailing"               "true"  --force                      || true
-${CAKE} Admin setSetting "SimpleBackgroundJobs.enabled"        "true"                               || true
-${CAKE} Admin setSetting "SimpleBackgroundJobs.redis_host"     "${REDIS_HOST:-redis}"               || true
-${CAKE} Admin setSetting "SimpleBackgroundJobs.redis_port"     "${REDIS_PORT:-6379}"                || true
-${CAKE} Admin setSetting "MISP.default_event_distribution"     "0"                                  || true
-${CAKE} Admin setSetting "MISP.default_attribute_distribution" "0"                                  || true
+${CAKE} Admin setSetting "MISP.python_bin"                     "/opt/misp-venv/bin/python3"         || true
+${CAKE} Admin setSetting "MISP.email"                          "${MISP_ADMIN_EMAIL:-admin@misp.local}" || true
+
+# Clear the default "Initial Install, please configure" login-page banner.
+# config.default.php seeds welcome_text_top with this string; override it here.
+${CAKE} Admin setSetting "MISP.welcome_text_top"    "" --force || true
+${CAKE} Admin setSetting "MISP.welcome_text_bottom" "" --force || true
+
+# ── Security ──────────────────────────────────────────────────────────────────
+${CAKE} Admin setSetting "Security.salt"                              "${SALT}"  || true
+${CAKE} Admin setSetting "Security.csp_enforce"                       "false"    || true
+${CAKE} Admin setSetting "Security.allow_unsafe_apikey_named_param"   "false"    || true
+${CAKE} Admin setSetting "Security.allow_unsafe_cleartext_apikey_logging" "false" || true
+
+# ── GnuPG ────────────────────────────────────────────────────────────────────
+# Generate a key so MISP's validator can find it by email; the lab does not
+# use event signing but having the key clears the diagnostics warning.
+_GPG_HOME="/var/www/MISP/.gnupg"
+_GPG_EMAIL="${MISP_ADMIN_EMAIL:-admin@misp.local}"
+mkdir -p "${_GPG_HOME}" && chmod 700 "${_GPG_HOME}"
+if ! GNUPGHOME="${_GPG_HOME}" gpg --list-secret-keys "${_GPG_EMAIL}" &>/dev/null; then
+    log "Generating GPG key for ${_GPG_EMAIL} …"
+    GNUPGHOME="${_GPG_HOME}" gpg --batch --gen-key <<GPGEOF
+%no-protection
+Key-Type: RSA
+Key-Length: 3072
+Subkey-Type: RSA
+Subkey-Length: 3072
+Name-Real: MISP Admin
+Name-Email: ${_GPG_EMAIL}
+Expire-Date: 0
+%commit
+GPGEOF
+fi
+chown -R www-data:www-data "${_GPG_HOME}"
+${CAKE} Admin setSetting "GnuPG.homedir" "${_GPG_HOME}"  || true
+${CAKE} Admin setSetting "GnuPG.email"   "${_GPG_EMAIL}" || true
+# GnuPG.password is deliberately omitted — key has no passphrase (%no-protection)
+# and setting "" without --force triggers a validation error.
+
+# ── Redis & background jobs ───────────────────────────────────────────────────
+${CAKE} Admin setSetting "MISP.redis_host"                 "${REDIS_HOST:-redis}" || true
+${CAKE} Admin setSetting "MISP.redis_port"                 "${REDIS_PORT:-6379}"  || true
+${CAKE} Admin setSetting "SimpleBackgroundJobs.enabled"    "true"                 || true
+${CAKE} Admin setSetting "SimpleBackgroundJobs.redis_host" "${REDIS_HOST:-redis}" || true
+${CAKE} Admin setSetting "SimpleBackgroundJobs.redis_port" "${REDIS_PORT:-6379}"  || true
+
+# ── Default distributions ─────────────────────────────────────────────────────
+${CAKE} Admin setSetting "MISP.default_event_distribution"          "0" || true
+${CAKE} Admin setSetting "MISP.default_attribute_distribution"      "0" || true
+${CAKE} Admin setSetting "MISP.default_object_distribution"         "0" || true
+${CAKE} Admin setSetting "MISP.default_galaxy_distribution"         "0" || true
+${CAKE} Admin setSetting "MISP.default_eventreport_distribution"    "0" || true
+${CAKE} Admin setSetting "MISP.default_analyst_data_distribution"   "0" || true
+
+# ── Plugins — disabled in this lab deployment ─────────────────────────────────
+${CAKE} Admin setSetting "Plugin.Enrichment_services_enable"        "false" || true
+${CAKE} Admin setSetting "Plugin.Enrichment_hover_enable"           "false" || true
+${CAKE} Admin setSetting "Plugin.Enrichment_hover_popover_only"     "false" || true
+${CAKE} Admin setSetting "Plugin.Import_services_enable"            "false" || true
+${CAKE} Admin setSetting "Plugin.Export_services_enable"            "false" || true
+${CAKE} Admin setSetting "Plugin.Action_services_enable"            "false" || true
+${CAKE} Admin setSetting "Plugin.Cortex_services_enable"            "false" || true
+${CAKE} Admin setSetting "Plugin.Workflow_enable"                   "false" || true
+
+# ── Taxonomy & galaxy import (after Redis is configured) ─────────────────────
+# Running these here avoids the Redis "Connection refused" error that occurs
+# when updateTaxonomies/updateGalaxies execute before MISP.redis_host is set.
+log "Loading bundled taxonomies …"
+${CAKE} Admin updateTaxonomies 2>&1 || true
+
+log "Loading bundled galaxies …"
+${CAKE} Admin updateGalaxies 2>&1 || true
+
+# ── Emailing & logging ────────────────────────────────────────────────────────
+${CAKE} Admin setSetting "MISP.disable_emailing"                    "true"  --force || true
+
+# ── Live ──────────────────────────────────────────────────────────────────────
+${CAKE} Admin setSetting "MISP.live" "true" --force || true
 
 # ── 7. Retrieve admin auth-key ────────────────────────────────────────────────
 

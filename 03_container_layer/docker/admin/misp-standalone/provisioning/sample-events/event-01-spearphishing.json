@@ -1,0 +1,98 @@
+{
+  "Event": {
+    "uuid": "c0ffee01-cafe-4bab-b000-000000000001",
+    "info": "RANGE42 Training — Spearphishing: Initial Access via Malicious Attachment",
+    "distribution": 0,
+    "threat_level_id": 1,
+    "analysis": 2,
+    "date": "2024-11-12",
+    "Tag": [
+      {"name": "tlp:amber"},
+      {"name": "kill-chain:Delivery"},
+      {"name": "kill-chain:Exploitation"}
+    ],
+    "Attribute": [
+      {
+        "uuid": "c0ffee01-cafe-4bab-b000-000000000011",
+        "type": "email-src",
+        "category": "Payload delivery",
+        "value": "noreply@secure-billing.example.net",
+        "to_ids": true,
+        "comment": "Phishing sender — spoofed billing address",
+        "distribution": 5
+      },
+      {
+        "uuid": "c0ffee01-cafe-4bab-b000-000000000012",
+        "type": "email-subject",
+        "category": "Payload delivery",
+        "value": "Urgent: Invoice #INV-2024-0842 requires your approval",
+        "to_ids": false,
+        "comment": "Phishing lure subject line",
+        "distribution": 5
+      },
+      {
+        "uuid": "c0ffee01-cafe-4bab-b000-000000000013",
+        "type": "filename",
+        "category": "Payload delivery",
+        "value": "INV-2024-0842.xlsm",
+        "to_ids": true,
+        "comment": "Malicious Excel macro dropper attached to phishing email",
+        "distribution": 5
+      },
+      {
+        "uuid": "c0ffee01-cafe-4bab-b000-000000000014",
+        "type": "sha256",
+        "category": "Payload delivery",
+        "value": "deadbeef00000000000000000000000000000000000000000000000001a1face",
+        "to_ids": true,
+        "comment": "SHA-256 of INV-2024-0842.xlsm (training sample — not a real hash)",
+        "distribution": 5
+      },
+      {
+        "uuid": "c0ffee01-cafe-4bab-b000-000000000015",
+        "type": "md5",
+        "category": "Payload delivery",
+        "value": "deadbeef000000000000000001a1face",
+        "to_ids": true,
+        "comment": "MD5 of INV-2024-0842.xlsm (training sample — not a real hash)",
+        "distribution": 5
+      },
+      {
+        "uuid": "c0ffee01-cafe-4bab-b000-000000000016",
+        "type": "url",
+        "category": "Payload delivery",
+        "value": "http://198.51.100.47/payloads/stage1.exe",
+        "to_ids": true,
+        "comment": "Stage-1 loader download URL dropped by macro (RFC 5737 documentation range)",
+        "distribution": 5
+      },
+      {
+        "uuid": "c0ffee01-cafe-4bab-b000-000000000017",
+        "type": "ip-dst",
+        "category": "Network activity",
+        "value": "198.51.100.47",
+        "to_ids": true,
+        "comment": "Stage-1 C2 / loader host (RFC 5737 TEST-NET-2 — training use only)",
+        "distribution": 5
+      },
+      {
+        "uuid": "c0ffee01-cafe-4bab-b000-000000000018",
+        "type": "domain",
+        "category": "Network activity",
+        "value": "updates.secure-billing.example.net",
+        "to_ids": true,
+        "comment": "Attacker-controlled domain used for C2 beacon and payload hosting",
+        "distribution": 5
+      },
+      {
+        "uuid": "c0ffee01-cafe-4bab-b000-000000000019",
+        "type": "user-agent",
+        "category": "Network activity",
+        "value": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+        "to_ids": false,
+        "comment": "HTTP User-Agent string observed in stage-1 callback traffic",
+        "distribution": 5
+      }
+    ]
+  }
+}

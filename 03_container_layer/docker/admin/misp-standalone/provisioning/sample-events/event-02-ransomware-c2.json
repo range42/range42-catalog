@@ -1,0 +1,117 @@
+{
+  "Event": {
+    "uuid": "c0ffee02-cafe-4bab-b000-000000000002",
+    "info": "RANGE42 Training — Ransomware: C2 Beaconing and Data Exfiltration",
+    "distribution": 0,
+    "threat_level_id": 1,
+    "analysis": 1,
+    "date": "2024-11-13",
+    "Tag": [
+      {"name": "tlp:amber"},
+      {"name": "kill-chain:Installation"},
+      {"name": "kill-chain:Command and Control"},
+      {"name": "kill-chain:Actions on Objectives"}
+    ],
+    "Attribute": [
+      {
+        "uuid": "c0ffee02-cafe-4bab-b000-000000000021",
+        "type": "ip-dst",
+        "category": "Network activity",
+        "value": "203.0.113.201",
+        "to_ids": true,
+        "comment": "Ransomware C2 server — beacon traffic on port 4444 (RFC 5737 TEST-NET-3 — training use only)",
+        "distribution": 5
+      },
+      {
+        "uuid": "c0ffee02-cafe-4bab-b000-000000000022",
+        "type": "ip-dst",
+        "category": "Network activity",
+        "value": "203.0.113.87",
+        "to_ids": true,
+        "comment": "Data exfiltration endpoint — staged ZIP archives observed in HTTPS POST (RFC 5737 TEST-NET-3 — training use only)",
+        "distribution": 5
+      },
+      {
+        "uuid": "c0ffee02-cafe-4bab-b000-000000000023",
+        "type": "domain",
+        "category": "Network activity",
+        "value": "telemetry.corp-updates.example.org",
+        "to_ids": true,
+        "comment": "DGA-style C2 domain registered 48 h before first beacon",
+        "distribution": 5
+      },
+      {
+        "uuid": "c0ffee02-cafe-4bab-b000-000000000024",
+        "type": "port",
+        "category": "Network activity",
+        "value": "4444",
+        "to_ids": false,
+        "comment": "Destination port used for C2 beacon channel",
+        "distribution": 5
+      },
+      {
+        "uuid": "c0ffee02-cafe-4bab-b000-000000000025",
+        "type": "filename",
+        "category": "Artifacts dropped",
+        "value": "WindowsDefenderUpdate.exe",
+        "to_ids": true,
+        "comment": "Ransomware dropper masquerading as a Windows Defender update",
+        "distribution": 5
+      },
+      {
+        "uuid": "c0ffee02-cafe-4bab-b000-000000000026",
+        "type": "sha256",
+        "category": "Artifacts dropped",
+        "value": "deadbeef00000000000000000000000000000000000000000000000002b2face",
+        "to_ids": true,
+        "comment": "SHA-256 of WindowsDefenderUpdate.exe (training sample — not a real hash)",
+        "distribution": 5
+      },
+      {
+        "uuid": "c0ffee02-cafe-4bab-b000-000000000027",
+        "type": "filename",
+        "category": "Artifacts dropped",
+        "value": "cryptosvc.dll",
+        "to_ids": true,
+        "comment": "Encryption module side-loaded by dropper",
+        "distribution": 5
+      },
+      {
+        "uuid": "c0ffee02-cafe-4bab-b000-000000000028",
+        "type": "sha256",
+        "category": "Artifacts dropped",
+        "value": "deadbeef00000000000000000000000000000000000000000000000003c3face",
+        "to_ids": true,
+        "comment": "SHA-256 of cryptosvc.dll (training sample — not a real hash)",
+        "distribution": 5
+      },
+      {
+        "uuid": "c0ffee02-cafe-4bab-b000-000000000029",
+        "type": "regkey",
+        "category": "Persistence mechanism",
+        "value": "HKLM\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\\WindowsSecurityHealth",
+        "to_ids": true,
+        "comment": "Persistence registry key created by dropper under SYSTEM context",
+        "distribution": 5
+      },
+      {
+        "uuid": "c0ffee02-cafe-4bab-b000-00000000002a",
+        "type": "mutex",
+        "category": "Artifacts dropped",
+        "value": "Global\\R42-TRAINING-MUTEX-2024",
+        "to_ids": true,
+        "comment": "Mutex created to prevent double-execution of the ransomware payload",
+        "distribution": 5
+      },
+      {
+        "uuid": "c0ffee02-cafe-4bab-b000-00000000002b",
+        "type": "hostname",
+        "category": "Targeting data",
+        "value": "WORKSTATION-FINANCE-01",
+        "to_ids": false,
+        "comment": "First confirmed victim host — finance department workstation",
+        "distribution": 5
+      }
+    ]
+  }
+}

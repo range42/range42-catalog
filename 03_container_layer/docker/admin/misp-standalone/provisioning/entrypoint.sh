@@ -47,8 +47,8 @@ fi
 
 # ── First-boot bootstrap ──────────────────────────────────────────────────────
 
-if [ ! -f "${SENTINEL}" ]; then
-    log "First boot — running MISP bootstrap …"
+if [ ! -f "${SENTINEL}" ] || [ ! -f "/var/www/MISP/app/Config/core.php" ]; then
+    log "First boot (or Config missing after image rebuild) — running MISP bootstrap …"
     # shellcheck source=configure-misp.sh
     . /provisioning/configure-misp.sh
     touch "${SENTINEL}"
