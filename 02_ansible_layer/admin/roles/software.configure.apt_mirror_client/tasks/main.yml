@@ -1,17 +1,91 @@
 ---
 # tasks file
 
-- name: configure - fail if apt_proxy_url is not set
-  ansible.builtin.fail:
-    msg: "apt_proxy_url must be set to the apt-cacher-ng server IP or hostname"
-  when: apt_proxy_url | length == 0
+- name: client - assert apt_mirror_vm_ip is set in airgapped mode
+  ansible.builtin.assert:
+    that: apt_mirror_vm_ip | length > 0
+    fail_msg: "apt_mirror_vm_ip must be set when apt_mirror_airgapped is true"
+  when:
+    - apt_mirror_enabled | default(false) | bool
+    - apt_mirror_airgapped | default(false) | bool
 
-- name: configure - deploy apt proxy configuration
-  ansible.builtin.template:
-    src: 01-apt-proxy.conf.j2
-    dest: /etc/apt/apt.conf.d/01proxy
+- name: client - set effective mirror URL (airgapped)
+  ansible.builtin.set_fact:
+    _apt_effective_url: "http://{{ apt_mirror_vm_ip }}:{{ apt_mirror_http_port }}"
+  when:
+    - apt_mirror_enabled | default(false) | bool
+    - apt_mirror_airgapped | default(false) | bool
+
+- name: client - set effective mirror URL (proxy)
+  ansible.builtin.set_fact:
+    _apt_effective_url: "{{ apt_proxy_url }}"
+  when:
+    - apt_mirror_enabled | default(false) | bool
+    - not apt_mirror_airgapped | default(false) | bool
+
+- name: client - remove old proxy apt.conf.d files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  become: true
+  loop:
+    - /etc/apt/apt.conf.d/00range42-proxy
+    - /etc/apt/apt.conf.d/01-r42-bootstrap-block
+    - /etc/apt/apt.conf.d/01proxy
+  when: apt_mirror_enabled | default(false) | bool
+
+- name: client - rewrite debian mirror list
+  ansible.builtin.copy:
+    content: "{{ _apt_effective_url }}/deb.debian.org/debian\n"
+    dest: /etc/apt/mirrors/debian.list
     owner: root
     group: root
     mode: "0644"
   become: true
   notify: update apt cache
+  when:
+    - apt_mirror_enabled | default(false) | bool
+    - _apt_effective_url is defined
+    - _apt_effective_url | length > 0
+    - ansible_distribution == "Debian"
+
+- name: client - rewrite debian-security mirror list
+  ansible.builtin.copy:
+    content: "{{ _apt_effective_url }}/security.debian.org/debian-security\n"
+    dest: /etc/apt/mirrors/debian-security.list
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify: update apt cache
+  when:
+    - apt_mirror_enabled | default(false) | bool
+    - _apt_effective_url is defined
+    - _apt_effective_url | length > 0
+    - ansible_distribution == "Debian"
+
+- name: client - rewrite ubuntu archive URI
+  ansible.builtin.replace:
+    path: /etc/apt/sources.list.d/ubuntu.sources
+    regexp: 'http://archive\.ubuntu\.com/ubuntu'
+    replace: "{{ _apt_effective_url }}/archive.ubuntu.com/ubuntu"
+  become: true
+  notify: update apt cache
+  when:
+    - apt_mirror_enabled | default(false) | bool
+    - _apt_effective_url is defined
+    - _apt_effective_url | length > 0
+    - ansible_distribution == "Ubuntu"
+
+- name: client - rewrite ubuntu security URI
+  ansible.builtin.replace:
+    path: /etc/apt/sources.list.d/ubuntu.sources
+    regexp: 'http://security\.ubuntu\.com/ubuntu'
+    replace: "{{ _apt_effective_url }}/security.ubuntu.com/ubuntu"
+  become: true
+  notify: update apt cache
+  when:
+    - apt_mirror_enabled | default(false) | bool
+    - _apt_effective_url is defined
+    - _apt_effective_url | length > 0
+    - ansible_distribution == "Ubuntu"

@@ -1,0 +1,15 @@
+---
+
+- name: install mirror - update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+
+- name: install mirror - install apt-mirror and nginx
+  ansible.builtin.apt:
+    name:
+      - apt-mirror
+      - nginx
+    state: present
+  become: true

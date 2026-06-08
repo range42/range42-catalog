@@ -1,14 +1,36 @@
 ---
 # tasks file
 
+# Proxy-cache mode: apt-cacher-ng (default, apt_mirror_airgapped: false)
 - name: INCLUDE - install apt-cacher-ng
   ansible.builtin.include_tasks: install.yml
+  when: not apt_mirror_airgapped | default(false) | bool
 
 - name: INCLUDE - configure apt-cacher-ng
   ansible.builtin.include_tasks: configure.yml
+  when: not apt_mirror_airgapped | default(false) | bool
 
 - name: INCLUDE - enable and start apt-cacher-ng service
   ansible.builtin.include_tasks: service.yml
+  when: not apt_mirror_airgapped | default(false) | bool
 
-- name: INCLUDE - open firewall port
+- name: INCLUDE - open apt-cacher-ng firewall port
   ansible.builtin.include_tasks: firewall.yml
+  when: not apt_mirror_airgapped | default(false) | bool
+
+# Full-mirror mode: apt-mirror + nginx (apt_mirror_airgapped: true)
+- name: INCLUDE - install apt-mirror and nginx
+  ansible.builtin.include_tasks: install_mirror.yml
+  when: apt_mirror_airgapped | default(false) | bool
+
+- name: INCLUDE - configure apt-mirror
+  ansible.builtin.include_tasks: configure_mirror.yml
+  when: apt_mirror_airgapped | default(false) | bool
+
+- name: INCLUDE - prewarm apt-mirror
+  ansible.builtin.include_tasks: prewarm_mirror.yml
+  when: apt_mirror_airgapped | default(false) | bool
+
+- name: INCLUDE - serve mirror via nginx
+  ansible.builtin.include_tasks: serve_mirror.yml
+  when: apt_mirror_airgapped | default(false) | bool

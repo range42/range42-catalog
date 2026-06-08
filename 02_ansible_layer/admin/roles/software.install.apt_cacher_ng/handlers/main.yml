@@ -6,3 +6,9 @@
     name: apt-cacher-ng
     state: restarted
   become: true
+
+- name: restart nginx
+  ansible.builtin.systemd:
+    name: nginx
+    state: restarted
+  become: true
