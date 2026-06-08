@@ -1,0 +1,5 @@
+Acquire::http::Proxy "http://{{ apt_proxy_url }}:{{ apt_mirror_port }}/";
+Acquire::https::Proxy "DIRECT";
+{% if apt_mirror_fallback %}
+Acquire::http::ConnectTimeout "{{ apt_mirror_connect_timeout }}";
+{% endif %}

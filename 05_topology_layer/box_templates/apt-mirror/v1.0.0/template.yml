@@ -1,0 +1,13 @@
+id: apt-mirror
+api_version: 1
+description: apt-cacher-ng transparent caching proxy — speeds up package installs across the lab.
+template_vm: "template-vm-debian-trixie-small"
+default_attachments:
+  - kind: role
+    catalog_ref: software.configure.firewalls
+    params:
+      firewall_rules:
+        - {ip: "all", port: 22, protocol: "tcp"}    # ssh
+        - {ip: "all", port: 3142, protocol: "tcp"}  # apt-cacher-ng
+  - {kind: role, catalog_ref: software.install.warmup.basic_packages, params: {}}
+  - {kind: role, catalog_ref: software.install.apt_cacher_ng, params: {}}

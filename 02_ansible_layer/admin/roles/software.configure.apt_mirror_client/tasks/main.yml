@@ -1,0 +1,17 @@
+---
+# tasks file
+
+- name: configure - fail if apt_proxy_url is not set
+  ansible.builtin.fail:
+    msg: "apt_proxy_url must be set to the apt-cacher-ng server IP or hostname"
+  when: apt_proxy_url | length == 0
+
+- name: configure - deploy apt proxy configuration
+  ansible.builtin.template:
+    src: 01-apt-proxy.conf.j2
+    dest: /etc/apt/apt.conf.d/01proxy
+    owner: root
+    group: root
+    mode: "0644"
+  become: true
+  notify: update apt cache
