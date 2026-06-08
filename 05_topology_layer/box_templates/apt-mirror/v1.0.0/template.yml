@@ -1,9 +1,8 @@
-id: apt-mirror-airgapped
+id: apt-mirror
 api_version: 1
 description: >-
-  Full offline apt mirror (apt-mirror + nginx, port 80). Downloads and serves complete
-  Debian trixie package sets locally — no upstream internet access required after sync.
-  Set apt_mirror_prewarm: true to trigger an initial mirror sync on deploy.
+  Full apt mirror (apt-mirror + nginx, port 80). Downloads and serves complete Debian trixie
+  package sets locally. Set apt_mirror_prewarm: true to trigger an initial mirror sync on deploy.
 template_vm: "template-vm-debian-trixie-large"
 default_attachments:
   - kind: role
