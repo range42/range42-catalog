@@ -26,11 +26,13 @@
 - name: client - wait for mirror Release file to be accessible
   ansible.builtin.uri:
     url: >-
-      {{
-        _apt_effective_url + '/deb.debian.org/debian/dists/' + ansible_distribution_release + '/InRelease'
-        if ansible_distribution == 'Debian' else
-        _apt_effective_url + '/archive.ubuntu.com/ubuntu/dists/' + ansible_distribution_release + '/InRelease'
-      }}
+      {%- if ansible_distribution == 'Debian' -%}
+        {{ _apt_effective_url }}/deb.debian.org/debian/dists/{{ ansible_distribution_release }}/InRelease
+      {%- elif 'universe' in apt_mirror_ubuntu_components -%}
+        {{ _apt_effective_url }}/archive.ubuntu.com/ubuntu/dists/{{ ansible_distribution_release }}/universe/binary-amd64/Packages
+      {%- else -%}
+        {{ _apt_effective_url }}/archive.ubuntu.com/ubuntu/dists/{{ ansible_distribution_release }}/InRelease
+      {%- endif -%}
     method: GET
     status_code: 200
     timeout: 10
