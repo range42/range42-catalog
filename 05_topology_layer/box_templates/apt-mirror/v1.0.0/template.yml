@@ -24,7 +24,7 @@ default_attachments:
       apt_mirror_include_sources: false
       apt_mirror_ubuntu_components: "main restricted"
       # Behaviour
-      apt_mirror_prewarm: false
+      apt_mirror_prewarm: true
       apt_mirror_threads: 20
       # Storage / network
       apt_mirror_http_port: 80
