@@ -15,7 +15,17 @@ default_attachments:
   - kind: role
     catalog_ref: software.install.apt_mirror
     params:
-      apt_mirror_prewarm: false
+      # Suites
+      apt_mirror_debian_stable: true
+      apt_mirror_ubuntu_2204: false
+      apt_mirror_ubuntu_2404: false
       apt_mirror_security: true
       apt_mirror_backports: false
-      apt_mirror_ubuntu_2204: false
+      apt_mirror_include_sources: false
+      apt_mirror_ubuntu_components: "main restricted"
+      # Behaviour
+      apt_mirror_prewarm: false
+      apt_mirror_threads: 20
+      # Storage / network
+      apt_mirror_http_port: 80
+      apt_mirror_root: /var/spool/apt-mirror
