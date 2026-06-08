@@ -12,4 +12,10 @@ default_attachments:
         - {ip: "all", port: 22, protocol: "tcp"}   # ssh
         - {ip: "all", port: 80, protocol: "tcp"}   # nginx apt mirror
   - {kind: role, catalog_ref: software.install.warmup.basic_packages, params: {}}
-  - {kind: role, catalog_ref: software.install.apt_mirror, params: {}}
+  - kind: role
+    catalog_ref: software.install.apt_mirror
+    params:
+      apt_mirror_prewarm: false
+      apt_mirror_security: true
+      apt_mirror_backports: false
+      apt_mirror_ubuntu_2204: false
