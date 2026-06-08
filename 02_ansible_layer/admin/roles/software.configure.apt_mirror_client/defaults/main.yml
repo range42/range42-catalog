@@ -5,3 +5,8 @@ apt_proxy_url: ""
 apt_mirror_airgapped: false
 apt_mirror_vm_ip: ""
 apt_mirror_http_port: 80
+# Wait parameters — used only in airgapped (mirror) mode.
+# apt-mirror prewarm runs async on the server; clients poll until the Release
+# file is accessible before proceeding with apt update.
+apt_mirror_wait_retries: 60
+apt_mirror_wait_delay: 30
