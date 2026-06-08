@@ -56,6 +56,18 @@
     - not apt_mirror_backports | default(false) | bool
     - ansible_distribution == "Debian"
 
+- name: client - remove backports suite from ubuntu apt sources (not mirrored)
+  ansible.builtin.replace:
+    path: /etc/apt/sources.list.d/ubuntu.sources
+    regexp: '(Suites:.*)[ \t]+{{ ansible_distribution_release }}-backports'
+    replace: '\1'
+  become: true
+  when:
+    - apt_mirror_enabled | default(false) | bool
+    - apt_mirror_airgapped | default(false) | bool
+    - not apt_mirror_backports | default(false) | bool
+    - ansible_distribution == "Ubuntu"
+
 - name: client - remove old proxy apt.conf.d files
   ansible.builtin.file:
     path: "{{ item }}"
