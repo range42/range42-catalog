@@ -1,8 +1,6 @@
 id: apt-mirror
 api_version: 1
-description: >-
-  Full apt mirror (apt-mirror + nginx, port 80). Downloads and serves complete Debian trixie
-  package sets locally. Set apt_mirror_prewarm: true to trigger an initial mirror sync on deploy.
+description: Local apt mirror served via nginx. Configure which distros and suites to mirror via params.
 template_vm: "template-vm-debian-trixie-large"
 default_attachments:
   - kind: role
