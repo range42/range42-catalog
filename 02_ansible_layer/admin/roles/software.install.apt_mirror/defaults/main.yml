@@ -7,7 +7,7 @@ apt_mirror_prewarm: false
 
 # Suites to mirror
 apt_mirror_debian_bookworm: false
-apt_mirror_debian_trixie: true
+apt_mirror_debian_trixie: false
 apt_mirror_ubuntu_jammy: false
 apt_mirror_ubuntu_noble: false
 apt_mirror_ubuntu_resolute: false
