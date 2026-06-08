@@ -1,8 +1,6 @@
 id: apt-cache
 api_version: 1
-description: >-
-  apt-cacher-ng transparent caching proxy (port 3142). Caches downloaded packages on first
-  fetch — subsequent installs across the lab are served locally without re-downloading.
+description: apt-cacher-ng transparent caching proxy. Caches packages on first fetch and serves them locally to the rest of the lab.
 template_vm: "template-vm-debian-trixie-small"
 default_attachments:
   - kind: role
@@ -12,4 +10,11 @@ default_attachments:
         - {ip: "all", port: 22, protocol: "tcp"}    # ssh
         - {ip: "all", port: 3142, protocol: "tcp"}  # apt-cacher-ng
   - {kind: role, catalog_ref: software.install.warmup.basic_packages, params: {}}
-  - {kind: role, catalog_ref: software.install.apt_cacher_ng, params: {}}
+  - kind: role
+    catalog_ref: software.install.apt_cacher_ng
+    params:
+      apt_cacher_port: 3142
+      apt_cacher_passthrough: true
+      apt_cacher_cache_dir: /var/cache/apt-cacher-ng
+      apt_cacher_log_dir: /var/log/apt-cacher-ng
+      apt_cacher_bind_address: "0.0.0.0"

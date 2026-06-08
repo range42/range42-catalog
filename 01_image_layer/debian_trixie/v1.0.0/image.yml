@@ -7,6 +7,6 @@ cloud_image:
   url: "https://cloud.debian.org/images/cloud/trixie/latest/debian-13-genericcloud-amd64.raw"
   filename: "debian-13-genericcloud-amd64.img"
 proxmox_templates:
-  - {vm_id: 9321, vm_name: "template-vm-debian-trixie-small",  spec: "1cpu/4gb/32gb",  ip_octet: 121}
-  - {vm_id: 9331, vm_name: "template-vm-debian-trixie-medium", spec: "2cpu/8gb/64gb",  ip_octet: 131}
-  - {vm_id: 9341, vm_name: "template-vm-debian-trixie-large",  spec: "2cpu/8gb/500gb", ip_octet: 141}
+  - {vm_id: 9321, vm_name: "template-vm-debian-trixie-small",  spec: "1cpu/4gb/32gb"}
+  - {vm_id: 9331, vm_name: "template-vm-debian-trixie-medium", spec: "2cpu/8gb/64gb"}
+  - {vm_id: 9341, vm_name: "template-vm-debian-trixie-large",  spec: "2cpu/8gb/500gb"}

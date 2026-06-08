@@ -12,9 +12,35 @@ set nthreads     {{ apt_mirror_threads }}
 set _tilde       0
 
 ########################################
+# Debian bookworm
+########################################
+{% if apt_mirror_debian_bookworm | default(false) | bool %}
+deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware
+{% if apt_mirror_include_sources | default(false) | bool %}
+deb-src http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware
+deb-src http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware
+{% endif %}
+{% endif %}
+
+{% if apt_mirror_backports | default(false) | bool and apt_mirror_debian_bookworm | default(false) | bool %}
+deb http://deb.debian.org/debian bookworm-backports main contrib non-free non-free-firmware
+{% if apt_mirror_include_sources | default(false) | bool %}
+deb-src http://deb.debian.org/debian bookworm-backports main contrib non-free non-free-firmware
+{% endif %}
+{% endif %}
+
+{% if apt_mirror_security | default(true) | bool and apt_mirror_debian_bookworm | default(false) | bool %}
+deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
+{% if apt_mirror_include_sources | default(false) | bool %}
+deb-src http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
+{% endif %}
+{% endif %}
+
+########################################
 # Debian trixie
 ########################################
-{% if apt_mirror_debian_stable | default(true) | bool %}
+{% if apt_mirror_debian_trixie | default(true) | bool %}
 deb http://deb.debian.org/debian trixie main contrib non-free non-free-firmware
 deb http://deb.debian.org/debian trixie-updates main contrib non-free non-free-firmware
 {% if apt_mirror_include_sources | default(false) | bool %}
@@ -40,7 +66,7 @@ deb-src http://security.debian.org/debian-security trixie-security main contrib 
 ########################################
 # Ubuntu 22.04 (jammy)
 ########################################
-{% if apt_mirror_ubuntu_2204 | default(false) | bool %}
+{% if apt_mirror_ubuntu_jammy | default(false) | bool %}
 deb http://archive.ubuntu.com/ubuntu jammy {{ apt_mirror_ubuntu_components }}
 deb http://archive.ubuntu.com/ubuntu jammy-updates {{ apt_mirror_ubuntu_components }}
 {% if apt_mirror_backports | default(false) | bool %}
@@ -58,7 +84,7 @@ deb-src http://archive.ubuntu.com/ubuntu jammy-updates {{ apt_mirror_ubuntu_comp
 ########################################
 # Ubuntu 24.04 (noble)
 ########################################
-{% if apt_mirror_ubuntu_2404 | default(false) | bool %}
+{% if apt_mirror_ubuntu_noble | default(false) | bool %}
 deb http://archive.ubuntu.com/ubuntu noble {{ apt_mirror_ubuntu_components }}
 deb http://archive.ubuntu.com/ubuntu noble-updates {{ apt_mirror_ubuntu_components }}
 {% if apt_mirror_backports | default(false) | bool %}
@@ -74,15 +100,29 @@ deb-src http://archive.ubuntu.com/ubuntu noble-updates {{ apt_mirror_ubuntu_comp
 {% endif %}
 
 ########################################
+# Ubuntu 26.04 (resolute)
+########################################
+{% if apt_mirror_ubuntu_resolute | default(false) | bool %}
+deb http://archive.ubuntu.com/ubuntu resolute {{ apt_mirror_ubuntu_components }}
+deb http://archive.ubuntu.com/ubuntu resolute-updates {{ apt_mirror_ubuntu_components }}
+{% if apt_mirror_backports | default(false) | bool %}
+deb http://archive.ubuntu.com/ubuntu resolute-backports {{ apt_mirror_ubuntu_components }}
+{% endif %}
+{% if apt_mirror_security | default(true) | bool %}
+deb http://security.ubuntu.com/ubuntu resolute-security {{ apt_mirror_ubuntu_components }}
+{% endif %}
+{% if apt_mirror_include_sources | default(false) | bool %}
+deb-src http://archive.ubuntu.com/ubuntu resolute {{ apt_mirror_ubuntu_components }}
+deb-src http://archive.ubuntu.com/ubuntu resolute-updates {{ apt_mirror_ubuntu_components }}
+{% endif %}
+{% endif %}
+
+########################################
 # Clean scripts
 ########################################
 clean http://deb.debian.org/debian
 clean http://security.debian.org/debian-security
-{% if apt_mirror_ubuntu_2204 | default(false) | bool %}
-clean http://archive.ubuntu.com/ubuntu
-clean http://security.ubuntu.com/ubuntu
-{% endif %}
-{% if apt_mirror_ubuntu_2404 | default(false) | bool %}
+{% if apt_mirror_ubuntu_jammy | default(false) | bool or apt_mirror_ubuntu_noble | default(false) | bool or apt_mirror_ubuntu_resolute | default(false) | bool %}
 clean http://archive.ubuntu.com/ubuntu
 clean http://security.ubuntu.com/ubuntu
 {% endif %}
