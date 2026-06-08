@@ -14,4 +14,4 @@ apt_mirror_ubuntu_resolute: false
 apt_mirror_security: true
 apt_mirror_backports: false
 apt_mirror_include_sources: false
-apt_mirror_ubuntu_components: "main restricted"
+apt_mirror_ubuntu_components: "main restricted universe"

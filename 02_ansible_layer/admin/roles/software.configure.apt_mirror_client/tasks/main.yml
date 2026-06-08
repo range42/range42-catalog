@@ -68,6 +68,17 @@
     - not apt_mirror_backports | default(false) | bool
     - ansible_distribution == "Ubuntu"
 
+- name: client - restrict ubuntu apt components to mirrored set
+  ansible.builtin.replace:
+    path: /etc/apt/sources.list.d/ubuntu.sources
+    regexp: '^Components:.*$'
+    replace: 'Components: {{ apt_mirror_ubuntu_components }}'
+  become: true
+  when:
+    - apt_mirror_enabled | default(false) | bool
+    - apt_mirror_airgapped | default(false) | bool
+    - ansible_distribution == "Ubuntu"
+
 - name: client - remove old proxy apt.conf.d files
   ansible.builtin.file:
     path: "{{ item }}"
