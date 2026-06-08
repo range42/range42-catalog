@@ -1,8 +1,8 @@
 ---
 # handlers file
 
-- name: restart apt-cacher-ng
+- name: restart nginx
   ansible.builtin.systemd:
-    name: apt-cacher-ng
+    name: nginx
     state: restarted
   become: true

@@ -1,25 +1,7 @@
 ---
 # defaults file
-
-# Proxy-cache mode (default: apt-cacher-ng)
-apt_mirror_airgapped: false
 apt_cacher_port: 3142
 apt_cacher_passthrough: true
 apt_cacher_cache_dir: /var/cache/apt-cacher-ng
 apt_cacher_log_dir: /var/log/apt-cacher-ng
 apt_cacher_bind_address: "0.0.0.0"
-
-# Full-mirror mode (apt_mirror_airgapped: true)
-apt_mirror_http_port: 80
-apt_mirror_root: /var/spool/apt-mirror
-apt_mirror_threads: 20
-apt_mirror_prewarm: false
-
-# Suites to mirror (full-mirror mode only)
-apt_mirror_debian_stable: true
-apt_mirror_ubuntu_2204: false
-apt_mirror_ubuntu_2404: false
-apt_mirror_security: true
-apt_mirror_backports: false
-apt_mirror_include_sources: false
-apt_mirror_ubuntu_components: "main restricted"
