@@ -9,4 +9,4 @@ cloud_image:
 proxmox_templates:
   - {vm_id: 9321, vm_name: "template-vm-debian-trixie-small",  spec: "1cpu/4gb/32gb"}
   - {vm_id: 9331, vm_name: "template-vm-debian-trixie-medium", spec: "2cpu/8gb/64gb"}
-  - {vm_id: 9341, vm_name: "template-vm-debian-trixie-large",  spec: "2cpu/8gb/500gb"}
+  - {vm_id: 9341, vm_name: "template-vm-debian-trixie-large",  spec: "4cpu/16gb/500gb"}
