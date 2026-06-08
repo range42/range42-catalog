@@ -1,8 +1,8 @@
-id: apt-mirror
+id: apt-cache
 api_version: 1
 description: >-
-  Dual-mode apt server: proxy-cache (apt-cacher-ng, port 3142, default) or full airgapped
-  mirror (apt-mirror + nginx, port 80). Set apt_mirror_airgapped: true to enable offline mode.
+  apt-cacher-ng transparent caching proxy (port 3142). Caches downloaded packages on first
+  fetch — subsequent installs across the lab are served locally without re-downloading.
 template_vm: "template-vm-debian-trixie-small"
 default_attachments:
   - kind: role
@@ -10,7 +10,6 @@ default_attachments:
     params:
       firewall_rules:
         - {ip: "all", port: 22, protocol: "tcp"}    # ssh
-        - {ip: "all", port: 3142, protocol: "tcp"}  # apt-cacher-ng (proxy mode)
-        - {ip: "all", port: 80, protocol: "tcp"}    # nginx (airgapped mirror mode)
+        - {ip: "all", port: 3142, protocol: "tcp"}  # apt-cacher-ng
   - {kind: role, catalog_ref: software.install.warmup.basic_packages, params: {}}
   - {kind: role, catalog_ref: software.install.apt_cacher_ng, params: {}}
