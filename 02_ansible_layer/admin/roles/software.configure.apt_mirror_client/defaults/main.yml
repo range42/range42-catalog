@@ -10,3 +10,6 @@ apt_mirror_http_port: 80
 # file is accessible before proceeding with apt update.
 apt_mirror_wait_retries: 60
 apt_mirror_wait_delay: 30
+# Set to true only if backports are included in the mirror (apt_mirror_backports: true on server).
+# When false (default), the backports suite is stripped from apt sources in airgapped mode.
+apt_mirror_backports: false
