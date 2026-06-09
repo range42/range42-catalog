@@ -1,0 +1,11 @@
+profile: basic
+
+skip_list:
+  # SCREAMING_SNAKE is the documented convention for infrastructure-wide vars
+  - var-naming[pattern]
+  # dot-notation role naming is the documented convention (e.g. software.install.wazuh)
+  - role-name
+
+warn_list:
+  - yaml[line-length]
+  - risky-shell-pipe
