@@ -167,15 +167,38 @@ ${CAKE} Admin setSetting "MISP.default_galaxy_distribution"         "0" || true
 ${CAKE} Admin setSetting "MISP.default_eventreport_distribution"    "0" || true
 ${CAKE} Admin setSetting "MISP.default_analyst_data_distribution"   "0" || true
 
-# ── Plugins — disabled in this lab deployment ─────────────────────────────────
-${CAKE} Admin setSetting "Plugin.Enrichment_services_enable"        "false" || true
-${CAKE} Admin setSetting "Plugin.Enrichment_hover_enable"           "false" || true
-${CAKE} Admin setSetting "Plugin.Enrichment_hover_popover_only"     "false" || true
-${CAKE} Admin setSetting "Plugin.Import_services_enable"            "false" || true
-${CAKE} Admin setSetting "Plugin.Export_services_enable"            "false" || true
-${CAKE} Admin setSetting "Plugin.Action_services_enable"            "false" || true
-${CAKE} Admin setSetting "Plugin.Cortex_services_enable"            "false" || true
-${CAKE} Admin setSetting "Plugin.Workflow_enable"                   "false" || true
+# ── Plugins — misp-modules sidecar ───────────────────────────────────────────
+# MISP's Module model builds the final URL as "$url:$port", so the URL must NOT
+# include a port — only the host part. Port is set separately.
+_MODULES_HOST="${MISP_MODULES_HOST:-http://misp-modules}"
+_MODULES_PORT="${MISP_MODULES_PORT:-6666}"
+${CAKE} Admin setSetting "Plugin.Enrichment_services_enable"    "true"              || true
+${CAKE} Admin setSetting "Plugin.Enrichment_services_url"       "${_MODULES_HOST}"  || true
+${CAKE} Admin setSetting "Plugin.Enrichment_services_port"      "${_MODULES_PORT}"  || true
+${CAKE} Admin setSetting "Plugin.Enrichment_hover_enable"       "false"             || true
+${CAKE} Admin setSetting "Plugin.Enrichment_hover_popover_only" "false"             || true
+${CAKE} Admin setSetting "Plugin.Import_services_enable"        "true"              || true
+${CAKE} Admin setSetting "Plugin.Import_services_url"           "${_MODULES_HOST}"  || true
+${CAKE} Admin setSetting "Plugin.Import_services_port"          "${_MODULES_PORT}"  || true
+${CAKE} Admin setSetting "Plugin.Export_services_enable"        "true"              || true
+${CAKE} Admin setSetting "Plugin.Export_services_url"           "${_MODULES_HOST}"  || true
+${CAKE} Admin setSetting "Plugin.Export_services_port"          "${_MODULES_PORT}"  || true
+# Action, Cortex, and Workflow are not needed for this lab deployment.
+${CAKE} Admin setSetting "Plugin.Action_services_enable"        "false"           || true
+${CAKE} Admin setSetting "Plugin.Cortex_services_enable"        "false"           || true
+${CAKE} Admin setSetting "Plugin.Workflow_enable"               "false"           || true
+
+# pdfexport is a dynamic module setting — cake Admin setSetting rejects it because
+# MISP only registers it after a live query to misp-modules (not available at boot).
+# Write it directly to config.php so it is set from first boot.
+php -r "
+\$config = [];
+include '${MISP_CONFIG_DIR}/config.php';
+if (!isset(\$config['Plugin'])) \$config['Plugin'] = [];
+\$config['Plugin']['Export_pdfexport_enabled'] = true;
+\$out = '<?php' . PHP_EOL . '\$config = ' . var_export(\$config, true) . ';' . PHP_EOL;
+file_put_contents('${MISP_CONFIG_DIR}/config.php', \$out);
+" 2>&1 || log "WARNING: could not write Export_pdfexport_enabled to config.php"
 
 # ── Taxonomy & galaxy import (after Redis is configured) ─────────────────────
 # Running these here avoids the Redis "Connection refused" error that occurs

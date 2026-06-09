@@ -30,6 +30,27 @@ services:
       timeout: 3s
       retries: 5
 
+  # ── misp-modules ──────────────────────────────────────────────────────────
+  misp-modules:
+    build:
+      context: .
+      dockerfile: Dockerfile.misp-modules
+    image: misp-modules:local
+    restart: unless-stopped
+    environment:
+      REDIS_BACKEND: redis
+      REDIS_PORT: "6379"
+      REDIS_DATABASE: "14"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:6666/modules > /dev/null"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+
   # ── MISP ───────────────────────────────────────────────────────────────────
   misp:
     build:
