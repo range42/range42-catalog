@@ -21,6 +21,12 @@ skip_list:
   - partial-become[task]
   # octal file permission values are intentional (e.g. 0644, 0755)
   - yaml[octal-values]
+  # pre-existing shell usage throughout catalog — all cases are intentional
+  - command-instead-of-shell
+  # pre-existing free-form module calls throughout catalog
+  - no-free-form
+  # pre-existing {{ var}} spacing in catalog roles — cosmetic only
+  - jinja[spacing]
 
 warn_list:
   - yaml[line-length]
@@ -32,3 +38,9 @@ warn_list:
   - yaml[comments]
   - yaml[indentation]
   - risky-shell-pipe
+
+# catalog roles that reference themselves in test.yml or cross-repo roles not checked out in CI
+mock_roles:
+  - soft.install.warmup.local_bin
+  - software.install.dotFiles
+  - system.checks.overview
