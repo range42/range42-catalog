@@ -21,6 +21,10 @@ FROM rocketchat/rocket.chat:latest AS runtime
 
 USER root
 
+# init.sh drives the Rocket.Chat REST API with curl, but the rocket.chat image
+# (Alpine) ships neither curl nor wget — add curl so provisioning can run.
+RUN apk add --no-cache curl
+
 COPY --from=builder /usr/bin/yq    /usr/bin/yq
 COPY --from=builder /usr/bin/jq    /usr/bin/jq
 COPY --from=builder /provisioning/ /provisioning/
