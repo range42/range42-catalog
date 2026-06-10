@@ -5,7 +5,7 @@
 services:
 
   mongodb:
-    image: mongo:6.0
+    image: mongo:8.0
     container_name: rocketchat-mongodb
     command: mongod --replSet rs0 --oplogSize 128
     volumes:
@@ -19,7 +19,7 @@ services:
     restart: unless-stopped
 
   mongo-init-replica:
-    image: mongo:6.0
+    image: mongo:8.0
     container_name: rocketchat-mongo-init
     command: >
       bash -c "
