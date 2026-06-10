@@ -1,0 +1,28 @@
+id: admin-rocketchat
+api_version: 1
+description: >-
+  Rocket.Chat admin box on Debian — provisions the Docker baseline, opens the
+  service port, and bootstraps the Rocket.Chat compose stack (Rocket.Chat +
+  MongoDB replica set + provisioner) from
+  03_container_layer/docker/admin/rocketchat via software.install.rocketchat.
+template_vm: "template-vm-debian-trixie-medium"
+default_attachments:
+  # host firewall — 22 (ssh) + 3000 (Rocket.Chat HTTP, HTTP_PORT default)
+  - kind: role
+    catalog_ref: software.configure.firewalls
+    params:
+      firewall_rules:
+        - {ip: "all", port: 22, protocol: "tcp"}     # ssh
+        - {ip: "all", port: 3000, protocol: "tcp"}   # rocketchat web ui
+  # Docker baseline: engine + compose plugin + operator utilities
+  - kind: role
+    catalog_ref: software.install.warmup.basic_packages
+    params:
+      INSTALL_PACKAGES_BASICS: "YES"
+      INSTALL_PACKAGES_DOCKER: "YES"
+      INSTALL_PACKAGES_DOCKER_COMPOSE: "YES"
+      INSTALL_PACKAGES_UTILS_JSON: "YES"
+      INSTALL_PACKAGES_UTILS_NETWORK: "YES"
+      INSTALL_PACKAGES_NTP_AND_UPDATE_TIME: "YES"
+  # Bootstrap Rocket.Chat: rsync the catalog compose stack + docker compose up
+  - {kind: role, catalog_ref: software.install.rocketchat, params: {}}
