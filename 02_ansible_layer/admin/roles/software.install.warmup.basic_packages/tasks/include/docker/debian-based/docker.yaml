@@ -8,7 +8,9 @@
           - apt-transport-https
           - ca-certificates
           - curl
-          - software-properties-common
+          # software-properties-common: Ubuntu-only here — absent from Debian
+          # trixie 'main', and unused anyway (the Docker repo is added via the
+          # apt_repository/apt_key modules, not add-apt-repository).
           - make
           - gcc
           - python3-pip
