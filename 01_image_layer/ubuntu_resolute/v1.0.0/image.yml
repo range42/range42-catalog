@@ -1,0 +1,21 @@
+id: ubuntu_resolute
+api_version: 1
+distro: ubuntu
+codename: resolute
+description: Ubuntu 26.04 LTS (Resolute Raccoon)
+cloud_image:
+  url: "https://cloud-images.ubuntu.com/minimal/daily/resolute/current/resolute-minimal-cloudimg-amd64.img"
+  filename: "resolute-minimal-cloudimg-amd64.img"
+proxmox_templates:
+  - {vm_id: 9501, vm_name: "template-vm-ubuntu-resolute-nano",              spec: "1cpu/1gb/16gb"}
+  - {vm_id: 9511, vm_name: "template-vm-ubuntu-resolute-micro-01-2g-24g",   spec: "1cpu/2gb/24gb"}
+  - {vm_id: 9512, vm_name: "template-vm-ubuntu-resolute-micro-02-2g-24g",   spec: "1cpu/2gb/24gb"}
+  - {vm_id: 9521, vm_name: "template-vm-ubuntu-resolute-small-01-4g-32g",   spec: "1cpu/4gb/32gb"}
+  - {vm_id: 9522, vm_name: "template-vm-ubuntu-resolute-small-02-4g-32g",   spec: "1cpu/4gb/32gb"}
+  - {vm_id: 9524, vm_name: "template-vm-ubuntu-resolute-small-04-4g-32g",   spec: "1cpu/4gb/32gb"}
+  - {vm_id: 9532, vm_name: "template-vm-ubuntu-resolute-medium-02-8g-64g",  spec: "2cpu/8gb/64gb"}
+  - {vm_id: 9534, vm_name: "template-vm-ubuntu-resolute-medium-04-8g-64g",  spec: "4cpu/8gb/64gb"}
+  - {vm_id: 9536, vm_name: "template-vm-ubuntu-resolute-medium-06-8g-64g",  spec: "6cpu/8gb/64gb"}
+  - {vm_id: 9544, vm_name: "template-vm-ubuntu-resolute-large-04-8g-64g",   spec: "4cpu/8gb/64gb"}
+  - {vm_id: 9546, vm_name: "template-vm-ubuntu-resolute-large-06-8g-64g",   spec: "6cpu/8gb/64gb"}
+  - {vm_id: 9548, vm_name: "template-vm-ubuntu-resolute-large-08-8g-64g",   spec: "8cpu/8gb/64gb"}

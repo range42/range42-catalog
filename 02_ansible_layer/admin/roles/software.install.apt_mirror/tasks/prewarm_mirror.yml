@@ -1,0 +1,19 @@
+---
+
+- name: prewarm mirror - run apt-mirror in background
+  ansible.builtin.command: apt-mirror
+  become: true
+  async: 86400
+  poll: 0
+  register: apt_mirror_prewarm_job
+  when: apt_mirror_prewarm | default(false) | bool
+
+- name: prewarm mirror - report prewarm launched
+  ansible.builtin.debug:
+    msg: >-
+      apt-mirror prewarm started in background
+      (job {{ apt_mirror_prewarm_job.ansible_job_id | default('n/a') }}).
+      Mirror will be available once {{ apt_mirror_root }}/mirror/ is populated.
+  when:
+    - apt_mirror_prewarm | default(false) | bool
+    - apt_mirror_prewarm_job is defined

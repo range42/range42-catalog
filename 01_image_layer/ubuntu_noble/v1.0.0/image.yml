@@ -7,15 +7,15 @@ cloud_image:
   url: "https://cloud-images.ubuntu.com/minimal/daily/noble/current/noble-minimal-cloudimg-amd64.img"
   filename: "noble-minimal-cloudimg-amd64.img"
 proxmox_templates:
-  - {vm_id: 9901, vm_name: "template-vm-ubuntu-noble-nano",             spec: "1cpu/1gb/16gb",  ip_octet: 201}
-  - {vm_id: 9211, vm_name: "template-vm-ubuntu-noble-micro-01-2g-24g",  spec: "1cpu/2gb/24gb",  ip_octet: 211}
-  - {vm_id: 9212, vm_name: "template-vm-ubuntu-noble-micro-02-2g-24g",  spec: "1cpu/2gb/24gb",  ip_octet: 212}
-  - {vm_id: 9221, vm_name: "template-vm-ubuntu-noble-small-01-4g-32g",  spec: "1cpu/4gb/32gb",  ip_octet: 221}
-  - {vm_id: 9222, vm_name: "template-vm-ubuntu-noble-small-02-4g-32g",  spec: "1cpu/4gb/32gb",  ip_octet: 222}
-  - {vm_id: 9224, vm_name: "template-vm-ubuntu-noble-small-04-4g-32g",  spec: "1cpu/4gb/32gb",  ip_octet: 224}
-  - {vm_id: 9232, vm_name: "template-vm-ubuntu-noble-medium-02-8g-64g", spec: "2cpu/8gb/64gb",  ip_octet: 232}
-  - {vm_id: 9234, vm_name: "template-vm-ubuntu-noble-medium-04-8g-64g", spec: "4cpu/8gb/64gb",  ip_octet: 234}
-  - {vm_id: 9236, vm_name: "template-vm-ubuntu-noble-medium-06-8g-64g", spec: "6cpu/8gb/64gb",  ip_octet: 236}
-  - {vm_id: 9244, vm_name: "template-vm-ubuntu-noble-large-04-8g-64g",  spec: "4cpu/8gb/64gb",  ip_octet: 244}
-  - {vm_id: 9246, vm_name: "template-vm-ubuntu-noble-large-06-8g-64g",  spec: "6cpu/8gb/64gb",  ip_octet: 246}
-  - {vm_id: 9248, vm_name: "template-vm-ubuntu-noble-large-08-8g-64g",  spec: "8cpu/8gb/64gb",  ip_octet: 248}
+  - {vm_id: 9901, vm_name: "template-vm-ubuntu-noble-nano",             spec: "1cpu/1gb/16gb"}
+  - {vm_id: 9211, vm_name: "template-vm-ubuntu-noble-micro-01-2g-24g",  spec: "1cpu/2gb/24gb"}
+  - {vm_id: 9212, vm_name: "template-vm-ubuntu-noble-micro-02-2g-24g",  spec: "1cpu/2gb/24gb"}
+  - {vm_id: 9221, vm_name: "template-vm-ubuntu-noble-small-01-4g-32g",  spec: "1cpu/4gb/32gb"}
+  - {vm_id: 9222, vm_name: "template-vm-ubuntu-noble-small-02-4g-32g",  spec: "1cpu/4gb/32gb"}
+  - {vm_id: 9224, vm_name: "template-vm-ubuntu-noble-small-04-4g-32g",  spec: "1cpu/4gb/32gb"}
+  - {vm_id: 9232, vm_name: "template-vm-ubuntu-noble-medium-02-8g-64g", spec: "2cpu/8gb/64gb"}
+  - {vm_id: 9234, vm_name: "template-vm-ubuntu-noble-medium-04-8g-64g", spec: "4cpu/8gb/64gb"}
+  - {vm_id: 9236, vm_name: "template-vm-ubuntu-noble-medium-06-8g-64g", spec: "6cpu/8gb/64gb"}
+  - {vm_id: 9244, vm_name: "template-vm-ubuntu-noble-large-04-8g-64g",  spec: "4cpu/8gb/64gb"}
+  - {vm_id: 9246, vm_name: "template-vm-ubuntu-noble-large-06-8g-64g",  spec: "6cpu/8gb/64gb"}
+  - {vm_id: 9248, vm_name: "template-vm-ubuntu-noble-large-08-8g-64g",  spec: "8cpu/8gb/64gb"}

@@ -1,0 +1,18 @@
+---
+# defaults file
+apt_mirror_enabled: false
+apt_proxy_url: ""
+apt_mirror_airgapped: false
+apt_mirror_vm_ip: ""
+apt_mirror_http_port: 80
+# Wait parameters — used only in airgapped (mirror) mode.
+# apt-mirror prewarm runs async on the server; clients poll until the Release
+# file is accessible before proceeding with apt update.
+apt_mirror_wait_retries: 360
+apt_mirror_wait_delay: 30
+# Set to true only if backports are included in the mirror (apt_mirror_backports: true on server).
+# When false (default), the backports suite is stripped from apt sources in airgapped mode.
+apt_mirror_backports: false
+# Must match apt_mirror_ubuntu_components on the mirror server.
+# The client strips any components not listed here from ubuntu.sources in airgapped mode.
+apt_mirror_ubuntu_components: "main restricted universe"

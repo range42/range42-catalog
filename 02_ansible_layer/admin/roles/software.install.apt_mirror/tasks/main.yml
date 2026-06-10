@@ -1,0 +1,14 @@
+---
+# tasks file
+
+- name: INCLUDE - install apt-mirror and nginx
+  ansible.builtin.include_tasks: install_mirror.yml
+
+- name: INCLUDE - configure apt-mirror
+  ansible.builtin.include_tasks: configure_mirror.yml
+
+- name: INCLUDE - prewarm apt-mirror
+  ansible.builtin.include_tasks: prewarm_mirror.yml
+
+- name: INCLUDE - serve mirror via nginx
+  ansible.builtin.include_tasks: serve_mirror.yml
