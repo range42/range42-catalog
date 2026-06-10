@@ -51,10 +51,18 @@
   block:
     #
     #
+    # Retry on transient failures (intermittent registry/mirror anycast timeouts
+    # pulling images are common on egress-filtered ranges). `up` is idempotent,
+    # so re-running resumes the pull. A persistent failure still surfaces after
+    # the retries are exhausted.
     - name: DOCKER - DOCKER-COMPOSE - RUN
       community.docker.docker_compose_v2:
         project_src: "{{ REMOTE_PROJECT_DIR }}"
         state: present
+      register: compose_run
+      until: compose_run is succeeded
+      retries: 5
+      delay: 20
     #
     - name: DOCKER - GET CONTAINER INFO {{ LABEL_PROJET_NAME }}
       community.docker.docker_container_info:

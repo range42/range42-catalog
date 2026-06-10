@@ -1,0 +1,80 @@
+---
+- name: install docker - requirements - fedora
+  block:
+    #
+    - name: install docker - requirements for docker-compose and docker - debian-based
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          # software-properties-common: Ubuntu-only here — absent from Debian
+          # trixie 'main', and unused anyway (the Docker repo is added via the
+          # apt_repository/apt_key modules, not add-apt-repository).
+          - make
+          - gcc
+          - python3-pip
+          - python3-dev
+          - libffi-dev
+          - libssl-dev
+        state: present
+
+    #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+    # apt-key is removed on Debian 12+/trixie (and deprecated on Ubuntu), so the
+    # apt_key module fails ("apt-key not found"). Use the modern keyring method:
+    # fetch the armored key into /etc/apt/keyrings and pin it via signed-by=.
+    - name: install docker - ensure /etc/apt/keyrings exists
+      ansible.builtin.file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: "0755"
+
+    #
+    - name: install docker - add docker official GPG key (keyring)
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/{{ ansible_facts.distribution | lower }}/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: "0644"
+
+    #
+    - name: install docker - add Docker CE repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch={{ 'arm64' if ansible_facts.architecture == 'aarch64' else 'amd64' }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/{{ ansible_facts.distribution | lower }} {{ ansible_distribution_release }} stable"
+        filename: docker
+        state: present
+
+    #
+    - name: install docker - docker-ce - debian-based
+      ansible.builtin.apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+        update_cache: yes
+        state: present
+
+    #
+    - name: install docker - enable docker service
+      ansible.builtin.systemd:
+        name: docker
+        enabled: yes
+        state: started
+
+  when: ansible_facts.distribution in ['Ubuntu', 'Debian']
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: check docker - checks debug - debian-based
+  block:
+    - name: check - docker installation
+      ansible.builtin.command:
+        cmd: docker version
+      register: result
+
+    - name: check - docker version
+      ansible.builtin.debug:
+        msg: "{{ result.stdout }}"
+      when: result is defined
+
+  when: ansible_facts.distribution in ['Ubuntu', 'Debian']
