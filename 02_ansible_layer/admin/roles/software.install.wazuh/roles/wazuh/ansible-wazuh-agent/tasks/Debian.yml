@@ -24,26 +24,11 @@
   until: wazuh_agent_ca_package_install is succeeded
   when: not (ansible_distribution == "Debian" and ansible_distribution_major_version in ['11'])
 
-- name: Debian/Ubuntu | Installing Wazuh repository key (Ubuntu 14)
-  become: true
-  shell: |
-    set -o pipefail
-    curl -s {{ wazuh_agent_config.repo.gpg }} | apt-key add -
-  args:
-    # warn: false
-    executable: /bin/bash
-  changed_when: false
-  when:
-    - ansible_distribution == "Ubuntu"
-    - ansible_distribution_major_version | int == 14
-    - not wazuh_custom_packages_installation_agent_enabled
-
 - name: Debian/Ubuntu | Download Wazuh repository key
   get_url:
     url: "{{ wazuh_agent_config.repo.gpg }}"
     dest: "{{ wazuh_agent_config.repo.path }}"
   when:
-    - not (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int == 14)
     - not wazuh_custom_packages_installation_agent_enabled
 
 - name: Debian/Ubuntu | Import Wazuh GPG key

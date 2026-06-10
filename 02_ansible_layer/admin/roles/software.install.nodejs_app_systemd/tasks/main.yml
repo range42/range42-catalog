@@ -6,11 +6,23 @@
 - name: INSTALL NODEJS
   block:
     #
-    - name: CURL OFFICIAL NODESOURCE SETUP - {{ NODE_VERSION }}.x
-      ansible.builtin.shell: |
-        curl -fsSL https://deb.nodesource.com/setup_{{ NODE_VERSION }}.x | bash -
+    - name: DOWNLOAD NODESOURCE SETUP SCRIPT - {{ NODE_VERSION }}.x
+      ansible.builtin.get_url:
+        url: "https://deb.nodesource.com/setup_{{ NODE_VERSION }}.x"
+        dest: /tmp/nodesource_setup.sh
+        mode: '0755'
+      become: true
+
+    - name: RUN NODESOURCE SETUP - {{ NODE_VERSION }}.x
+      ansible.builtin.command: /tmp/nodesource_setup.sh
       args:
-        executable: /bin/bash
+        creates: /etc/apt/sources.list.d/nodesource.list
+      become: true
+
+    - name: REMOVE NODESOURCE SETUP SCRIPT
+      ansible.builtin.file:
+        path: /tmp/nodesource_setup.sh
+        state: absent
       become: true
 
     #

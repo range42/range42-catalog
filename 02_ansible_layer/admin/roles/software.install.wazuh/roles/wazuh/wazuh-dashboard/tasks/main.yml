@@ -18,7 +18,7 @@
 
 - name: Remove Dashboard configuration file
   file:
-    # noqa 503
+    # noqa: no-handler
     path: "{{ dashboard_conf_path }}/opensearch_dashboards.yml"
     state: absent
   tags: install
@@ -40,7 +40,7 @@
 
 - name: Ensuring Wazuh dashboard directory owner
   file:
-    # noqa 208
+    # noqa: risky-file-permissions
     path: "/usr/share/wazuh-dashboard"
     state: directory
     owner: wazuh-dashboard
