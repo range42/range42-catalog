@@ -1,0 +1,8 @@
+id: dual-lan
+api_version: 1
+description: >-
+  Two-LAN layout — lan1 (vmbr150) and lan2 (vmbr151).
+subnets:
+  - {name: lan1, cidr: "192.168.150.0/24", bridge: vmbr150, gateway: "192.168.150.1"}
+  - {name: lan2, cidr: "192.168.151.0/24", bridge: vmbr151, gateway: "192.168.151.1"}
+template_subnet: {cidr: "192.168.140.0/24", bridge: vmbr140}

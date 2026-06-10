@@ -1,0 +1,27 @@
+id: dual-lan-isolate
+api_version: 1
+kind: isolation-policy
+description: >-
+  Mutual isolation between lan1 and lan2 — neither zone can initiate connections
+  to the other. Intra-zone traffic is allowed. Designed for dual-lan scenarios
+  where the two LANs must not communicate through the Proxmox host router.
+  Zone names match the dual-lan subnet layout (lan1, lan2).
+zones:
+  - {name: lan1}
+  - {name: lan2}
+  - {name: wan, wan: true}
+services: []
+defaults:
+  default_action: drop
+  accept_established_related: true
+  allow_intra_zone: true
+  airgap_zones: []
+matrix:
+  # Internet egress — dst: wan resolves to no CIDR so these compile at
+  # W_EGRESS_ACCEPT (700), AFTER the cross-LAN DROPs (500). This preserves
+  # deny-by-default without shadowing the isolation rules below.
+  - {src: lan1, dst: wan, action: accept, comment: "lan1 internet egress"}
+  - {src: lan2, dst: wan, action: accept, comment: "lan2 internet egress"}
+  # Zone isolation
+  - {src: lan1, dst: lan2, action: drop, comment: "lan1 cannot reach lan2"}
+  - {src: lan2, dst: lan1, action: drop, comment: "lan2 cannot reach lan1"}

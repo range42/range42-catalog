@@ -1,0 +1,13 @@
+id: deployer
+api_version: 1
+description: range42 deployer platform box (api-gateway / api-backend / ui).
+template_vm: "template-vm-ubuntu-noble-small-01-4g-32g"
+default_attachments:
+  - kind: role
+    catalog_ref: software.configure.firewalls
+    params:
+      firewall_rules:
+        - {ip: "all", port: 22, protocol: "tcp"}    # ssh
+        - {ip: "all", port: 80, protocol: "tcp"}    # http
+        - {ip: "all", port: 443, protocol: "tcp"}   # https (api / ui)
+  - {kind: role, catalog_ref: software.install.warmup.basic_packages, params: {}}

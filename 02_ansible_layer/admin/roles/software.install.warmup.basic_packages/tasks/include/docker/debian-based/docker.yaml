@@ -2,7 +2,7 @@
 - name: install docker - requirements - fedora
   block:
     #
-    - name: install docker - requirements for docker-compose and docker - ubuntu
+    - name: install docker - requirements for docker-compose and docker - debian-based
       ansible.builtin.apt:
         name:
           - apt-transport-https
@@ -21,17 +21,17 @@
 
     - name: install docker - add docker official GPG key
       ansible.builtin.apt_key:
-        url: https://download.docker.com/linux/ubuntu/gpg
+        url: https://download.docker.com/linux/{{ ansible_facts.distribution | lower }}/gpg
         state: present
 
     #
     - name: install docker - add Docker CE repository
       ansible.builtin.apt_repository:
-        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
+        repo: deb [arch=amd64] https://download.docker.com/linux/{{ ansible_facts.distribution | lower }} {{ ansible_distribution_release }} stable
         state: present
 
     #
-    - name: install docker - docker-ce - ubuntu
+    - name: install docker - docker-ce - debian-based
       ansible.builtin.apt:
         name:
           - docker-ce
@@ -47,11 +47,11 @@
         enabled: yes
         state: started
 
-  when: ansible_facts.distribution == 'Ubuntu'
+  when: ansible_facts.distribution in ['Ubuntu', 'Debian']
 
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
 
-- name: check docker - checks debug - ubuntu
+- name: check docker - checks debug - debian-based
   block:
     - name: check - docker installation
       ansible.builtin.command:
@@ -63,4 +63,4 @@
         msg: "{{ result.stdout }}"
       when: result is defined
 
-  when: ansible_facts.distribution == 'Ubuntu'
+  when: ansible_facts.distribution in ['Ubuntu', 'Debian']

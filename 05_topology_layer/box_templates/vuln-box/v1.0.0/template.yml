@@ -1,0 +1,16 @@
+id: vuln-box
+api_version: 1
+description: CTF vulnerable target box — Docker-hosted CVE / misconfig stacks.
+template_vm: "template-vm-ubuntu-noble-small-01-4g-32g"
+default_attachments:
+  # host firewall — rules carried as attachment params, emitted into stage_01
+  - kind: role
+    catalog_ref: software.configure.firewalls
+    params:
+      firewall_rules:
+        - {ip: "all", port: 22, protocol: "tcp"}
+        - {ip: "all", port: 80, protocol: "tcp"}
+        - {ip: "all", port: 8080, protocol: "tcp"}
+  - {kind: role, catalog_ref: software.install.wazuh-agent, params: {}}
+  # example CTF docker stack — wired to a docker-compose play in stage_01
+  - {kind: container, catalog_ref: cve/crypto/openssl/CVE-2014-0160, params: {}}

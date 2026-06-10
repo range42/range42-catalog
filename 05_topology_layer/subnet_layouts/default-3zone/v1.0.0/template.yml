@@ -1,0 +1,10 @@
+id: default-3zone
+api_version: 1
+description: >-
+  Reference 3-zone layout — admin (vmbr142), student (vmbr143), ctf (vmbr144).
+  Mirrors the demo_lab / demo_lab_network bridge plan.
+subnets:
+  - {name: admin, cidr: "192.168.142.0/24", bridge: vmbr142, gateway: "192.168.142.1"}
+  - {name: student, cidr: "192.168.143.0/24", bridge: vmbr143}
+  - {name: ctf, cidr: "192.168.144.0/24", bridge: vmbr144}
+template_subnet: {cidr: "192.168.140.0/24", bridge: vmbr140}

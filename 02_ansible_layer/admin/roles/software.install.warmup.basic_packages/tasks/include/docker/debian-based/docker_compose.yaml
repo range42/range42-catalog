@@ -3,7 +3,7 @@
 - name: install docker - requirements - fedora
   block:
     #
-    - name: install docker - requirements for docker-compose and docker - ubuntu
+    - name: install docker - requirements for docker-compose and docker - debian-based
       ansible.builtin.apt:
         name:
           - apt-transport-https
@@ -18,7 +18,7 @@
           - libssl-dev
         state: present
 
-  when: ansible_facts.distribution == 'Ubuntu'
+  when: ansible_facts.distribution in ['Ubuntu', 'Debian']
 
 #
 - name: install docker-compose - get_url docker-compose
@@ -36,11 +36,11 @@
         path: /usr/local/bin/docker-compose
         mode: "u+x,g+x"
 
-  when: ansible_facts.distribution == 'Ubuntu'
+  when: ansible_facts.distribution in ['Ubuntu', 'Debian']
 
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
 
-- name: check docker-compose - checks debug - ubuntu
+- name: check docker-compose - checks debug - debian-based
   block:
     #
     - name: check - docker-compose installation
@@ -54,4 +54,4 @@
         msg: "{{ result.stdout }}"
       when: result is defined
 
-  when: ansible_facts.distribution == 'Ubuntu'
+  when: ansible_facts.distribution in ['Ubuntu', 'Debian']

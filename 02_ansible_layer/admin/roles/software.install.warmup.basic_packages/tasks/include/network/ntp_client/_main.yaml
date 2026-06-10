@@ -2,10 +2,10 @@
 
   block:
     #
-    - name: INCLUDE - install ntp client and force update time - ubuntu
-      ansible.builtin.include_tasks: ./ubuntu/systemd_timesyncd.yaml
+    - name: INCLUDE - install ntp client and force update time - debian-based
+      ansible.builtin.include_tasks: ./debian-based/systemd_timesyncd.yaml
 
-      when: ansible_facts.distribution == 'Ubuntu'
+      when: ansible_facts.distribution in ['Ubuntu', 'Debian']
 
     #
     - name: INCLUDE - install ntp client and force update time  - fedora
