@@ -1,41 +1,41 @@
 ---
 #
-- name: install docker - requirements - fedora
+- name: install docker-compose - requirements - debian-based
   block:
     #
-    - name: install docker - requirements for docker-compose and docker - debian-based
+    - name: install docker-compose - requirements - debian-based
       ansible.builtin.apt:
         name:
           - apt-transport-https
           - ca-certificates
           - curl
-          - software-properties-common
+          # software-properties-common: Ubuntu-only — absent from Debian trixie
+          # 'main' and unused here (repo added via apt_repository + signed-by).
           - make
           - gcc
           - python3-pip
           - python3-dev
           - libffi-dev
           - libssl-dev
+          # python Docker SDK — required by the community.docker modules
+          # (docker_compose_v2 / docker_container_info) used to deploy stacks.
+          - python3-docker
         state: present
 
   when: ansible_facts.distribution in ['Ubuntu', 'Debian']
 
 #
-- name: install docker-compose - get_url docker-compose
-  block:
-    #
-    - name: DOWNLOAD - docker-compose
-      ansible.builtin.get_url:
-        url: "https://github.com/docker/compose/releases/download/v{{ DOCKER_COMPOSE_VERSION |  default('2.39.1') }}/docker-compose-Linux-x86_64"
-        dest: "/usr/local/bin/docker-compose"
-        mode: "0755"
-
-    #
-    - name: install docker-compose - chmod +x docker-compose
-      ansible.builtin.file:
-        path: /usr/local/bin/docker-compose
-        mode: "u+x,g+x"
-
+# Docker Compose v2 is the `docker compose` CLI plugin (not the old standalone
+# `docker-compose` binary). community.docker.docker_compose_v2 shells out to
+# `docker compose`, so install the official plugin from the docker-ce repo
+# (added by docker.yaml). The previous standalone-binary download used a v1-era
+# asset name (docker-compose-Linux-x86_64) that 404s for v2 releases.
+- name: install docker-compose - compose v2 plugin - debian-based
+  ansible.builtin.apt:
+    name:
+      - docker-compose-plugin
+    update_cache: true
+    state: present
   when: ansible_facts.distribution in ['Ubuntu', 'Debian']
 
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
@@ -43,13 +43,14 @@
 - name: check docker-compose - checks debug - debian-based
   block:
     #
-    - name: check - docker-compose installation
+    - name: check - docker compose v2 installation
       ansible.builtin.command:
-        cmd: docker-compose --version
+        cmd: docker compose version
       register: result
+      changed_when: false
 
     #
-    - name: check - docker-compose version
+    - name: check - docker compose version
       ansible.builtin.debug:
         msg: "{{ result.stdout }}"
       when: result is defined
