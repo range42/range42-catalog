@@ -1,0 +1,24 @@
+id: admin-nextcloud
+api_version: 1
+description: >-
+  Nextcloud admin box on Debian — provisions the Docker baseline, opens the
+  service port, and bootstraps the Nextcloud compose stack (Nextcloud +
+  PostgreSQL + Redis + provisioner) from
+  03_container_layer/docker/admin/nextcloud via software.install.nextcloud.
+template_vm: "template-vm-debian-trixie-medium"
+default_attachments:
+  - kind: role
+    catalog_ref: software.configure.firewalls
+    params:
+      firewall_rules:
+        - {ip: "all", port: 22, protocol: "tcp"}
+        - {ip: "all", port: 8080, protocol: "tcp"}   # nextcloud web ui
+  - kind: role
+    catalog_ref: software.install.warmup.basic_packages
+    params:
+      INSTALL_PACKAGES_BASICS: "YES"
+      INSTALL_PACKAGES_DOCKER: "YES"
+      INSTALL_PACKAGES_DOCKER_COMPOSE: "YES"
+      INSTALL_PACKAGES_UTILS_JSON: "YES"
+      INSTALL_PACKAGES_UTILS_NETWORK: "YES"
+  - {kind: role, catalog_ref: software.install.nextcloud, params: {}}
