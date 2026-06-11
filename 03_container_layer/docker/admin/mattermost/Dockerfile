@@ -8,7 +8,7 @@
 #
 FROM mattermost/mattermost-team-edition:latest AS mattermost-src
 
-FROM debian:slim
+FROM debian:stable-slim
 
 # mmctl is a Go binary — copy it directly from the mattermost image.
 COPY --from=mattermost-src /mattermost/bin/mmctl /usr/bin/mmctl
