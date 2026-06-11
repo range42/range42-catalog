@@ -1,0 +1,12 @@
+---
+- name: DEPLOY - mattermost docker-compose stack
+  ansible.builtin.include_role:
+    name: software.configure.docker-compose
+  vars:
+    LOCAL__PROJECT_DIR: "{{ MATTERMOST_LOCAL_PROJECT_DIR }}"
+    REMOTE_PROJECT_DIR: "{{ MATTERMOST_REMOTE_PROJECT_DIR }}"
+    OPERATOR_USER: "{{ MATTERMOST_OPERATOR_USER }}"
+    LABEL_PROJECT_TYPE: "{{ MATTERMOST_LABEL_PROJECT_TYPE }}"
+    LABEL_PROJET_NAME: "{{ MATTERMOST_CONTAINER_NAME }}"
+    SEND_POC_DIR: "NO"
+    CLEAN_UP_DEPLOY_DIR: "NO"

@@ -1,0 +1,6 @@
+---
+MATTERMOST_LOCAL_PROJECT_DIR: "{{ lookup('env', 'RANGE42_INVENTORY') }}/03_container_layer/docker/admin/mattermost"
+MATTERMOST_REMOTE_PROJECT_DIR: "/opt/range42/mattermost"
+MATTERMOST_OPERATOR_USER: "{{ default_admin_vm_ci_user }}"
+MATTERMOST_CONTAINER_NAME: "mattermost"
+MATTERMOST_LABEL_PROJECT_TYPE: "admin"

@@ -1,0 +1,22 @@
+##
+## catalog_try contract - Mattermost (standalone Docker)
+##
+## Used by `range42-context catalog-try docker/admin/mattermost` to apply a
+## stricter smoke check (L2 HTTP poll on /api/v4/system/ping) instead of the
+## default L1 fallback (docker ps -a presence).
+##
+## Port 8065 is the externally-mapped port (compose maps `8065:8065` from host
+## to container). The smoke check hits the host port 8065 from outside the VM.
+##
+## init_timeout = 180s : Mattermost cold init includes PostgreSQL first-run
+## setup + Go binary startup + provisioner sidecar.
+##
+## Note : /api/v4/system/ping returns 200 {"status":"OK",...} once the server
+## is ready. The smoke check is HTTP-200 only.
+##
+
+catalog_try_mode: service
+catalog_try_port:
+  - 8065   # HTTP (Mattermost default HTTP_PORT)
+catalog_try_endpoint: /api/v4/system/ping
+catalog_try_init_timeout: 180
