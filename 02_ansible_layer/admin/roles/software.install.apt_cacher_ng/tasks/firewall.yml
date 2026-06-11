@@ -1,0 +1,8 @@
+---
+
+- name: firewall - allow apt-cacher-ng port
+  community.general.ufw:
+    rule: allow
+    port: "{{ apt_cacher_port }}"
+    proto: tcp
+  become: true

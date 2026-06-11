@@ -1,0 +1,9 @@
+---
+#
+
+- name: install - firewall packages - debian-based
+  apt:
+    name:
+      - ufw
+      
+  when: ansible_facts.distribution in ['Ubuntu', 'Debian']

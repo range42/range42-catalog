@@ -1,0 +1,12 @@
+---
+#
+
+- name: install - utils_json packages - debian-based
+  apt:
+    name:
+      - jq
+      - wget
+      - curl
+      - parallel
+
+  when: ansible_facts.distribution in ['Ubuntu', 'Debian']

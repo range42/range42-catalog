@@ -1,0 +1,17 @@
+---
+# defaults file
+apt_mirror_http_port: 80
+apt_mirror_root: /var/spool/apt-mirror
+apt_mirror_threads: 20
+apt_mirror_prewarm: false
+
+# Suites to mirror
+apt_mirror_debian_bookworm: false
+apt_mirror_debian_trixie: false
+apt_mirror_ubuntu_jammy: false
+apt_mirror_ubuntu_noble: false
+apt_mirror_ubuntu_resolute: false
+apt_mirror_security: true
+apt_mirror_backports: false
+apt_mirror_include_sources: false
+apt_mirror_ubuntu_components: "main restricted universe"

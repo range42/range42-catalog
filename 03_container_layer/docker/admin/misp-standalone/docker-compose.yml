@@ -1,0 +1,116 @@
+services:
+
+  # ── MariaDB ────────────────────────────────────────────────────────────────
+  db:
+    image: mariadb:11
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE:      ${MISP_DB_NAME:-misp}
+      MYSQL_USER:          ${MISP_DB_USER:-misp}
+      MYSQL_PASSWORD:      ${MISP_DB_PASSWORD}
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  # ── Redis ──────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --save "" --appendonly no
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ── misp-modules ──────────────────────────────────────────────────────────
+  misp-modules:
+    build:
+      context: .
+      dockerfile: Dockerfile.misp-modules
+    image: misp-modules:local
+    restart: unless-stopped
+    environment:
+      REDIS_BACKEND: redis
+      REDIS_PORT: "6379"
+      REDIS_DATABASE: "14"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:6666/modules > /dev/null"]
+      interval: 30s
+      timeout: 10s
+      start_period: 60s
+      retries: 5
+
+  # ── MISP ───────────────────────────────────────────────────────────────────
+  misp:
+    build:
+      context: .
+      target: runtime
+      args:
+        MISP_VERSION: ${MISP_VERSION:-latest}
+    image: misp-standalone:${MISP_VERSION:-latest}
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "${MISP_HTTP_PORT:-80}:80"
+      - "${MISP_HTTPS_PORT:-443}:443"
+    volumes:
+      - misp-files:/var/www/MISP/app/files
+      - misp-attachments:/var/www/MISP/app/attachments
+      - misp-logs:/var/www/MISP/app/tmp/logs
+      - keys:/keys
+      - certs:/certs
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-sfk", "https://localhost/users/login"]
+      interval: 30s
+      timeout: 10s
+      start_period: 180s
+      retries: 6
+
+  # ── Provisioner ────────────────────────────────────────────────────────────
+  # Runs once after MISP is healthy: creates reader/writer users via REST API,
+  # writes all API keys to /keys/api-keys.txt, then exits.
+  provisioner:
+    build:
+      context: .
+      target: runtime
+      args:
+        MISP_VERSION: ${MISP_VERSION:-v2.5.37}
+    entrypoint: ["/provisioning/provision.sh"]
+    env_file: .env
+    volumes:
+      - keys:/keys
+      - ./provisioning/provision.sh:/provisioning/provision.sh:ro
+      - ./provisioning/provision-orgs.sh:/provisioning/provision-orgs.sh:ro
+      - ./provisioning/provision-users.sh:/provisioning/provision-users.sh:ro
+      - ./provisioning/provision-warninglists.sh:/provisioning/provision-warninglists.sh:ro
+      - ./provisioning/provision-content.sh:/provisioning/provision-content.sh:ro
+      - ./provisioning/provision-sample-events.sh:/provisioning/provision-sample-events.sh:ro
+      - ./provisioning/sample-events:/provisioning/sample-events:ro
+    depends_on:
+      misp:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  db-data:
+  misp-files:
+  misp-attachments:
+  misp-logs:
+  keys:
+  certs:

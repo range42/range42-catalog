@@ -21,7 +21,12 @@ services:
     restart: unless-stopped
 
   mattermost: &main
-    image: mattermost/mattermost-team-edition:latest
+    # Pinned to 10.9.5 : Mattermost 10.10.x+ has an upstream healthcheck bug
+    # (mmctl panics on non-root UID resolution) breaking the container's
+    # Docker healthcheck, which the provisioner waits on via depends_on.
+    # image: mattermost/mattermost-team-edition:latest   # re-enable to retest latest
+    image: mattermost/mattermost-team-edition:10.9.5
+    # Upstream bug : https://github.com/mattermost/mattermost/issues/36224
     container_name: mattermost
     environment:
       MM_SQLSETTINGS_DRIVERNAME:        postgres

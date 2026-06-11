@@ -1,0 +1,6 @@
+---
+NEXTCLOUD_LOCAL_PROJECT_DIR: "{{ lookup('env', 'RANGE42_INVENTORY') }}/03_container_layer/docker/admin/nextcloud"
+NEXTCLOUD_REMOTE_PROJECT_DIR: "/opt/range42/nextcloud"
+NEXTCLOUD_OPERATOR_USER: "{{ default_admin_vm_ci_user }}"
+NEXTCLOUD_CONTAINER_NAME: "nextcloud"
+NEXTCLOUD_LABEL_PROJECT_TYPE: "admin"

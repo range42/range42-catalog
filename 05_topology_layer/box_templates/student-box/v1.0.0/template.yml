@@ -1,0 +1,11 @@
+id: student-box
+api_version: 1
+description: Student / trainee workstation box.
+template_vm: "template-vm-ubuntu-noble-small-01-4g-32g"
+default_attachments:
+  - kind: role
+    catalog_ref: software.configure.firewalls
+    params:
+      firewall_rules:
+        - {ip: "all", port: 22, protocol: "tcp"}    # ssh
+  - {kind: role, catalog_ref: software.install.warmup.basic_packages, params: {}}

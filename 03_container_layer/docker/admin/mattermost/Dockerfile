@@ -26,7 +26,11 @@ COPY --from=builder /usr/bin/yq    /usr/bin/yq
 COPY --from=builder /usr/bin/jq    /usr/bin/jq
 COPY --from=builder /provisioning/ /provisioning/
 
+# init.sh is already chmod +x in the builder stage (line 16) ; COPY --from=builder
+# preserves file mode, so no RUN chmod is needed here. The mattermost runtime
+# image has no /bin/sh, so a RUN at this stage would fail with
+# `exec: "/bin/sh": stat /bin/sh: no such file or directory`.
+
 USER root
-RUN chmod +x /provisioning/init.sh
 
 ENTRYPOINT ["/provisioning/init.sh"]

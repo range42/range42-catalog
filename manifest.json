@@ -90,6 +90,27 @@
           "description": "Network-themed challenges"
         }
       }
+    },
+    "topology": {
+      "path": "05_topology_layer",
+      "description": "Symbolic, parametric templates consumed by the r42topo compiler to author + compile topology.json into deployable scenarios",
+      "categories": {
+        "box_templates": {
+          "path": "box_templates",
+          "description": "VM/box archetypes (role, inventory group, spec, default catalog attachments)",
+          "layout": "<id>/v<MAJOR>.<MINOR>.<PATCH>/template.yml"
+        },
+        "network_policies": {
+          "path": "network_policies",
+          "description": "Symbolic zone-isolation policies (zones, services, allow/deny matrix, air-gap) — generalizes per-scenario iptables rules",
+          "layout": "<id>/v<MAJOR>.<MINOR>.<PATCH>/template.yml"
+        },
+        "subnet_layouts": {
+          "path": "subnet_layouts",
+          "description": "Reusable subnet/bridge layouts a topology can adopt",
+          "layout": "<id>/v<MAJOR>.<MINOR>.<PATCH>/template.yml"
+        }
+      }
     }
   },
   "conventions": {
