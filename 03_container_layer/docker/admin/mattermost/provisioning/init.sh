@@ -53,6 +53,10 @@ until [ -S "${MM_LOCAL_SOCKET}" ]; do
 done
 echo "[init] Socket ready."
 
+# mmctl hardcodes /var/tmp/mattermost_local.socket with no override flag —
+# symlink from that path into the shared config volume where the socket lives.
+ln -sf "${MM_LOCAL_SOCKET}" /var/tmp/mattermost_local.socket
+
 # ── 4. Admin users (mattermost CLI — direct DB, no HTTP auth needed) ─────────
 admin_count=$(yq e '.admins | length' "${USERS_FILE}")
 echo "[init] Creating ${admin_count} admin user(s) ..."
@@ -70,7 +74,6 @@ while [ "${i}" -lt "${admin_count}" ]; do
     --password "${password}" \
     --system-admin \
     --local \
-    --local-socket-path "${MM_LOCAL_SOCKET}" \
     || echo "[warn] ${username} may already exist — skipping"
 
   i=$((i + 1))
@@ -92,7 +95,6 @@ while [ "${i}" -lt "${user_count}" ]; do
     --username "${username}" \
     --password "${password}" \
     --local \
-    --local-socket-path "${MM_LOCAL_SOCKET}" \
     || echo "[warn] ${username} may already exist — skipping"
 
   i=$((i + 1))
