@@ -1,0 +1,36 @@
+id: ubuntu-jump
+api_version: 1
+description: Ubuntu 26.04 LTS (Resolute Raccoon) student jump box — example of an image=ubuntu_resolute box.
+template_vm: "template-vm-ubuntu-resolute-small-01-4g-32g"
+default_attachments:
+  - kind: role
+    catalog_ref: software.configure.firewalls
+    params:
+      firewall_rules:
+        - {ip: "all", port: 22, protocol: "tcp"}    # ssh
+  - {kind: role, catalog_ref: software.install.warmup.basic_packages, params: {}}
+
+  # --- apt integration (pick one, uncomment) ---
+  #
+  # Option A — proxy via apt-cache box (apt-cacher-ng, port 3142)
+  #   Deploy an apt-cache box in the same topology and set apt_proxy_url to its IP.
+  #   All packages are fetched through the cache; upstream internet access is still required.
+  #
+  # - kind: role
+  #   catalog_ref: software.configure.apt_mirror_client
+  #   params:
+  #     apt_mirror_enabled: true
+  #     apt_proxy_url: "http://<apt-cache-ip>:3142"
+  #
+  # Option B — full local mirror via apt-mirror box (nginx, port 80, airgapped)
+  #   Deploy an apt-mirror box (ensure apt_mirror_ubuntu_noble: true is set on it),
+  #   then set apt_mirror_vm_ip to its IP.
+  #   No upstream internet access needed on this box once the mirror is populated.
+  #
+  # - kind: role
+  #   catalog_ref: software.configure.apt_mirror_client
+  #   params:
+  #     apt_mirror_enabled: true
+  #     apt_mirror_airgapped: true
+  #     apt_mirror_vm_ip: "<apt-mirror-ip>"
+  #     apt_mirror_http_port: 80

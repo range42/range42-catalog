@@ -12,26 +12,11 @@
   register: wazuh_manager_https_packages_installed
   until: wazuh_manager_https_packages_installed is succeeded
 
-- name: Debian/Ubuntu | Installing Wazuh repository key (Ubuntu 14)
-  become: true
-  shell: |
-    set -o pipefail
-    curl -s {{ wazuh_manager_config.repo.gpg }} | apt-key add -
-  args:
-    # warn: false
-    executable: /bin/bash
-  changed_when: false
-  when:
-    - ansible_distribution == "Ubuntu"
-    - ansible_distribution_major_version | int == 14
-    - not wazuh_custom_packages_installation_manager_enabled
-
 - name: Debian/Ubuntu | Download Wazuh repository key
   get_url:
     url: "{{ wazuh_manager_config.repo.gpg }}"
     dest: "{{ wazuh_manager_config.repo.path }}"
   when:
-    - not (ansible_distribution == "Ubuntu" and ansible_distribution_major_version | int == 14)
     - not wazuh_custom_packages_installation_manager_enabled
 
 - name: Debian/Ubuntu | Import Wazuh GPG key

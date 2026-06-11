@@ -1,0 +1,8 @@
+# Prevent secrets and editor artifacts from leaking into the build context.
+.env
+*.env
+*.key
+*.pem
+*.p12
+*.pfx
+README.md

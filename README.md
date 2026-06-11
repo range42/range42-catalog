@@ -1,56 +1,59 @@
 # Table of Contents
 
-- [Project Overview](#Project-Overview)
 - [Repository Content](#Repository-Content)
 - [Contributing](#Contributing)
 - [License](#License)
 
 ---
 
-# Project Overview
+# Repository Content
 
-**RANGE42** is a modular cyber range platform designed for real-world readiness.
-We build, deploy, and document offensive, defensive, and hybrid cyber training environments using reproducible, infrastructure-as-code methodologies.
+This repository is the **range42 catalog** — a collection of reusable infrastructure bundles that can be orchestrated by the backend API or executed directly via the [range42-deployer-ui](https://github.com/range42/range42-deployer-ui) or CLI through the playbooks repository.
 
-## What we build
+Bundles include Ansible roles, Dockerfiles, and Docker Compose definitions designed to configure misconfigured or vulnerable environments for cyber training scenarios.
 
-- Proxmox-based cyber ranges with dynamic catalog 
-- Ansible roles for automated deployments (Wazuh, Kong, Docker, etc.)
-- Private APIs for range orchestration and telemetry
-- Developer and testing toolkits and JSON transformers for automation pipelines
-- ...
+The catalog is structured in numbered layers to separate concerns:
 
-## Repository Overview
+## Layer 02 — Ansible
 
-- **RANGE42 deployer UI** : A web interface to visually design infrastructure schemas and trigger deployments.
-- **RANGE42 deployer backend API** : Orchestrates deployments by executing playbooks and bundles from the catalog.
-- **RANGE42 catalog** : A collection of Ansible roles and Docker/Docker Compose stacks, forming deployable bundles.
-- **RANGE42 playbooks** : Centralized playbooks that can be invoked by the backend or CLI.
-- **RANGE42 proxmox role** : An Ansible role for controlling Proxmox nodes via the Proxmox API.
-- **RANGE42 devkit** : Helper scripts for testing, debugging, and development workflows.
-- **RANGE42 kong API gateway** : A network service in front of the backend API, handling authentication, ACLs, and access control policies.
-- **RANGE42 swagger API spec** : OpenAPI/Swagger JSON definition of the backend API.
+Path: `02_ansible_layer/`
 
-### Putting it all together
+Ansible roles that act directly on the system to configure environments.
 
-These repositories provide a modular and extensible platform to design, manage and deploy infrastructures automaticallyeither from the UI (coming soon) or from the CLI through the playbooks repository.
+- **`admin/roles/`** — roles targeting admin VMs: package warm-up, Docker Compose setup, firewall configuration, Tailscale / Headscale installation, Wazuh agent, NTP, symlink farms, Node.js app systemd services, user management, and system health checks.
+- **`trainee/roles/`** — roles targeting trainee VMs: `blue_env`, `red_env`, and `malware_env` environment bootstraps.
+- **`_ctf/cve/`** — CVE scenario roles, classified by technology: `network/`, `system/`, `web/`.
+- **`_ctf/malware/`** — malware scenario roles: `backdoor/`, `keylogger/`, `rootkit/`.
+- **`_ctf/misconfiguration/`** — misconfiguration scenario roles, classified by technology: `network/`, `system/`, `web/`.
+
+## Layer 03 — Containers
+
+Path: `03_container_layer/`
+
+Container-based deployments for vulnerable or misconfigured services.
+
+- **`docker/_ctf/cve/`** — Docker / Docker Compose stacks for CVE scenarios.
+- **`docker/_ctf/malware/`** — Docker / Docker Compose stacks for malware scenarios.
+- **`docker/_ctf/misconfiguration/`** — Docker / Docker Compose stacks for misconfiguration scenarios.
+- **`docker/_ctf/hello/`** — Hello-world stack used for smoke-testing deployments.
+- **`lxc/`** — LXC container configuration placeholders.
+
+## Layer 04 — Gamification
+
+Path: `04_gamification_layer/`
+
+Interface templates and challenge frameworks that gamify the deployed scenarios.
+
+- **`web/frameworks/`** — challenge web frameworks (HTML, PHP, Vue) providing themed front-ends (e.g. fake hospital, fake bank) on top of the deployed vulnerabilities.
+- **`web/shared/`** — shared assets: CSS, JavaScript, i18n strings, and reusable skins.
+- **`web/tools/`** — tooling scripts for the web layer.
+- **`crypto/notes/`** — notes and resources for crypto challenges.
+- **`network/notes/`** — notes and resources for network challenges.
+- **`files/notes/`** — notes and resources for file-based challenges.
 
 ---
 
-# Repository Content
-
-This repository contains the deployment cataloga collection of reusable infrastructure bundles.
-Bundles often include Ansible roles, Dockerfiles and/or Docker Compose definitions designed to be orchestrated by the backend API or executed directly via CLI. 
-
-The catalog is currently composed of three parts:
-
-- Ansible roles : act directly on the system to configure misconfigured or vulnerable environments.
-- Docker / Docker compose definitions : setup vulnerable or misconfigured services based on containerized environments.
-- Interface templates : root directory storing themed templates (e.g. fake hospital, fake bank) designed to gamify the deployed misconfigurations and vulnerabilities.
-
-Currently, the repository tree is organized to classify misconfigurations and CVEs by technology type.
-
-**⚠️ This deep tree structure still volatile and may evolve as the project grows.**
+**Note:** The deep tree structure is still evolving and may change as the project grows.
 
 ## Contributing
 
@@ -60,5 +63,3 @@ We use centralized community health files in Range42 community health.
 ## License
 
 - GPL-3.0 license
-
-

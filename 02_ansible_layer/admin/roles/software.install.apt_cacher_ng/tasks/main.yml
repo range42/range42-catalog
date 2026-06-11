@@ -1,0 +1,14 @@
+---
+# tasks file
+
+- name: INCLUDE - install apt-cacher-ng
+  ansible.builtin.include_tasks: install.yml
+
+- name: INCLUDE - configure apt-cacher-ng
+  ansible.builtin.include_tasks: configure.yml
+
+- name: INCLUDE - enable and start apt-cacher-ng service
+  ansible.builtin.include_tasks: service.yml
+
+- name: INCLUDE - open apt-cacher-ng firewall port
+  ansible.builtin.include_tasks: firewall.yml

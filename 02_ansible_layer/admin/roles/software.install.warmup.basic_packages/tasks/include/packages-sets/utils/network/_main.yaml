@@ -4,9 +4,9 @@
 - name: install - utils packages - block
   block:
     #
-    - name: INCLUDE - install -  network related packages - ubuntu
-      ansible.builtin.include_tasks: ./ubuntu/utils_network.yaml
-      when: ansible_facts.distribution == 'Ubuntu'
+    - name: INCLUDE - install -  network related packages - debian-based
+      ansible.builtin.include_tasks: ./debian-based/utils_network.yaml
+      when: ansible_facts.distribution in ['Ubuntu', 'Debian']
 
     #
     - name: INCLUDE - install -  network related packages - fedora

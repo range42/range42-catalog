@@ -1,0 +1,23 @@
+# Managed by Ansible — do not edit manually
+server {
+    listen {{ apt_mirror_http_port }};
+    listen [::]:{{ apt_mirror_http_port }};
+
+    server_name _;
+
+    root {{ apt_mirror_root }}/mirror;
+    autoindex on;
+
+    access_log /var/log/nginx/apt-mirror-access.log;
+    error_log  /var/log/nginx/apt-mirror-error.log;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location /healthz {
+        access_log off;
+        return 200 "ok\n";
+        add_header Content-Type text/plain;
+    }
+}
