@@ -6,7 +6,7 @@
 # Runs once after Mattermost is healthy; guarded by a stamp file for idempotency.
 #
 # User declarations come from USERS_FILE (default: /provisioning/users.yml).
-# Admin users are created via the mattermost CLI (direct DB access via config.json).
+# Admin users are created via mmctl in local mode (Unix socket — no HTTP auth needed).
 # Personal access tokens are generated via the Mattermost REST API.
 # Tokens are written to /tokens/tokens.txt and to stdout.
 #
@@ -17,7 +17,7 @@ MM_ADMIN_USER="${MM_ADMIN_USER:-mm-admin}"
 MM_ADMIN_PASS="${MM_ADMIN_PASS:-Admin1234!}"
 MM_TEAM_NAME="${MM_TEAM_NAME:-range42}"
 USERS_FILE="${USERS_FILE:-/provisioning/users.yml}"
-MM_CONFIG="/mattermost/config/config.json"
+MM_LOCAL_SOCKET="/mattermost/socket/mattermost_local.socket"
 PROVISION_STAMP="/tokens/.provisioned"
 TOKENS_FILE="/tokens/tokens.txt"
 
@@ -51,12 +51,13 @@ while [ "${i}" -lt "${admin_count}" ]; do
   password=$(yq e ".admins[${i}].password" "${USERS_FILE}")
 
   echo "[init]   + admin: ${username}"
-  mattermost --config "${MM_CONFIG}" user create \
+  mmctl user create \
     --email "${email}" \
     --username "${username}" \
     --password "${password}" \
-    --system_admin \
-    --email-verified 2>/dev/null \
+    --system-admin \
+    --local \
+    --local-socket-path "${MM_LOCAL_SOCKET}" 2>/dev/null \
     || echo "[warn] ${username} may already exist — skipping"
 
   i=$((i + 1))
@@ -73,11 +74,12 @@ while [ "${i}" -lt "${user_count}" ]; do
   password=$(yq e ".users[${i}].password" "${USERS_FILE}")
 
   echo "[init]   + user: ${username}"
-  mattermost --config "${MM_CONFIG}" user create \
+  mmctl user create \
     --email "${email}" \
     --username "${username}" \
     --password "${password}" \
-    --email-verified 2>/dev/null \
+    --local \
+    --local-socket-path "${MM_LOCAL_SOCKET}" 2>/dev/null \
     || echo "[warn] ${username} may already exist — skipping"
 
   i=$((i + 1))

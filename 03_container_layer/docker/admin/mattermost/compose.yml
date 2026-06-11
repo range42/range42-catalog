@@ -32,6 +32,8 @@ services:
       MM_SQLSETTINGS_DRIVERNAME:        postgres
       MM_SQLSETTINGS_DATASOURCE:        "postgres://${POSTGRES_USER:-mattermost}:${POSTGRES_PASSWORD:-mattermost}@db:5432/${POSTGRES_DB:-mattermost}?sslmode=disable&connect_timeout=10"
       MM_SERVICESETTINGS_SITEURL:       ${MM_BASE_URL:-http://localhost:8065}
+      MM_SERVICESETTINGS_ENABLELOCALMODE: "true"
+      MM_SERVICESETTINGS_LOCALMODESOCKETLOCATION: /mattermost/socket/mattermost_local.socket
       MM_SERVICESETTINGS_ENABLEUSERSTATUSESFORPOSTS: "false"
       MM_SERVICESETTINGS_ENABLEAPITEAMCREATION: "true"
       MM_SERVICESETTINGS_ENABLEAPICREATEACCOUNT: "true"
@@ -47,6 +49,7 @@ services:
       - mattermost-logs:/mattermost/logs
       - mattermost-config:/mattermost/config
       - mattermost-plugins:/mattermost/plugins
+      - mattermost-socket:/mattermost/socket
     ports:
       - "${HTTP_PORT:-8065}:8065"
     depends_on:
@@ -81,6 +84,7 @@ services:
     volumes:
       - mattermost-config:/mattermost/config
       - mattermost-tokens:/tokens
+      - mattermost-socket:/mattermost/socket
     depends_on:
       mattermost:
         condition: service_healthy
@@ -93,3 +97,4 @@ volumes:
   mattermost-config:
   mattermost-plugins:
   mattermost-tokens:
+  mattermost-socket:
