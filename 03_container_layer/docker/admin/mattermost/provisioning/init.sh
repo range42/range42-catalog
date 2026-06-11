@@ -40,7 +40,20 @@ if [ -f "${PROVISION_STAMP}" ]; then
   exit 0
 fi
 
-# ── 3. Admin users (mattermost CLI — direct DB, no HTTP auth needed) ─────────
+# ── 3. Wait for local-mode socket ────────────────────────────────────────────
+echo "[init] Waiting for local-mode socket at ${MM_LOCAL_SOCKET} ..."
+attempts=0
+until [ -S "${MM_LOCAL_SOCKET}" ]; do
+  attempts=$((attempts + 1))
+  if [ "${attempts}" -ge 40 ]; then
+    echo "[fatal] Socket did not appear after 120 s. Aborting."
+    exit 1
+  fi
+  sleep 3
+done
+echo "[init] Socket ready."
+
+# ── 4. Admin users (mattermost CLI — direct DB, no HTTP auth needed) ─────────
 admin_count=$(yq e '.admins | length' "${USERS_FILE}")
 echo "[init] Creating ${admin_count} admin user(s) ..."
 
@@ -57,13 +70,13 @@ while [ "${i}" -lt "${admin_count}" ]; do
     --password "${password}" \
     --system-admin \
     --local \
-    --local-socket-path "${MM_LOCAL_SOCKET}" 2>/dev/null \
+    --local-socket-path "${MM_LOCAL_SOCKET}" \
     || echo "[warn] ${username} may already exist — skipping"
 
   i=$((i + 1))
 done
 
-# ── 4. Regular users (mattermost CLI) ────────────────────────────────────────
+# ── 5. Regular users (mattermost CLI) ────────────────────────────────────────
 user_count=$(yq e '.users | length' "${USERS_FILE}")
 echo "[init] Creating ${user_count} regular user(s) ..."
 
@@ -79,7 +92,7 @@ while [ "${i}" -lt "${user_count}" ]; do
     --username "${username}" \
     --password "${password}" \
     --local \
-    --local-socket-path "${MM_LOCAL_SOCKET}" 2>/dev/null \
+    --local-socket-path "${MM_LOCAL_SOCKET}" \
     || echo "[warn] ${username} may already exist — skipping"
 
   i=$((i + 1))
