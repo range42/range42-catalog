@@ -1,0 +1,12 @@
+---
+- name: DEPLOY - nextcloud docker-compose stack
+  ansible.builtin.include_role:
+    name: software.configure.docker-compose
+  vars:
+    LOCAL__PROJECT_DIR: "{{ NEXTCLOUD_LOCAL_PROJECT_DIR }}"
+    REMOTE_PROJECT_DIR: "{{ NEXTCLOUD_REMOTE_PROJECT_DIR }}"
+    OPERATOR_USER: "{{ NEXTCLOUD_OPERATOR_USER }}"
+    LABEL_PROJECT_TYPE: "{{ NEXTCLOUD_LABEL_PROJECT_TYPE }}"
+    LABEL_PROJET_NAME: "{{ NEXTCLOUD_CONTAINER_NAME }}"
+    SEND_POC_DIR: "NO"
+    CLEAN_UP_DEPLOY_DIR: "NO"
