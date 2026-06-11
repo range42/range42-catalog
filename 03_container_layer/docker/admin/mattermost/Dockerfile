@@ -17,4 +17,5 @@ RUN wget -q https://github.com/mikefarah/yq/releases/download/v4.44.1/yq_linux_a
 COPY provisioning/ /provisioning/
 RUN chmod +x /provisioning/init.sh
 
+USER mattermost
 ENTRYPOINT ["/usr/bin/sh", "/provisioning/init.sh"]

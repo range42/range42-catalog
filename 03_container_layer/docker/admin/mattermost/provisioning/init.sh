@@ -193,6 +193,14 @@ generate_tokens() {
 generate_tokens admins
 generate_tokens users
 
-# ── 9. Mark as provisioned ────────────────────────────────────────────────────
+# ── 9. Disable local mode (socket no longer needed after first run) ───────────
+curl -sf -X PUT "${MM_URL}/api/v4/config/patch" \
+  -H "Authorization: Bearer ${admin_token}" \
+  -H "Content-Type: application/json" \
+  -d '{"ServiceSettings":{"EnableLocalMode":false}}' >/dev/null \
+  || echo "[warn] Could not disable local mode via API — socket remains until next restart"
+echo "[init] Local mode disabled."
+
+# ── 10. Mark as provisioned ───────────────────────────────────────────────────
 touch "${PROVISION_STAMP}"
 echo "[init] Provisioning complete. Tokens written to ${TOKENS_FILE}."

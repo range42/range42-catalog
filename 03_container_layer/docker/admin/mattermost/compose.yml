@@ -27,6 +27,9 @@ services:
       MM_SQLSETTINGS_DRIVERNAME:        postgres
       MM_SQLSETTINGS_DATASOURCE:        "postgres://${POSTGRES_USER:-mattermost}:${POSTGRES_PASSWORD:-mattermost}@db:5432/${POSTGRES_DB:-mattermost}?sslmode=disable&connect_timeout=10"
       MM_SERVICESETTINGS_SITEURL:       ${MM_BASE_URL:-http://localhost:8065}
+      # Local mode is needed once for the provisioner sidecar; init.sh disables it
+      # via the API after provisioning. The env var re-enables it on restart, but
+      # the provisioner stamp blocks re-execution so the socket is unused then.
       MM_SERVICESETTINGS_ENABLELOCALMODE: "true"
       MM_SERVICESETTINGS_LOCALMODESOCKETLOCATION: /mattermost/socket/mattermost_local.socket
       MM_SERVICESETTINGS_ENABLEUSERSTATUSESFORPOSTS: "false"
