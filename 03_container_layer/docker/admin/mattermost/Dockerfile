@@ -1,12 +1,10 @@
 #
 # ISSUE 143
 #
-# Provisioner sidecar for mattermost/mattermost-team-edition:10.9.5.
-# Runs once after Mattermost is healthy; creates users, team, and tokens.
-# Pinned to 10.9.5: 10.10.x+ has an upstream mmctl panic bug (non-root UID
-# resolution) that breaks the healthcheck used by depends_on.
+# Provisioner sidecar — tracks the mattermost service image.
+# Runs once after Mattermost starts; creates users, team, and tokens.
 #
-FROM mattermost/mattermost-team-edition:10.9.5
+FROM mattermost/mattermost-team-edition:latest
 
 USER root
 
