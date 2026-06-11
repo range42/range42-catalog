@@ -31,7 +31,7 @@ services:
       # via the API after provisioning. The env var re-enables it on restart, but
       # the provisioner stamp blocks re-execution so the socket is unused then.
       MM_SERVICESETTINGS_ENABLELOCALMODE: "true"
-      MM_SERVICESETTINGS_LOCALMODESOCKETLOCATION: /mattermost/socket/mattermost_local.socket
+      MM_SERVICESETTINGS_LOCALMODESOCKETLOCATION: /mattermost/config/mattermost_local.socket
       MM_SERVICESETTINGS_ENABLEUSERSTATUSESFORPOSTS: "false"
       MM_SERVICESETTINGS_ENABLEAPITEAMCREATION: "true"
       MM_SERVICESETTINGS_ENABLEAPICREATEACCOUNT: "true"
@@ -47,7 +47,6 @@ services:
       - mattermost-logs:/mattermost/logs
       - mattermost-config:/mattermost/config
       - mattermost-plugins:/mattermost/plugins
-      - mattermost-socket:/mattermost/socket
     ports:
       - "${HTTP_PORT:-8065}:8065"
     depends_on:
@@ -82,7 +81,6 @@ services:
     volumes:
       - mattermost-config:/mattermost/config
       - mattermost-tokens:/tokens
-      - mattermost-socket:/mattermost/socket
     depends_on:
       mattermost:
         condition: service_started
@@ -95,4 +93,3 @@ volumes:
   mattermost-config:
   mattermost-plugins:
   mattermost-tokens:
-  mattermost-socket:

@@ -17,7 +17,7 @@ MM_ADMIN_USER="${MM_ADMIN_USER:-mm-admin}"
 MM_ADMIN_PASS="${MM_ADMIN_PASS:-Admin1234!}"
 MM_TEAM_NAME="${MM_TEAM_NAME:-range42}"
 USERS_FILE="${USERS_FILE:-/provisioning/users.yml}"
-MM_LOCAL_SOCKET="/mattermost/socket/mattermost_local.socket"
+MM_LOCAL_SOCKET="/mattermost/config/mattermost_local.socket"
 PROVISION_STAMP="/tokens/.provisioned"
 TOKENS_FILE="/tokens/tokens.txt"
 
