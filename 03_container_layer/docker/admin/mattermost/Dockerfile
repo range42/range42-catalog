@@ -24,9 +24,9 @@ RUN chmod +x /provisioning/init.sh
 #
 FROM mattermost/mattermost-team-edition:10.9.5 AS runtime
 
-# /bin/sh is absent from the shell-less mattermost runtime image.
-# Copy busybox sh from builder so init.sh can execute.
-COPY --from=builder /bin/sh        /bin/sh
+# /bin/sh in Alpine is a symlink → /bin/busybox; copy the binary directly
+# so the destination image gets a real executable, not a dangling symlink.
+COPY --from=builder /bin/busybox   /bin/sh
 COPY --from=builder /usr/bin/yq    /usr/bin/yq
 COPY --from=builder /usr/bin/jq    /usr/bin/jq
 COPY --from=builder /provisioning/ /provisioning/
