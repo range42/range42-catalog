@@ -10,7 +10,9 @@
 FROM golang:alpine AS builder
 
 RUN wget -q https://github.com/mikefarah/yq/releases/download/v4.44.1/yq_linux_amd64 \
-      -O /usr/bin/yq && chmod +x /usr/bin/yq
+      -O /usr/bin/yq && chmod +x /usr/bin/yq && \
+    wget -q https://github.com/jqlang/jq/releases/download/jq-1.7.1/jq-linux-amd64 \
+      -O /usr/bin/jq && chmod +x /usr/bin/jq
 
 COPY provisioning/ /provisioning/
 RUN chmod +x /provisioning/init.sh
@@ -26,6 +28,7 @@ FROM mattermost/mattermost-team-edition:10.9.5 AS runtime
 
 # yq is a static Go binary — no libc dependency, safe across Debian/Alpine.
 COPY --from=builder /usr/bin/yq    /usr/bin/yq
+COPY --from=builder /usr/bin/jq    /usr/bin/jq
 COPY --from=builder /provisioning/ /provisioning/
 
 USER root
