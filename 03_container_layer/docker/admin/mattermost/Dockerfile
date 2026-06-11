@@ -16,21 +16,23 @@ COPY provisioning/ /provisioning/
 RUN chmod +x /provisioning/init.sh
 
 #
-# RUNTIME — mattermost/mattermost-team-edition:latest (Alpine-based, ships mattermost binary)
+# RUNTIME — mattermost/mattermost-team-edition:10.9.5 (Alpine-based, ships mattermost binary)
 # Copies tooling and provisioning scripts from builder.
 # Acts as the provisioner sidecar: creates users via CLI + REST API for tokens.
+# Pinned to 10.9.5 to match compose.yml: mattermost 10.10.x+ has an upstream
+# mmctl panic bug (non-root UID resolution) that breaks the healthcheck.
 #
-FROM mattermost/mattermost-team-edition:latest AS runtime
+FROM mattermost/mattermost-team-edition:10.9.5 AS runtime
 
+# /bin/sh is absent from the shell-less mattermost runtime image.
+# Copy busybox sh from builder so init.sh can execute.
+COPY --from=builder /bin/sh        /bin/sh
 COPY --from=builder /usr/bin/yq    /usr/bin/yq
 COPY --from=builder /usr/bin/jq    /usr/bin/jq
 COPY --from=builder /provisioning/ /provisioning/
 
-# init.sh is already chmod +x in the builder stage (line 16) ; COPY --from=builder
-# preserves file mode, so no RUN chmod is needed here. The mattermost runtime
-# image has no /bin/sh, so a RUN at this stage would fail with
-# `exec: "/bin/sh": stat /bin/sh: no such file or directory`.
-
+# Use exec form with an explicit /bin/sh so Docker does not rely on the
+# (absent) /usr/bin/env to resolve the shebang interpreter.
 USER root
 
-ENTRYPOINT ["/provisioning/init.sh"]
+ENTRYPOINT ["/bin/sh", "/provisioning/init.sh"]
