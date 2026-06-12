@@ -2,8 +2,8 @@
 
 Issue: [#141](https://github.com/range42/range42-catalog/issues/141)
 
-Standalone Gitea instance with automated user and SSH-key provisioning.
-Registration is disabled by default; all accounts are declared in `provisioning/users.yml`.
+Standalone Gitea instance with automated user provisioning and API token generation.
+Users are declared entirely through environment variables — no YAML file needed.
 
 ---
 
@@ -20,6 +20,7 @@ Registration is disabled by default; all accounts are declared in `provisioning/
 cp .env.example .env          # edit secrets before deploying
 make build-up                 # build provisioner image, start full stack
 make logs-provisioner         # watch bootstrap output
+make tokens                   # print generated API tokens
 ```
 
 Gitea will be available at `http://localhost:3000` (or `GITEA_BASE_URL`).
@@ -43,32 +44,23 @@ docker push registry.example.com/range42/gitea-provisioner:latest
 
 ---
 
-## Declaring Users and SSH Keys
+## Declaring Users
 
-Edit `provisioning/users.yml` before the first `make up`:
+Users are declared entirely through environment variables in `.env` — no YAML file needed.
 
-```yaml
-admins:
-  - username: gitea-admin
-    email: admin@range42.local
-    password: "Admin1234!"
-    ssh_keys:
-      - "ssh-ed25519 AAAA... user@host"   # full public key string
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GITEA_TEAMS` | `team-blue,team-red` | Comma-separated list of team names |
+| `GITEA_INSTRUCTOR_COUNT` | `1` | Number of instructor accounts |
+| `GITEA_USERS_PER_TEAM` | `2` | Regular users per team (leads are additional) |
+| `GITEA_USER_DOMAIN` | `range42.local` | Email domain for generated accounts |
 
-users:
-  - username: trainee01
-    email: trainee01@range42.local
-    password: "Trainee1234!"
-    ssh_keys: []   # no SSH key for this user
-```
+For each team the provisioner creates one **lead** and `GITEA_USERS_PER_TEAM` regular users.
+The initial admin (`GITEA_ADMIN_USER`) is created via the Gitea CLI on first boot.
+Passwords are auto-generated on first run; they are written to `/tokens/gitea-credentials.json`.
 
-- Add/remove entries to change the provisioned user set.
-- `admins[]` entries receive Gitea admin privileges.
-- `users[]` entries are regular accounts.
-- `ssh_keys` is a list of raw public-key strings (same format as `~/.ssh/authorized_keys`).
-
-**The provisioner runs only once** (guarded by `/data/gitea/.provisioned`).
-To re-provision after changes, run:
+**The provisioner runs only once** (guarded by `/tokens/.provisioned`).
+To re-provision with a clean volume, run:
 
 ```bash
 make reprovision
@@ -76,21 +68,15 @@ make reprovision
 
 ---
 
-## SSH Key Format
-
-Accepted algorithms: `ssh-ed25519`, `ssh-rsa`, `ecdsa-sha2-nistp256/384/521`.
-
-```
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... comment
-```
-
-Generate a new key pair:
+## Credential Retrieval
 
 ```bash
-ssh-keygen -t ed25519 -C "trainee01@range42" -f ~/.ssh/range42_trainee01
-```
+# API tokens (username:token, one per line)
+make tokens
 
-Paste the contents of `~/.ssh/range42_trainee01.pub` into the `ssh_keys` list.
+# Full credentials JSON (usernames + passwords + roles)
+make keys
+```
 
 ---
 
@@ -102,10 +88,14 @@ Paste the contents of `~/.ssh/range42_trainee01.pub` into the `ssh_keys` list.
 | `GITEA_BASE_URL` | `http://localhost:3000` | Root URL shown in clone URLs |
 | `GITEA_SECRET_KEY` | *(required)* | App secret — `openssl rand -hex 32` |
 | `GITEA_INTERNAL_TOKEN` | *(required)* | Internal token — `gitea generate secret INTERNAL_TOKEN` |
-| `GITEA_ADMIN_USER` | `gitea-admin` | Must match `admins[0].username` in `users.yml` |
-| `GITEA_ADMIN_PASS` | `Admin1234!` | Must match `admins[0].password` in `users.yml` |
+| `GITEA_ADMIN_USER` | `gitea-admin` | Initial admin username |
+| `GITEA_ADMIN_PASS` | `Admin1234!` | Initial admin password — **change before deploying** |
+| `GITEA_TEAMS` | `team-blue,team-red` | Comma-separated team list |
+| `GITEA_INSTRUCTOR_COUNT` | `1` | Number of instructor accounts |
+| `GITEA_USERS_PER_TEAM` | `2` | Regular users per team |
+| `GITEA_USER_DOMAIN` | `range42.local` | Email domain for generated accounts |
 | `POSTGRES_USER` | `gitea` | DB user |
-| `POSTGRES_PASSWORD` | `gitea` | DB password |
+| `POSTGRES_PASSWORD` | *(required)* | DB password — **change before deploying** |
 | `POSTGRES_DB` | `gitea` | DB name |
 | `HTTP_PORT` | `3000` | Host port for HTTP |
 | `SSH_PORT` | `2222` | Host port for SSH (avoids conflict with host sshd) |
@@ -117,13 +107,12 @@ Paste the contents of `~/.ssh/range42_trainee01.pub` into the `ssh_keys` list.
 **Provisioner exits immediately with "Already provisioned"**
 Remove the stamp and re-run: `make reprovision`
 
-**`gitea admin user create` fails silently**
+**`gitea admin user create` fails**
 Check provisioner logs: `make logs-provisioner`
 The stamp is NOT written on failure — restart the provisioner to retry.
 
-**SSH key injection fails (HTTP 422)**
-The key already exists in Gitea, or the key format is invalid.
-Verify key format with `ssh-keygen -l -f <pubkey_file>`.
+**Token creation returns empty**
+Ensure the user was created successfully. Check `make logs-provisioner` for errors.
 
 **Port 3000 already in use**
 Set `HTTP_PORT=3001` (or any free port) in `.env`.

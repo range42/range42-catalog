@@ -7,7 +7,7 @@ PROVISIONER   = gitea-provisioner
 DEBUG_SERVICE = $(SERVICE)-debug
 
 .PHONY: up down stop build rebuild build-up rebuild-up reprovision \
-        logs-provisioner term term-debug-build clean print help
+        logs-provisioner tokens keys term term-debug-build clean print help
 
 help:
 	@echo ""
@@ -26,6 +26,8 @@ help:
 	@echo ""
 	@echo "  make reprovision       - remove the provisioning stamp and restart provisioner"
 	@echo "  make logs-provisioner  - tail provisioner output"
+	@echo "  make tokens            - print generated API tokens"
+	@echo "  make keys              - print full credentials JSON (usernames + passwords)"
 	@echo ""
 	@echo "  make term              - open shell in $(SERVICE) container"
 	@echo "  make term-debug-build  - build and open shell in $(DEBUG_SERVICE)"
@@ -66,11 +68,17 @@ rebuild-up:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 reprovision:
-	docker exec $(SERVICE) rm -f /data/gitea/.provisioned
-	docker compose restart $(PROVISIONER)
+	docker run --rm -v gitea_gitea-tokens:/tokens alpine rm -f /tokens/.provisioned
+	docker compose up $(PROVISIONER)
 
 logs-provisioner:
 	docker compose logs -f $(PROVISIONER)
+
+tokens:
+	docker run --rm -v gitea_gitea-tokens:/tokens alpine cat /tokens/tokens.txt
+
+keys:
+	docker run --rm -v gitea_gitea-tokens:/tokens alpine cat /tokens/gitea-credentials.json
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 

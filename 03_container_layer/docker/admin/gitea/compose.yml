@@ -84,13 +84,16 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: gitea-provisioner
+    user: root
+    env_file: .env
     environment:
-      GITEA_URL:        http://gitea:3000
-      GITEA_ADMIN_USER: ${GITEA_ADMIN_USER:-gitea-admin}
-      GITEA_ADMIN_PASS: ${GITEA_ADMIN_PASS:-Admin1234!}
-      USERS_FILE:       /provisioning/users.yml
+      GITEA_URL: http://gitea:3000
     volumes:
       - gitea-data:/data
+      - gitea-tokens:/tokens
+      - ./provisioning/provision.sh:/provisioning/provision.sh:ro
+      - ./provisioning/provision-users.sh:/provisioning/provision-users.sh:ro
+      - ./provisioning/provision-tokens.sh:/provisioning/provision-tokens.sh:ro
     depends_on:
       gitea:
         condition: service_healthy
@@ -99,3 +102,4 @@ services:
 volumes:
   gitea-data:
   gitea-db-data:
+  gitea-tokens:
