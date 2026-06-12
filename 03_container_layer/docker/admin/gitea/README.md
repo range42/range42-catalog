@@ -88,7 +88,7 @@ make keys
 | `GITEA_BASE_URL` | `http://localhost:3000` | Root URL shown in clone URLs |
 | `GITEA_SECRET_KEY` | *(required)* | App secret — `openssl rand -hex 32` |
 | `GITEA_INTERNAL_TOKEN` | *(required)* | Internal token — `gitea generate secret INTERNAL_TOKEN` |
-| `GITEA_ADMIN_USER` | `gitea-admin` | Initial admin username |
+| `GITEA_ADMIN_USER` | `admin` | Initial admin username |
 | `GITEA_ADMIN_PASS` | `Admin1234!` | Initial admin password — **change before deploying** |
 | `GITEA_TEAMS` | `team-blue,team-red` | Comma-separated team list |
 | `GITEA_INSTRUCTOR_COUNT` | `1` | Number of instructor accounts |

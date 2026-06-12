@@ -13,7 +13,7 @@
 set -euo pipefail
 
 GITEA_URL="${GITEA_URL:-http://gitea:3000}"
-GITEA_ADMIN_USER="${GITEA_ADMIN_USER:-gitea-admin}"
+GITEA_ADMIN_USER="${GITEA_ADMIN_USER:-admin}"
 GITEA_ADMIN_PASS="${GITEA_ADMIN_PASS:-Admin1234!}"
 GITEA_ADMIN_EMAIL="${GITEA_ADMIN_EMAIL:-admin@range42.local}"
 GITEA_TEAMS="${GITEA_TEAMS:-team-blue,team-red}"
