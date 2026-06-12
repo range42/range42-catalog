@@ -86,13 +86,14 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: rocketchat-provisioner
+    env_file: .env
     environment:
-      RC_URL:        http://rocketchat:3000
-      RC_ADMIN_USER: ${RC_ADMIN_USER:-rc-admin}
-      RC_ADMIN_PASS: ${RC_ADMIN_PASS:-Admin1234!}
-      USERS_FILE:    /provisioning/users.yml
+      RC_URL: http://rocketchat:3000
     volumes:
       - rocketchat-tokens:/tokens
+      - ./provisioning/provision.sh:/provisioning/provision.sh:ro
+      - ./provisioning/provision-users.sh:/provisioning/provision-users.sh:ro
+      - ./provisioning/provision-tokens.sh:/provisioning/provision-tokens.sh:ro
     depends_on:
       rocketchat:
         condition: service_healthy
