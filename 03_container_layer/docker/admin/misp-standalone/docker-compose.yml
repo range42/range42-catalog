@@ -88,10 +88,8 @@ services:
   provisioner:
     build:
       context: .
-      target: runtime
-      args:
-        MISP_VERSION: ${MISP_VERSION:-v2.5.37}
-    entrypoint: ["/provisioning/provision.sh"]
+      dockerfile: Dockerfile.provisioner
+    entrypoint: ["/bin/bash", "/provisioning/provision.sh"]
     env_file: .env
     volumes:
       - keys:/keys
