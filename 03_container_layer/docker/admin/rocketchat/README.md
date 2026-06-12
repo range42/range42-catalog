@@ -32,7 +32,7 @@ make keys     # full credentials JSON
 > **MongoDB replica set** initialises automatically via the `mongo-init-replica` one-shot container. No manual `rs.initiate()` step is needed.
 
 The web UI is available at `http://localhost:3000` (or `RC_BASE_URL`).
-Default admin credentials: `rc-admin` / `Admin1234!` (change in `.env`).
+Default admin credentials: `admin` / `Admin1234!` (change in `.env`).
 
 ---
 
@@ -54,7 +54,7 @@ Given the default `.env.example` values (`RC_TEAMS=team-blue,team-red`, `RC_INST
 
 | Username | Role | Team |
 |---|---|---|
-| `rc-admin` | admin | admin |
+| `admin` | admin | admin |
 | `instructors` | admin | instructors |
 | `team-blue-lead` | admin | team-blue |
 | `team-blue-user1` | user | team-blue |
@@ -81,7 +81,7 @@ make keys
 
 `tokens.txt` format:
 ```
-rc-admin:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+admin:xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 team-blue-lead:yyyyyyyyyyyyyyyyyyyyyyyyyyyy
 ```
 
@@ -91,7 +91,7 @@ team-blue-lead:yyyyyyyyyyyyyyyyyyyyyyyyyyyy
   "service": "rocketchat",
   "baseurl": "http://localhost:3000",
   "users": [
-    {"username": "rc-admin",       "role": "admin", "team": "admin",       "password": "Admin1234!"},
+    {"username": "admin",       "role": "admin", "team": "admin",       "password": "Admin1234!"},
     {"username": "team-blue-lead", "role": "admin", "team": "team-blue",   "password": "R42!..."},
     {"username": "team-blue-user1","role": "user",  "team": "team-blue",   "password": "R42!..."}
   ]
@@ -122,7 +122,7 @@ docker push registry.example.com/range42/rocketchat-provisioner:latest
 | `RC_HTTP_PORT` | `3000` | Host port mapped to Rocket.Chat |
 | `RC_HOSTNAME` | `localhost` | Hostname for URL construction |
 | `RC_BASE_URL` | `http://localhost:3000` | Public URL (`ROOT_URL` in Rocket.Chat) |
-| `RC_ADMIN_USER` | `rc-admin` | Bootstrap admin username |
+| `RC_ADMIN_USER` | `admin` | Bootstrap admin username |
 | `RC_ADMIN_PASS` | `Admin1234!` | Bootstrap admin password |
 | `RC_ADMIN_EMAIL` | `admin@range42.local` | Bootstrap admin email |
 | `RC_TEAMS` | `team-blue,team-red` | Comma-separated team names |
@@ -142,7 +142,7 @@ curl http://localhost:3000/api/v1/info
 # Authenticate and store credentials
 LOGIN=$(curl -sf -X POST http://localhost:3000/api/v1/login \
   -H "Content-Type: application/json" \
-  -d '{"username":"rc-admin","password":"Admin1234!"}')
+  -d '{"username":"admin","password":"Admin1234!"}')
 USER_ID=$(echo "${LOGIN}" | jq -r '.data.userId')
 AUTH_TOKEN=$(echo "${LOGIN}" | jq -r '.data.authToken')
 
@@ -178,7 +178,7 @@ docker exec rocketchat-mongodb mongosh --eval \
 
 ### Provisioner exits with auth error
 
-**Symptom:** `[provision-users] ERROR: Failed to authenticate as rc-admin.`
+**Symptom:** `[provision-users] ERROR: Failed to authenticate as admin.`
 
 **Cause:** Rocket.Chat is not yet fully ready (can take 60–90 s on first boot). The provisioner waits up to 180 s then exits with an error.
 

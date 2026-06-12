@@ -45,7 +45,7 @@ services:
       ROOT_URL:       ${RC_BASE_URL:-http://localhost:3000}
       PORT:           "3000"
       DEPLOY_PLATFORM: docker
-      ADMIN_USERNAME: ${RC_ADMIN_USER:-rc-admin}
+      ADMIN_USERNAME: ${RC_ADMIN_USER:-admin}
       ADMIN_PASS:     ${RC_ADMIN_PASS:-Admin1234!}
       ADMIN_EMAIL:    ${RC_ADMIN_EMAIL:-admin@range42.local}
       OVERWRITE_SETTING_Show_Setup_Wizard: completed

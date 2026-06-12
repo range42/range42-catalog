@@ -4,7 +4,7 @@
 #
 # Reads env vars:
 #   RC_URL              — RC internal URL       (default: http://rocketchat:3000)
-#   RC_ADMIN_USER       — bootstrap admin name  (default: rc-admin)
+#   RC_ADMIN_USER       — bootstrap admin name  (default: admin)
 #   RC_ADMIN_PASS       — bootstrap admin pass  (default: Admin1234!)
 #   RC_TEAMS            — comma-separated team names (default: team-blue,team-red)
 #   RC_INSTRUCTOR_ORG   — instructor prefix     (default: instructors)
@@ -18,7 +18,7 @@
 set -euo pipefail
 
 RC_URL="${RC_URL:-http://rocketchat:3000}"
-RC_ADMIN_USER="${RC_ADMIN_USER:-rc-admin}"
+RC_ADMIN_USER="${RC_ADMIN_USER:-admin}"
 RC_ADMIN_PASS="${RC_ADMIN_PASS:-Admin1234!}"
 RC_TEAMS="${RC_TEAMS:-team-blue,team-red}"
 RC_INSTRUCTOR_ORG="${RC_INSTRUCTOR_ORG:-instructors}"
