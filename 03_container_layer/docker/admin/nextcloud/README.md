@@ -47,29 +47,21 @@ docker push registry.example.com/range42/nextcloud-provisioner:latest
 
 ## Declaring Users
 
-Edit `provisioning/users.yml` before the first `make up`:
+Users are declared entirely through environment variables in `.env` — no YAML file needed.
 
-```yaml
-admins:
-  - username: nc-admin2
-    email: admin2@range42.local
-    password: "Admin1234!"
-    display_name: "NC Admin 2"
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NC_TEAMS` | `team-blue,team-red` | Comma-separated list of team names |
+| `NC_INSTRUCTOR_ORG` | `instructors` | Group label for instructor accounts |
+| `NC_INSTRUCTOR_COUNT` | `1` | Number of instructor accounts |
+| `NC_USERS_PER_TEAM` | `2` | Regular users per team (leads are additional) |
+| `NC_USER_DOMAIN` | `range42.local` | Email domain for generated accounts |
 
-users:
-  - username: trainee01
-    email: trainee01@range42.local
-    password: "Trainee1234!"
-    display_name: "Trainee 01"
-```
-
-- `admins[]` entries are created and added to the Nextcloud `admin` group.
-- `users[]` entries are regular accounts.
-- `nc-admin` (set via `NC_ADMIN_USER`) is created automatically by Nextcloud — do not repeat it here.
-- An app password is auto-generated for every user and written to `/tokens/tokens.txt`.
+For each team the provisioner creates one **lead** (admin group) and `NC_USERS_PER_TEAM` regular users.
+Passwords are auto-generated on first run; they are written to `/tokens/nc-credentials.json`.
 
 **The provisioner runs only once** (guarded by `/tokens/.provisioned`).
-To re-provision after changes, run:
+To re-provision with a clean volume, run:
 
 ```bash
 make reprovision
@@ -77,22 +69,14 @@ make reprovision
 
 ---
 
-## App Password Retrieval
-
-App passwords are written to the `nextcloud-tokens` volume during provisioning.
-Retrieve them at any time:
+## Credential Retrieval
 
 ```bash
+# App passwords (username:apppassword, one per line)
 make tokens
-```
 
-Example output:
-
-```
-nc-admin2: <app-password-string>
-trainee01: <app-password-string>
-trainee02: <app-password-string>
-trainee03: <app-password-string>
+# Full credentials JSON (usernames + plain passwords + roles)
+make keys
 ```
 
 ---
@@ -142,6 +126,11 @@ curl -H "OCS-APIRequest: true" -H "Accept: application/json" \
 | `NC_DOMAIN` | `localhost` | Trusted domain for Nextcloud |
 | `NC_ADMIN_USER` | `nc-admin` | Initial admin username (auto-created by Nextcloud) |
 | `NC_ADMIN_PASS` | `Admin1234!` | Initial admin password |
+| `NC_TEAMS` | `team-blue,team-red` | Comma-separated team list |
+| `NC_INSTRUCTOR_ORG` | `instructors` | Group label for instructor accounts |
+| `NC_INSTRUCTOR_COUNT` | `1` | Number of instructor accounts |
+| `NC_USERS_PER_TEAM` | `2` | Regular users per team |
+| `NC_USER_DOMAIN` | `range42.local` | Email domain for generated accounts |
 | `POSTGRES_USER` | `nextcloud` | DB user |
 | `POSTGRES_PASSWORD` | `nextcloud` | DB password — **change before deploying** |
 | `POSTGRES_DB` | `nextcloud` | DB name |
