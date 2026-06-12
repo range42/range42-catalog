@@ -14,7 +14,7 @@
 set -euo pipefail
 
 MM_URL="${MM_URL:-http://mattermost:8065}"
-MM_ADMIN_USER="${MM_ADMIN_USER:-mm-admin}"
+MM_ADMIN_USER="${MM_ADMIN_USER:-admin}"
 MM_ADMIN_PASS="${MM_ADMIN_PASS:-Admin1234!}"
 MM_TEAM_NAME="${MM_TEAM_NAME:-range42}"
 MM_TEAMS="${MM_TEAMS:-team-blue,team-red}"

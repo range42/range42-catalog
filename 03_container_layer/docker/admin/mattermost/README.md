@@ -108,7 +108,7 @@ curl -X POST http://localhost:8065/api/v4/posts \
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `MM_BASE_URL` | `http://localhost:8065` | Public URL of the Mattermost instance |
-| `MM_ADMIN_USER` | `mm-admin` | Initial admin username |
+| `MM_ADMIN_USER` | `admin` | Initial admin username |
 | `MM_ADMIN_PASS` | `Admin1234!` | Initial admin password — **change before deploying** |
 | `MM_TEAM_NAME` | `range42` | Default team created by provisioner |
 | `MM_TEAMS` | `team-blue,team-red` | Comma-separated team list |
