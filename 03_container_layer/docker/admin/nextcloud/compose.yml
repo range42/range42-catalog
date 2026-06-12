@@ -72,13 +72,14 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: nextcloud-provisioner
+    env_file: .env
     environment:
-      NC_URL:        http://nextcloud
-      NC_ADMIN_USER: ${NC_ADMIN_USER:-nc-admin}
-      NC_ADMIN_PASS: ${NC_ADMIN_PASS:-Admin1234!}
-      USERS_FILE:    /provisioning/users.yml
+      NC_URL: http://nextcloud
     volumes:
       - nextcloud-tokens:/tokens
+      - ./provisioning/provision.sh:/provisioning/provision.sh:ro
+      - ./provisioning/provision-users.sh:/provisioning/provision-users.sh:ro
+      - ./provisioning/provision-tokens.sh:/provisioning/provision-tokens.sh:ro
     depends_on:
       nextcloud:
         condition: service_healthy
