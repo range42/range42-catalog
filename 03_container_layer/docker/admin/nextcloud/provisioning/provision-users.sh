@@ -21,7 +21,7 @@
 set -euo pipefail
 
 NC_URL="${NC_URL:-http://nextcloud}"
-NC_ADMIN_USER="${NC_ADMIN_USER:-nc-admin}"
+NC_ADMIN_USER="${NC_ADMIN_USER:-admin}"
 NC_ADMIN_PASS="${NC_ADMIN_PASS:-Admin1234!}"
 NC_TEAMS="${NC_TEAMS:-team-blue,team-red}"
 NC_INSTRUCTOR_ORG="${NC_INSTRUCTOR_ORG:-instructors}"

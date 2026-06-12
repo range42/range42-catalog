@@ -113,7 +113,7 @@ curl -T local_file.txt \
 
 # OCS user list (admin only)
 curl -H "OCS-APIRequest: true" -H "Accept: application/json" \
-  -u nc-admin:Admin1234! \
+  -u admin:Admin1234! \
   http://localhost:8080/ocs/v1.php/cloud/users
 ```
 
@@ -124,7 +124,7 @@ curl -H "OCS-APIRequest: true" -H "Accept: application/json" \
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `NC_DOMAIN` | `localhost` | Trusted domain for Nextcloud |
-| `NC_ADMIN_USER` | `nc-admin` | Initial admin username (auto-created by Nextcloud) |
+| `NC_ADMIN_USER` | `admin` | Initial admin username (auto-created by Nextcloud) |
 | `NC_ADMIN_PASS` | `Admin1234!` | Initial admin password |
 | `NC_TEAMS` | `team-blue,team-red` | Comma-separated team list |
 | `NC_INSTRUCTOR_ORG` | `instructors` | Group label for instructor accounts |
