@@ -7,10 +7,8 @@
   ansible.builtin.setup:
 
 #
-# Tasks in ./debian-based/deploy.yml are apt/rsync based, so they run on every
-# Debian-family host (Ubuntu + Debian).
-- name: INCLUDE - deploy tasks - debian-based
-  ansible.builtin.include_tasks: ./debian-based/deploy.yml
-  when: ansible_facts['distribution'] in ['Ubuntu', 'Debian']
+- name: INCLUDE - ufw tasks - ubuntu
+  ansible.builtin.include_tasks: ./ubuntu/deploy.yml
+  when: ansible_facts['distribution'] == "Ubuntu"
 
   #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####

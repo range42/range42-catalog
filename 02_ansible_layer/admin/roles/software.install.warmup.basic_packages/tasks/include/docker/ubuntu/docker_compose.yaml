@@ -1,0 +1,57 @@
+---
+#
+- name: install docker - requirements - fedora
+  block:
+    #
+    - name: install docker - requirements for docker-compose and docker - ubuntu
+      ansible.builtin.apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - software-properties-common
+          - make
+          - gcc
+          - python3-pip
+          - python3-dev
+          - libffi-dev
+          - libssl-dev
+        state: present
+
+  when: ansible_facts.distribution == 'Ubuntu'
+
+#
+- name: install docker-compose - get_url docker-compose
+  block:
+    #
+    - name: DOWNLOAD - docker-compose
+      ansible.builtin.get_url:
+        url: "https://github.com/docker/compose/releases/download/v{{ DOCKER_COMPOSE_VERSION |  default('2.39.1') }}/docker-compose-Linux-x86_64"
+        dest: "/usr/local/bin/docker-compose"
+        mode: "0755"
+
+    #
+    - name: install docker-compose - chmod +x docker-compose
+      ansible.builtin.file:
+        path: /usr/local/bin/docker-compose
+        mode: "u+x,g+x"
+
+  when: ansible_facts.distribution == 'Ubuntu'
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: check docker-compose - checks debug - ubuntu
+  block:
+    #
+    - name: check - docker-compose installation
+      ansible.builtin.command:
+        cmd: docker-compose --version
+      register: result
+
+    #
+    - name: check - docker-compose version
+      ansible.builtin.debug:
+        msg: "{{ result.stdout }}"
+      when: result is defined
+
+  when: ansible_facts.distribution == 'Ubuntu'
