@@ -72,15 +72,14 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: mattermost-provisioner
+    env_file: .env
     environment:
-      MM_URL:        http://mattermost:8065
-      MM_ADMIN_USER: ${MM_ADMIN_USER:-mm-admin}
-      MM_ADMIN_PASS: ${MM_ADMIN_PASS:-Admin1234!}
-      MM_TEAM_NAME:  ${MM_TEAM_NAME:-range42}
-      USERS_FILE:    /provisioning/users.yml
+      MM_URL: http://mattermost:8065
     volumes:
-      - mattermost-config:/mattermost/config
       - mattermost-tokens:/tokens
+      - ./provisioning/provision.sh:/provisioning/provision.sh:ro
+      - ./provisioning/provision-users.sh:/provisioning/provision-users.sh:ro
+      - ./provisioning/provision-tokens.sh:/provisioning/provision-tokens.sh:ro
     depends_on:
       mattermost:
         condition: service_healthy
