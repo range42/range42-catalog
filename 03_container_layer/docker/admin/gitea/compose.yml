@@ -25,6 +25,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: gitea-cert-gen
+    user: root
     entrypoint: ["/bin/bash", "/cert-gen.sh"]
     env_file: .env
     environment:

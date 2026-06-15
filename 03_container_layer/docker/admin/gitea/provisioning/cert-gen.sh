@@ -27,7 +27,7 @@ case "${GITEA_TLS_MODE}" in
     mkdir -p "${CERTS_DIR}"
 
     # Use an explicit config file for SAN support (portable across OpenSSL versions)
-    CFG="$(mktemp /tmp/openssl-XXXXXX.cnf)"
+    CFG="$(mktemp /tmp/openssl-XXXXXX)"
     cat > "${CFG}" <<EOF
 [req]
 default_bits       = 4096
