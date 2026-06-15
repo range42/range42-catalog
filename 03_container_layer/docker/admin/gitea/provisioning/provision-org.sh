@@ -37,6 +37,8 @@ GITEA_INSTRUCTOR_COUNT="${GITEA_INSTRUCTOR_COUNT:-1}"
 GITEA_USERS_PER_TEAM="${GITEA_USERS_PER_TEAM:-2}"
 GITEA_ORG_NAME="${GITEA_ORG_NAME:-range42-training}"
 GITEA_WEBHOOK_URL="${GITEA_WEBHOOK_URL:-}"
+GITEA_MIRROR_URL="${GITEA_MIRROR_URL:-}"
+GITEA_MIRROR_REPO_NAME="${GITEA_MIRROR_REPO_NAME:-public-mirror}"
 TOKENS_DIR="/tokens"
 CREDS_FILE="${TOKENS_DIR}/gitea-credentials.json"
 ORG_STAMP="${TOKENS_DIR}/.org-provisioned"
@@ -201,6 +203,27 @@ set_topics() {
 add_repo_to_team() {
   local tid="${1}" repo="${2}"
   _put "/teams/${tid}/repos/${GITEA_ORG_NAME}/${repo}" >/dev/null 2>&1 || true
+}
+
+maybe_create_mirror() {
+  local url="${1}" repo="${2}"
+  [[ -z "${url}" ]] && return 0
+  echo "[provision-org]   + mirror '${repo}' ← ${url}"
+  local org_uid
+  org_uid="$(_get "/orgs/${GITEA_ORG_NAME}" 2>/dev/null | jq -r '.id // empty')"
+  if [[ -z "${org_uid}" ]]; then
+    echo "[warn] Could not resolve org UID for '${GITEA_ORG_NAME}' — skipping mirror."
+    return 0
+  fi
+  _post "/repos/migrate" -d "$(jq -n \
+    --arg u "${url}" \
+    --arg n "${repo}" \
+    --argjson id "${org_uid}" \
+    '{"clone_url":$u,"repo_name":$n,"uid":$id,"mirror":true,"mirror_interval":"8h0m0s","private":true,"description":"Read-only mirror — offline training content"}')" \
+    >/dev/null 2>&1 || echo "[warn] Mirror '${repo}' may already exist — skipping."
+  local tid
+  tid="$(get_team_id "instructors")"
+  [[ -n "${tid}" ]] && add_repo_to_team "${tid}" "${repo}" || true
 }
 
 maybe_create_webhook() {
@@ -391,7 +414,10 @@ for team in "${TEAM_LIST[@]}"; do
   fi
 done
 
-# ── 7. Update credentials JSON with org metadata ──────────────────────────────
+# ── 7. Optional read-only mirror ─────────────────────────────────────────────
+maybe_create_mirror "${GITEA_MIRROR_URL}" "${GITEA_MIRROR_REPO_NAME}"
+
+# ── 8. Update credentials JSON with org metadata ──────────────────────────────
 echo "[provision-org] Updating credentials JSON ..."
 gitea_version="$(_get "/version" 2>/dev/null | jq -r '.version // "unknown"')"
 provisioned_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
