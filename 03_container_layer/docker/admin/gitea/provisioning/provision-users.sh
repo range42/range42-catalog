@@ -62,8 +62,10 @@ append_cred() {
 }
 
 # ── 4. Create admin via CLI (direct DB — no HTTP auth needed) ────────────────
+# su-exec drops from root to git (uid 1000) before invoking the gitea binary;
+# gitea refuses to start when run as root (mustNotRunAsRoot guard).
 echo "[provision-users] Creating admin: ${GITEA_ADMIN_USER}"
-cli_out=$(gitea admin user create \
+cli_out=$(su-exec git gitea admin user create \
   --config "${GITEA_CONFIG}" \
   --admin \
   --username "${GITEA_ADMIN_USER}" \
