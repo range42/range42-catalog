@@ -80,7 +80,6 @@ cli_out=$(su-exec git gitea admin user create \
   esac
 }
 append_cred "${GITEA_ADMIN_USER}" "${GITEA_ADMIN_PASS}" "admin"
-upload_backend_keys "${GITEA_ADMIN_USER}"
 
 # ── 5. Create regular user via REST API (admin basic auth) ───────────────────
 create_user() {
@@ -148,6 +147,9 @@ upload_backend_keys() {
   done < <(find "${search_root}" -maxdepth 1 -name "*.pub" -print0 2>/dev/null)
   [ "${found}" -gt 0 ] && echo "[provision-users]   + ${found} backend SSH key(s) uploaded for ${username}"
 }
+
+# Upload deployer key to admin (functions now defined, safe to call).
+upload_backend_keys "${GITEA_ADMIN_USER}"
 
 # ── 6. Instructors ───────────────────────────────────────────────────────────
 i=1
