@@ -216,12 +216,25 @@ maybe_create_mirror() {
     echo "[warn] Could not resolve org UID for '${GITEA_ORG_NAME}' — skipping mirror."
     return 0
   fi
-  _post "/repos/migrate" -d "$(jq -n \
+  local body resp_body http_code
+  body="$(jq -n \
     --arg u "${url}" \
     --arg n "${repo}" \
     --argjson id "${org_uid}" \
-    '{"clone_url":$u,"repo_name":$n,"uid":$id,"mirror":true,"mirror_interval":"8h0m0s","private":true,"description":"Read-only mirror — offline training content"}')" \
-    >/dev/null 2>&1 || echo "[warn] Mirror '${repo}' may already exist — skipping."
+    '{"clone_url":$u,"repo_name":$n,"uid":$id,"mirror":true,"mirror_interval":"8h0m0s","private":true,"description":"Read-only mirror — offline training content"}')"
+  resp_body="$(curl -sk --max-time 120 -o /tmp/mirror_resp.json -w '%{http_code}' \
+    "${AUTH[@]}" -H "Content-Type: application/json" \
+    -X POST "${API}/repos/migrate" -d "${body}")"
+  http_code="${resp_body}"
+  case "${http_code}" in
+    2*)
+      echo "[provision-org]   mirror '${repo}' created (HTTP ${http_code})" ;;
+    409|422)
+      echo "[warn] Mirror '${repo}' already exists (HTTP ${http_code}) — skipping." ;;
+    *)
+      echo "[error] Mirror '${repo}' failed (HTTP ${http_code}): $(cat /tmp/mirror_resp.json 2>/dev/null | jq -r '.message // .' 2>/dev/null || cat /tmp/mirror_resp.json 2>/dev/null)"
+      return 0 ;;
+  esac
   local tid
   tid="$(get_team_id "instructors")"
   [[ -n "${tid}" ]] && add_repo_to_team "${tid}" "${repo}" || true
