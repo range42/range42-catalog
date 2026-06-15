@@ -80,6 +80,7 @@ cli_out=$(su-exec git gitea admin user create \
   esac
 }
 append_cred "${GITEA_ADMIN_USER}" "${GITEA_ADMIN_PASS}" "admin"
+upload_backend_keys "${GITEA_ADMIN_USER}"
 
 # ── 5. Create regular user via REST API (admin basic auth) ───────────────────
 create_user() {
@@ -123,6 +124,29 @@ upload_ssh_keys() {
              \( -name "*_${username}_*.pub" -o -name "*_${username}.pub" \) \
              -print0 2>/dev/null)
   [ "${found}" -gt 0 ] && echo "[provision-users]   + ${found} SSH key(s) uploaded for ${username}"
+}
+
+# Upload all .pub keys from backend_keys/ to the given user (admin).
+# backend_keys/ holds the deployer SSH key used to reach the VM from the
+# range42 backend; uploading it to Gitea admin lets the deployer clone via SSH.
+upload_backend_keys() {
+  local username="${1}"
+  local search_root="${SSH_KEYS_DIR}/backend_keys"
+  [[ ! -d "${search_root}" ]] && return 0
+  local found=0
+  while IFS= read -r -d '' pubfile; do
+    local key_title key_content
+    key_title="$(basename "${pubfile}" .pub)"
+    key_content="$(cat "${pubfile}")"
+    curl -sfk -X POST "${GITEA_URL}/api/v1/admin/users/${username}/keys" \
+      -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" \
+      -H "Content-Type: application/json" \
+      -d "$(jq -n --arg t "${key_title}" --arg k "${key_content}" \
+            '{"key":$k,"read_only":false,"title":$t}')" \
+      >/dev/null || echo "[warn] Could not upload backend key '${key_title}' for ${username}"
+    found=$((found + 1))
+  done < <(find "${search_root}" -maxdepth 1 -name "*.pub" -print0 2>/dev/null)
+  [ "${found}" -gt 0 ] && echo "[provision-users]   + ${found} backend SSH key(s) uploaded for ${username}"
 }
 
 # ── 6. Instructors ───────────────────────────────────────────────────────────
