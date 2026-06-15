@@ -8,19 +8,8 @@
 #   • Gitea teams:
 #       – instructors  (owner permission) ← admin + all instructors
 #       – one team per entry in GITEA_TEAMS (write permission) ← lead + users
-#   • Two sample repositories seeded under the org:
-#       – workshop-linux-basics
-#       – workshop-ctf-intro
-#     Each repo gets:
-#       – Labels:      exercise, hint, solution, bug, in-progress
-#       – Milestones:  Day 1, Day 2
-#       – Issues with label + milestone assignments
-#       – Feature branch + file commit → PR (demonstrates review workflow)
-#       – Branch protection on main (require 1 approving review, no direct push)
-#       – Topics (tags) on the repo
-#       – Optional webhook if GITEA_WEBHOOK_URL is set
-#       – Added to instructors team and per-team Gitea teams
-#   • Updates gitea-credentials.json with service_version, org name, sample_repos
+#   • Optional read-only mirrors via GITEA_MIRRORS (semicolon-separated url|name pairs)
+#   • Updates gitea-credentials.json with service_version, org name
 #
 # Requires provision-users.sh to have completed successfully first
 # (reads gitea-credentials.json for the base URL).
@@ -255,185 +244,7 @@ maybe_create_webhook() {
     >/dev/null
 }
 
-# ── 6a. workshop-linux-basics ─────────────────────────────────────────────────
-REPO1="workshop-linux-basics"
-create_repo "${REPO1}" "Introduction to Linux — hands-on exercises for the cyber range"
-
-echo "[provision-org] Seeding labels, milestones, issues for '${REPO1}' ..."
-L1_EXERCISE="$(create_label "${REPO1}" "exercise"    "#4a90d9")"
-L1_HINT="$(    create_label "${REPO1}" "hint"         "#f5a623")"
-L1_SOLUTION="$(create_label "${REPO1}" "solution"     "#7ed321")"
-L1_BUG="$(     create_label "${REPO1}" "bug"          "#e11d48")"
-L1_WIP="$(     create_label "${REPO1}" "in-progress"  "#9013fe")"
-
-M1_DAY1="$(create_milestone "${REPO1}" "Day 1 — Fundamentals")"
-M1_DAY2="$(create_milestone "${REPO1}" "Day 2 — Advanced")"
-
-create_issue "${REPO1}" \
-  "Task: Upload your SSH public key" \
-  "Before cloning this repository, upload your SSH public key to your Gitea profile.
-
-Go to **Settings → SSH / GPG Keys → Add Key** and paste your \`~/.ssh/id_ed25519.pub\`.
-
-Once added, test the connection with: \`ssh -T git@<gitea-host>\`" \
-  "${L1_EXERCISE}" "${M1_DAY1}"
-
-create_issue "${REPO1}" \
-  "Task: Clone the repository using SSH" \
-  "Clone this repository to your workstation using the SSH clone URL shown on the repository page.
-
-\`\`\`bash
-git clone git@<gitea-host>:${GITEA_ORG_NAME}/${REPO1}.git
-cd ${REPO1}
-\`\`\`" \
-  "${L1_EXERCISE}" "${M1_DAY1}"
-
-create_issue "${REPO1}" \
-  "Challenge: Fix the broken Bash script" \
-  "The script \`exercises/01_permissions/fix_me.sh\` contains a bug that prevents it from running.
-
-Find and fix the bug, then open a pull request against \`main\` with your fix.
-Label your PR **in-progress** while working on it." \
-  "${L1_BUG}" "${M1_DAY2}"
-
-echo "[provision-org] Creating feature branch + PR for '${REPO1}' ..."
-create_branch "${REPO1}" "feature/add-contributing-guide"
-commit_file "${REPO1}" "feature/add-contributing-guide" "CONTRIBUTING.md" \
-"# Contributing
-
-All contributions to this repository require **at least one approving review** before
-they can be merged into \`main\`.
-
-## Workflow
-
-1. Branch from \`main\`  (\`git checkout -b feature/your-change\`)
-2. Commit your changes
-3. Push the branch and open a pull request
-4. Assign a reviewer
-5. Address any feedback
-6. Reviewer approves → merge
-
-## Commit message format
-
-Use the imperative mood: *fix permissions on script*, *add exercise 02*, etc.
-" \
-  "docs: add contributing guide"
-
-create_pr "${REPO1}" "feature/add-contributing-guide" \
-  "docs: add contributing guide (review-then-merge demo)" \
-  "Demonstrates the branch-protection workflow: \`main\` requires at least **1 approving review** before a merge is permitted.
-
-*This PR is pre-seeded for training purposes — review and merge it to practise the approval flow.*"
-
-protect_main "${REPO1}"
-set_topics "${REPO1}" "linux" "beginner" "workshop" "range42"
-maybe_create_webhook "${REPO1}" "${GITEA_WEBHOOK_URL}"
-add_repo_to_team "${INSTRUCTORS_TEAM_ID}" "${REPO1}"
-
-# ── 6b. workshop-ctf-intro ────────────────────────────────────────────────────
-REPO2="workshop-ctf-intro"
-create_repo "${REPO2}" "CTF introduction — flag-hunting exercises for the cyber range"
-
-echo "[provision-org] Seeding labels, milestones, issues for '${REPO2}' ..."
-L2_EXERCISE="$(create_label "${REPO2}" "exercise"    "#4a90d9")"
-L2_HINT="$(    create_label "${REPO2}" "hint"         "#f5a623")"
-L2_SOLUTION="$(create_label "${REPO2}" "solution"     "#7ed321")"
-L2_BUG="$(     create_label "${REPO2}" "bug"          "#e11d48")"
-L2_WIP="$(     create_label "${REPO2}" "in-progress"  "#9013fe")"
-
-M2_DAY1="$(create_milestone "${REPO2}" "Day 1 — Recon")"
-M2_DAY2="$(create_milestone "${REPO2}" "Day 2 — Exploitation")"
-
-create_issue "${REPO2}" \
-  "Challenge: Find the hidden flag in the HTTP headers" \
-  "A flag has been embedded in the HTTP response headers of the target web service.
-
-Use your browser's Developer Tools (Network tab) or \`curl -I http://<target>\` to inspect the response headers and locate the flag." \
-  "${L2_EXERCISE}" "${M2_DAY1}"
-
-create_issue "${REPO2}" \
-  "Hint: web challenge 01 — where to look" \
-  "Check the \`X-Flag\` and \`Server\` response headers carefully.
-
-Also inspect Set-Cookie values — flags are sometimes hidden in cookie attributes." \
-  "${L2_HINT}" "${M2_DAY1}"
-
-create_issue "${REPO2}" \
-  "Challenge: Exploit path traversal to read /etc/passwd" \
-  "The target application does not sanitise user-supplied file paths.
-
-Demonstrate a path traversal attack that reads \`/etc/passwd\` from the server.
-
-Document your exploit in a write-up and open a PR using the template in \`writeup/TEMPLATE.md\`.
-Label your PR **in-progress** while working on it." \
-  "${L2_EXERCISE}" "${M2_DAY2}"
-
-echo "[provision-org] Creating feature branch + PR for '${REPO2}' ..."
-create_branch "${REPO2}" "feature/add-writeup-template"
-commit_file "${REPO2}" "feature/add-writeup-template" "writeup/TEMPLATE.md" \
-"# CTF Challenge Write-up Template
-
-## Challenge name
-
-## Category
-
-<!-- e.g. Web, Pwn, Crypto, Forensics, Misc -->
-
-## Difficulty
-
-<!-- Easy / Medium / Hard -->
-
-## Description
-
-<!-- Paste the challenge description here -->
-
-## Reconnaissance
-
-<!-- What did you find during recon? -->
-
-## Solution
-
-### Step 1
-
-### Step 2
-
-### Step 3
-
-## Flag
-
-\`\`\`
-FLAG{...}
-\`\`\`
-
-## Lessons learned
-
-<!-- What would you do differently next time? -->
-" \
-  "docs: add CTF write-up template"
-
-create_pr "${REPO2}" "feature/add-writeup-template" \
-  "docs: add CTF write-up template (review-then-merge demo)" \
-  "Adds a standard write-up template for trainees to document their solutions.
-
-Requires review before merge — demonstrating the protected \`main\` branch workflow.
-
-*This PR is pre-seeded for training purposes — review and merge it to practise the approval flow.*"
-
-protect_main "${REPO2}"
-set_topics "${REPO2}" "ctf" "security" "workshop" "range42"
-maybe_create_webhook "${REPO2}" "${GITEA_WEBHOOK_URL}"
-add_repo_to_team "${INSTRUCTORS_TEAM_ID}" "${REPO2}"
-
-# Add both repos to every per-team Gitea team
-for team in "${TEAM_LIST[@]}"; do
-  tid="$(get_team_id "${team}")"
-  if [[ -n "${tid}" ]]; then
-    add_repo_to_team "${tid}" "${REPO1}"
-    add_repo_to_team "${tid}" "${REPO2}"
-  fi
-done
-
-# ── 7. Optional read-only mirrors ────────────────────────────────────────────
+# ── 6. Optional read-only mirrors ────────────────────────────────────────────
 if [[ -n "${GITEA_MIRRORS}" ]]; then
   IFS=';' read -ra _MIRROR_LIST <<< "${GITEA_MIRRORS}"
   for _entry in "${_MIRROR_LIST[@]}"; do
@@ -444,7 +255,7 @@ if [[ -n "${GITEA_MIRRORS}" ]]; then
   done
 fi
 
-# ── 8. Update credentials JSON with org metadata ──────────────────────────────
+# ── 7. Update credentials JSON with org metadata ──────────────────────────────
 echo "[provision-org] Updating credentials JSON ..."
 gitea_version="$(_get "/version" 2>/dev/null | jq -r '.version // "unknown"')"
 provisioned_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -452,12 +263,10 @@ provisioned_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 jq  --arg ver "${gitea_version}" \
     --arg ts  "${provisioned_at}" \
     --arg org "${GITEA_ORG_NAME}" \
-    --arg r1  "${REPO1}" \
-    --arg r2  "${REPO2}" \
-    '. + {"service_version":$ver,"provisioned_at":$ts,"org":$org,"sample_repos":[$r1,$r2]}' \
+    '. + {"service_version":$ver,"provisioned_at":$ts,"org":$org}' \
     "${CREDS_FILE}" > "${CREDS_FILE}.tmp" \
   && mv "${CREDS_FILE}.tmp" "${CREDS_FILE}"
 chmod 600 "${CREDS_FILE}"
 
 touch "${ORG_STAMP}"
-echo "[provision-org] Done. Organisation '${GITEA_ORG_NAME}' seeded with ${REPO1}, ${REPO2}."
+echo "[provision-org] Done. Organisation '${GITEA_ORG_NAME}' seeded."
