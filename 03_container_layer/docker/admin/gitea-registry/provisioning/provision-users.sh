@@ -59,7 +59,7 @@ append_cred() {
 
 # ── Admin user (Gitea CLI — direct DB) ──────────────────────────────────────
 echo "[provision-users] Creating admin: ${GITEA_ADMIN_USER}"
-cli_out=$(gitea admin user create \
+cli_out=$(su-exec git gitea admin user create \
   --config "${GITEA_CONFIG}" \
   --admin \
   --username "${GITEA_ADMIN_USER}" \
