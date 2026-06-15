@@ -24,7 +24,7 @@ help:
 	@echo "  make rebuild           - full rebuild without cache"
 	@echo "  make rebuild-up        - full rebuild without cache then start"
 	@echo ""
-	@echo "  make reprovision       - remove the provisioning stamp and restart provisioner"
+	@echo "  make reprovision       - remove provisioning stamps (.provisioned + .org-provisioned) and restart"
 	@echo "  make logs-provisioner  - tail provisioner output"
 	@echo "  make tokens            - print generated API tokens"
 	@echo "  make keys              - print full credentials JSON (usernames + passwords)"
@@ -68,7 +68,7 @@ rebuild-up:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 reprovision:
-	docker run --rm -v gitea_gitea-tokens:/tokens alpine rm -f /tokens/.provisioned
+	docker run --rm -v gitea_gitea-tokens:/tokens alpine rm -f /tokens/.provisioned /tokens/.org-provisioned
 	docker compose up $(PROVISIONER)
 
 logs-provisioner:

@@ -1,5 +1,5 @@
 #
-# ISSUE 141
+# ISSUE 141, ISSUE 171
 #
 
 services:
@@ -19,6 +19,21 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+
+  cert-gen:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gitea-cert-gen
+    entrypoint: ["/bin/bash", "/cert-gen.sh"]
+    env_file: .env
+    environment:
+      GITEA_TLS_MODE: ${GITEA_TLS_MODE:-disabled}
+      GITEA_DOMAIN:   ${GITEA_DOMAIN:-localhost}
+    volumes:
+      - gitea-certs:/certs
+      - ./provisioning/cert-gen.sh:/cert-gen.sh:ro
+    restart: "no"
 
   gitea: &main
     image: gitea/gitea:latest
@@ -45,12 +60,16 @@ services:
       # port in clone URLs) is unchanged.
       GITEA__server__SSH_LISTEN_PORT: "2022"
       GITEA__server__SSH_PORT:        "${SSH_PORT:-2222}"
+      GITEA__server__PROTOCOL:        "${GITEA_PROTOCOL:-http}"
+      GITEA__server__CERT_FILE:       "/certs/server.crt"
+      GITEA__server__KEY_FILE:        "/certs/server.key"
       GITEA__service__DISABLE_REGISTRATION: "true"
       GITEA__security__INSTALL_LOCK:    "true"
       GITEA__security__SECRET_KEY:      ${GITEA_SECRET_KEY:-please-change-me-in-production}
       GITEA__security__INTERNAL_TOKEN:  ${GITEA_INTERNAL_TOKEN:-please-change-me-in-production}
     volumes:
       - gitea-data:/data
+      - gitea-certs:/certs:ro
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
@@ -62,8 +81,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      cert-gen:
+        condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/version"]
+      test: ["CMD-SHELL", "curl -fk ${GITEA_PROTOCOL:-http}://localhost:3000/api/v1/version"]
       interval: 15s
       timeout: 10s
       retries: 10
@@ -87,12 +108,13 @@ services:
     user: root
     env_file: .env
     environment:
-      GITEA_URL: http://gitea:3000
+      GITEA_URL: "${GITEA_PROTOCOL:-http}://gitea:3000"
     volumes:
       - gitea-data:/data
       - gitea-tokens:/tokens
       - ./provisioning/provision.sh:/provisioning/provision.sh:ro
       - ./provisioning/provision-users.sh:/provisioning/provision-users.sh:ro
+      - ./provisioning/provision-org.sh:/provisioning/provision-org.sh:ro
       - ./provisioning/provision-tokens.sh:/provisioning/provision-tokens.sh:ro
     depends_on:
       gitea:
@@ -103,3 +125,4 @@ volumes:
   gitea-data:
   gitea-db-data:
   gitea-tokens:
+  gitea-certs:

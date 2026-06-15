@@ -28,7 +28,7 @@ PROVISION_STAMP="${TOKENS_DIR}/.provisioned"
 # ── 1. Wait for Gitea HTTP (max 180 s) ──────────────────────────────────────
 echo "[provision-users] Waiting for Gitea at ${GITEA_URL} ..."
 attempts=0
-until curl -sf "${GITEA_URL}/api/v1/version" >/dev/null 2>&1; do
+until curl -sfk "${GITEA_URL}/api/v1/version" >/dev/null 2>&1; do
   attempts=$((attempts + 1))
   if [ "${attempts}" -ge 60 ]; then
     echo "[fatal] Gitea did not become healthy after 180 s. Aborting."
@@ -84,7 +84,7 @@ append_cred "${GITEA_ADMIN_USER}" "${GITEA_ADMIN_PASS}" "admin"
 # ── 5. Create regular user via REST API (admin basic auth) ───────────────────
 create_user() {
   local username="${1}" password="${2}"
-  curl -sf -X POST "${GITEA_URL}/api/v1/admin/users" \
+  curl -sfk -X POST "${GITEA_URL}/api/v1/admin/users" \
     -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" \
     -H "Content-Type: application/json" \
     -d "$(jq -n \
