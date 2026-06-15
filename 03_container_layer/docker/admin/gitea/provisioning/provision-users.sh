@@ -46,7 +46,9 @@ fi
 
 # ── 3. Helpers ───────────────────────────────────────────────────────────────
 gen_password() {
-  printf 'R42!%s' "$(openssl rand -base64 16 | tr -d '/+=')" | head -c 20
+  local raw
+  raw="$(openssl rand -base64 24 | tr -d '/+=')"
+  printf 'R42!%.16s' "${raw}"
 }
 
 CREDS_TMP="$(mktemp)"
@@ -84,15 +86,26 @@ append_cred "${GITEA_ADMIN_USER}" "${GITEA_ADMIN_PASS}" "admin"
 # ── 5. Create regular user via REST API (admin basic auth) ───────────────────
 create_user() {
   local username="${1}" password="${2}"
-  curl -sfk -X POST "${GITEA_URL}/api/v1/admin/users" \
+  local body
+  if ! body="$(jq -n \
+    --arg u "${username}" \
+    --arg p "${password}" \
+    --arg e "${username}@${GITEA_USER_DOMAIN}" \
+    '{"email":$e,"login_name":$u,"must_change_password":false,"password":$p,"send_notify":false,"source_id":0,"username":$u}')"; then
+    echo "[error] ${username}: jq failed to build request body"
+    return 1
+  fi
+  local http_code
+  http_code="$(curl -sk -o /dev/null -w '%{http_code}' -X POST \
+    "${GITEA_URL}/api/v1/admin/users" \
     -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" \
     -H "Content-Type: application/json" \
-    -d "$(jq -n \
-      --arg u "${username}" \
-      --arg p "${password}" \
-      --arg e "${username}@${GITEA_USER_DOMAIN}" \
-      '{"email":$e,"login_name":$u,"must_change_password":false,"password":$p,"send_notify":false,"source_id":0,"username":$u}')" \
-    >/dev/null || echo "[warn] ${username} may already exist — skipping"
+    -d "${body}")"
+  case "${http_code}" in
+    2*) : ;;
+    409|422) echo "[warn] ${username} may already exist (HTTP ${http_code}) — skipping" ;;
+    *)  echo "[error] ${username}: API returned HTTP ${http_code}"; return 1 ;;
+  esac
 }
 
 # ── 6. Instructors ───────────────────────────────────────────────────────────
