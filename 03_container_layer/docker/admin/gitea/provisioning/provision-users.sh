@@ -95,6 +95,32 @@ create_user() {
     >/dev/null || echo "[warn] ${username} may already exist — skipping"
 }
 
+# Upload SSH public keys from /ssh_keys/ for the given username.
+# Matches r42.<scenario>-student-key_<username>_<n>.pub and <username>.pub.
+# Silently skips if /ssh_keys/ is absent or empty.
+SSH_KEYS_DIR="${SSH_KEYS_DIR:-/ssh_keys}"
+
+upload_ssh_keys() {
+  local username="${1}"
+  [[ ! -d "${SSH_KEYS_DIR}" ]] && return 0
+  local found=0
+  while IFS= read -r -d '' pubfile; do
+    local key_title key_content
+    key_title="$(basename "${pubfile}" .pub)"
+    key_content="$(cat "${pubfile}")"
+    curl -sfk -X POST "${GITEA_URL}/api/v1/admin/users/${username}/keys" \
+      -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" \
+      -H "Content-Type: application/json" \
+      -d "$(jq -n --arg t "${key_title}" --arg k "${key_content}" \
+            '{"key":$k,"read_only":false,"title":$t}')" \
+      >/dev/null || echo "[warn] Could not upload key '${key_title}' for ${username}"
+    found=$((found + 1))
+  done < <(find "${SSH_KEYS_DIR}" -maxdepth 3 \
+             \( -name "*_${username}_*.pub" -o -name "${username}.pub" \) \
+             -print0 2>/dev/null)
+  [ "${found}" -gt 0 ] && echo "[provision-users]   + ${found} SSH key(s) uploaded for ${username}"
+}
+
 # ── 6. Instructors ───────────────────────────────────────────────────────────
 i=1
 while [ "${i}" -le "${GITEA_INSTRUCTOR_COUNT}" ]; do
@@ -102,6 +128,7 @@ while [ "${i}" -le "${GITEA_INSTRUCTOR_COUNT}" ]; do
   pass="$(gen_password)"
   echo "[provision-users]   + instructor: ${uname}"
   create_user "${uname}" "${pass}"
+  upload_ssh_keys "${uname}"
   append_cred "${uname}" "${pass}" "instructor"
   i=$((i + 1))
 done
@@ -113,6 +140,7 @@ for team in "${TEAM_LIST[@]}"; do
   lead_pass="$(gen_password)"
   echo "[provision-users]   + lead: ${lead}"
   create_user "${lead}" "${lead_pass}"
+  upload_ssh_keys "${lead}"
   append_cred "${lead}" "${lead_pass}" "lead"
 
   u=1
@@ -121,6 +149,7 @@ for team in "${TEAM_LIST[@]}"; do
     pass="$(gen_password)"
     echo "[provision-users]   + user: ${uname}"
     create_user "${uname}" "${pass}"
+    upload_ssh_keys "${uname}"
     append_cred "${uname}" "${pass}" "user"
     u=$((u + 1))
   done
