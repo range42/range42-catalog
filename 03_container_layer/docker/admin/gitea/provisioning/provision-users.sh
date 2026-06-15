@@ -102,8 +102,12 @@ SSH_KEYS_DIR="${SSH_KEYS_DIR:-/ssh_keys}"
 
 upload_ssh_keys() {
   local username="${1}"
-  [[ ! -d "${SSH_KEYS_DIR}" ]] && return 0
+  # Prefer student_keys/ subdirectory to avoid uploading deployer or jump keys.
+  local search_root="${SSH_KEYS_DIR}"
+  [[ -d "${SSH_KEYS_DIR}/student_keys" ]] && search_root="${SSH_KEYS_DIR}/student_keys"
+  [[ ! -d "${search_root}" ]] && return 0
   local found=0
+  # Match both numbered  (*_<user>_<n>.pub) and un-numbered (*_<user>.pub) keys.
   while IFS= read -r -d '' pubfile; do
     local key_title key_content
     key_title="$(basename "${pubfile}" .pub)"
@@ -115,8 +119,8 @@ upload_ssh_keys() {
             '{"key":$k,"read_only":false,"title":$t}')" \
       >/dev/null || echo "[warn] Could not upload key '${key_title}' for ${username}"
     found=$((found + 1))
-  done < <(find "${SSH_KEYS_DIR}" -maxdepth 3 \
-             \( -name "*_${username}_*.pub" -o -name "${username}.pub" \) \
+  done < <(find "${search_root}" -maxdepth 3 \
+             \( -name "*_${username}_*.pub" -o -name "*_${username}.pub" \) \
              -print0 2>/dev/null)
   [ "${found}" -gt 0 ] && echo "[provision-users]   + ${found} SSH key(s) uploaded for ${username}"
 }
