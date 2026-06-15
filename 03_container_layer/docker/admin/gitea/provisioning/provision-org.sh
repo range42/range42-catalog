@@ -37,8 +37,9 @@ GITEA_INSTRUCTOR_COUNT="${GITEA_INSTRUCTOR_COUNT:-1}"
 GITEA_USERS_PER_TEAM="${GITEA_USERS_PER_TEAM:-2}"
 GITEA_ORG_NAME="${GITEA_ORG_NAME:-range42-training}"
 GITEA_WEBHOOK_URL="${GITEA_WEBHOOK_URL:-}"
-GITEA_MIRROR_URL="${GITEA_MIRROR_URL:-}"
-GITEA_MIRROR_REPO_NAME="${GITEA_MIRROR_REPO_NAME:-public-mirror}"
+# Semicolon-separated list of "url|repo-name" pairs, e.g.:
+#   GITEA_MIRRORS=https://github.com/org/repo|repo-name;https://github.com/org2/repo2|repo2
+GITEA_MIRRORS="${GITEA_MIRRORS:-}"
 TOKENS_DIR="/tokens"
 CREDS_FILE="${TOKENS_DIR}/gitea-credentials.json"
 ORG_STAMP="${TOKENS_DIR}/.org-provisioned"
@@ -419,8 +420,16 @@ for team in "${TEAM_LIST[@]}"; do
   fi
 done
 
-# ── 7. Optional read-only mirror ─────────────────────────────────────────────
-maybe_create_mirror "${GITEA_MIRROR_URL}" "${GITEA_MIRROR_REPO_NAME}"
+# ── 7. Optional read-only mirrors ────────────────────────────────────────────
+if [[ -n "${GITEA_MIRRORS}" ]]; then
+  IFS=';' read -ra _MIRROR_LIST <<< "${GITEA_MIRRORS}"
+  for _entry in "${_MIRROR_LIST[@]}"; do
+    [[ -z "${_entry}" ]] && continue
+    _mirror_url="${_entry%%|*}"
+    _mirror_name="${_entry##*|}"
+    maybe_create_mirror "${_mirror_url}" "${_mirror_name}"
+  done
+fi
 
 # ── 8. Update credentials JSON with org metadata ──────────────────────────────
 echo "[provision-org] Updating credentials JSON ..."
