@@ -224,6 +224,11 @@ maybe_create_mirror() {
   local tid
   tid="$(get_team_id "instructors")"
   [[ -n "${tid}" ]] && add_repo_to_team "${tid}" "${repo}" || true
+  IFS=',' read -ra _MIRROR_TEAMS <<< "${GITEA_TEAMS}"
+  for _t in "${_MIRROR_TEAMS[@]}"; do
+    tid="$(get_team_id "${_t}")"
+    [[ -n "${tid}" ]] && add_repo_to_team "${tid}" "${repo}" || true
+  done
 }
 
 maybe_create_webhook() {
