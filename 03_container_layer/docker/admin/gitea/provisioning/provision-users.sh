@@ -95,62 +95,6 @@ create_user() {
     >/dev/null || echo "[warn] ${username} may already exist — skipping"
 }
 
-# Upload SSH public keys from /ssh_keys/ for the given username.
-# Matches r42.<scenario>-student-key_<username>_<n>.pub and <username>.pub.
-# Silently skips if /ssh_keys/ is absent or empty.
-SSH_KEYS_DIR="${SSH_KEYS_DIR:-/ssh_keys}"
-
-upload_ssh_keys() {
-  local username="${1}"
-  # Prefer student_keys/ subdirectory to avoid uploading deployer or jump keys.
-  local search_root="${SSH_KEYS_DIR}"
-  [[ -d "${SSH_KEYS_DIR}/student_keys" ]] && search_root="${SSH_KEYS_DIR}/student_keys"
-  [[ ! -d "${search_root}" ]] && return 0
-  local found=0
-  # Match both numbered  (*_<user>_<n>.pub) and un-numbered (*_<user>.pub) keys.
-  while IFS= read -r -d '' pubfile; do
-    local key_title key_content
-    key_title="$(basename "${pubfile}" .pub)"
-    key_content="$(cat "${pubfile}")"
-    curl -sfk -X POST "${GITEA_URL}/api/v1/admin/users/${username}/keys" \
-      -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" \
-      -H "Content-Type: application/json" \
-      -d "$(jq -n --arg t "${key_title}" --arg k "${key_content}" \
-            '{"key":$k,"read_only":false,"title":$t}')" \
-      >/dev/null || echo "[warn] Could not upload key '${key_title}' for ${username}"
-    found=$((found + 1))
-  done < <(find "${search_root}" -maxdepth 3 \
-             \( -name "*_${username}_*.pub" -o -name "*_${username}.pub" \) \
-             -print0 2>/dev/null)
-  [ "${found}" -gt 0 ] && echo "[provision-users]   + ${found} SSH key(s) uploaded for ${username}"
-}
-
-# Upload all .pub keys from backend_keys/ to the given user (admin).
-# backend_keys/ holds the deployer SSH key used to reach the VM from the
-# range42 backend; uploading it to Gitea admin lets the deployer clone via SSH.
-upload_backend_keys() {
-  local username="${1}"
-  local search_root="${SSH_KEYS_DIR}/backend_keys"
-  [[ ! -d "${search_root}" ]] && return 0
-  local found=0
-  while IFS= read -r -d '' pubfile; do
-    local key_title key_content
-    key_title="$(basename "${pubfile}" .pub)"
-    key_content="$(cat "${pubfile}")"
-    curl -sfk -X POST "${GITEA_URL}/api/v1/admin/users/${username}/keys" \
-      -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" \
-      -H "Content-Type: application/json" \
-      -d "$(jq -n --arg t "${key_title}" --arg k "${key_content}" \
-            '{"key":$k,"read_only":false,"title":$t}')" \
-      >/dev/null || echo "[warn] Could not upload backend key '${key_title}' for ${username}"
-    found=$((found + 1))
-  done < <(find "${search_root}" -maxdepth 1 -name "*.pub" -print0 2>/dev/null)
-  [ "${found}" -gt 0 ] && echo "[provision-users]   + ${found} backend SSH key(s) uploaded for ${username}"
-}
-
-# Upload deployer key to admin (functions now defined, safe to call).
-upload_backend_keys "${GITEA_ADMIN_USER}"
-
 # ── 6. Instructors ───────────────────────────────────────────────────────────
 i=1
 while [ "${i}" -le "${GITEA_INSTRUCTOR_COUNT}" ]; do
@@ -158,7 +102,6 @@ while [ "${i}" -le "${GITEA_INSTRUCTOR_COUNT}" ]; do
   pass="$(gen_password)"
   echo "[provision-users]   + instructor: ${uname}"
   create_user "${uname}" "${pass}"
-  upload_ssh_keys "${uname}"
   append_cred "${uname}" "${pass}" "instructor"
   i=$((i + 1))
 done
@@ -170,7 +113,6 @@ for team in "${TEAM_LIST[@]}"; do
   lead_pass="$(gen_password)"
   echo "[provision-users]   + lead: ${lead}"
   create_user "${lead}" "${lead_pass}"
-  upload_ssh_keys "${lead}"
   append_cred "${lead}" "${lead_pass}" "lead"
 
   u=1
@@ -179,7 +121,6 @@ for team in "${TEAM_LIST[@]}"; do
     pass="$(gen_password)"
     echo "[provision-users]   + user: ${uname}"
     create_user "${uname}" "${pass}"
-    upload_ssh_keys "${uname}"
     append_cred "${uname}" "${pass}" "user"
     u=$((u + 1))
   done

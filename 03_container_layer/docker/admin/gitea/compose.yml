@@ -117,10 +117,6 @@ services:
       - ./provisioning/provision-users.sh:/provisioning/provision-users.sh:ro
       - ./provisioning/provision-org.sh:/provisioning/provision-org.sh:ro
       - ./provisioning/provision-tokens.sh:/provisioning/provision-tokens.sh:ro
-      # Optional: place scenario .pub files here so they are uploaded to each
-      # matching Gitea user on first provision.  Directory is created empty by
-      # default (Docker skips the mount when the host path does not exist).
-      - ./ssh_keys:/ssh_keys:ro
     depends_on:
       gitea:
         condition: service_healthy
