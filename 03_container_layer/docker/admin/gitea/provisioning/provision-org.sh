@@ -218,10 +218,10 @@ maybe_create_mirror() {
   case "${http_code}" in
     2*)
       echo "[provision-org]   mirror '${repo}' created (HTTP ${http_code})" ;;
-    409|422)
-      echo "[warn] Mirror '${repo}' already exists (HTTP ${http_code}) — skipping." ;;
+    409)
+      echo "[warn] Mirror '${repo}' already exists (HTTP 409) — skipping." ;;
     *)
-      echo "[error] Mirror '${repo}' failed (HTTP ${http_code}): $(cat /tmp/mirror_resp.json 2>/dev/null | jq -r '.message // .' 2>/dev/null || cat /tmp/mirror_resp.json 2>/dev/null)"
+      echo "[error] Mirror '${repo}' failed (HTTP ${http_code}): $(jq -r '.message // .' /tmp/mirror_resp.json 2>/dev/null)"
       return 0 ;;
   esac
   local tid
