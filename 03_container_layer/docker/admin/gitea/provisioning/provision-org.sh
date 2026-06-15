@@ -210,7 +210,7 @@ maybe_create_mirror() {
     --arg u "${url}" \
     --arg n "${repo}" \
     --argjson id "${org_uid}" \
-    '{"clone_url":$u,"repo_name":$n,"uid":$id,"mirror":true,"mirror_interval":"8h0m0s","private":true,"description":"Read-only mirror — offline training content"}')"
+    '{"clone_addr":$u,"repo_name":$n,"uid":$id,"mirror":true,"mirror_interval":"8h0m0s","private":true,"description":"Read-only mirror — offline training content"}')"
   resp_body="$(curl -sk --max-time 120 -o /tmp/mirror_resp.json -w '%{http_code}' \
     "${AUTH[@]}" -H "Content-Type: application/json" \
     -X POST "${API}/repos/migrate" -d "${body}")"
