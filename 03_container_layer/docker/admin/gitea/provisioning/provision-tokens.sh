@@ -25,10 +25,10 @@ while IFS= read -r entry; do
   username="$(printf '%s' "${entry}" | jq -r '.username')"
   password="$(printf '%s' "${entry}" | jq -r '.password')"
 
-  token_resp=$(curl -sfk -X POST "${GITEA_URL}/api/v1/users/${username}/tokens" \
+  token_resp=$(curl -sk --max-time 30 -X POST "${GITEA_URL}/api/v1/users/${username}/tokens" \
     -u "${username}:${password}" \
     -H "Content-Type: application/json" \
-    -d '{"name":"API access token"}')
+    -d '{"name":"API access token"}') || true
   token_val=$(printf '%s' "${token_resp}" | jq -r '.sha1 // empty')
 
   if [ -n "${token_val}" ]; then
