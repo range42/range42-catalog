@@ -4,12 +4,14 @@ services:
   db:
     image: mariadb:11
     restart: unless-stopped
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     environment:
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-changeme_db_root_password}
       MYSQL_DATABASE:      ${MISP_DB_NAME:-misp}
       MYSQL_USER:          ${MISP_DB_USER:-misp}
-      MYSQL_PASSWORD:      ${MISP_DB_PASSWORD}
+      MYSQL_PASSWORD:      ${MISP_DB_PASSWORD:-changeme_db_password}
     volumes:
       - db-data:/var/lib/mysql
     healthcheck:
@@ -57,10 +59,12 @@ services:
       context: .
       target: runtime
       args:
-        MISP_VERSION: ${MISP_VERSION:-latest}
-    image: misp-standalone:${MISP_VERSION:-latest}
+        MISP_VERSION: ${MISP_VERSION:-v2.5.37}
+    image: misp-standalone:${MISP_VERSION:-v2.5.37}
     restart: unless-stopped
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     ports:
       - "${MISP_HTTP_PORT:-80}:80"
       - "${MISP_HTTPS_PORT:-443}:443"
@@ -92,7 +96,9 @@ services:
       args:
         MISP_VERSION: ${MISP_VERSION:-v2.5.37}
     entrypoint: ["/provisioning/provision.sh"]
-    env_file: .env
+    env_file:
+      - path: .env
+        required: false
     volumes:
       - keys:/keys
       - ./provisioning/provision.sh:/provisioning/provision.sh:ro
