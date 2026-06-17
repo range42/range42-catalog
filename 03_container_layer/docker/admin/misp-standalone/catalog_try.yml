@@ -1,0 +1,33 @@
+##
+## catalog_try contract - MISP (standalone Docker, full stack)
+##
+## Used by `range42-context catalog-try docker/admin/misp-standalone` to apply
+## a stricter smoke check (L2 HTTPS poll on /users/login on port 443) instead
+## of the default L1 fallback (docker ps -a presence).
+##
+## Port 443 is the externally-mapped HTTPS port (compose maps `${MISP_HTTPS_PORT:-443}:443`
+## from host to the misp container). Port 80 is also mapped but redirects to
+## 443, so the smoke check targets HTTPS directly - same approach as the MISP
+## container's own healthcheck (`curl -sfk https://localhost/users/login`).
+## The `-k` (insecure) is implicit : MISP serves a self-signed cert by default.
+##
+## init_timeout = 1500s (25 min) : MISP first run is the slowest stack in this
+## catalog. The misp service image is built from source (not pulled) - 10-20 min
+## for the build itself (git clone MISP + submodules + apt packages + composer)
+## then 3-5 min for the provisioner sidecar to seed the database + write the
+## API keys to /keys/api-keys.txt. Subsequent boots are fast (image cached) but
+## the timeout sized for cold first run keeps the L2 check honest.
+##
+## Endpoint /users/login returns HTTP 200 with the MISP login form as soon as
+## the misp service is serving HTTPS, even before login - same endpoint as the
+## upstream healthcheck contract. Once a 200 is observed, the stack is up.
+##
+## See range42-playbooks/scenarios/catalog_try/catalog_try.element_deploy.yml
+## for the playbook that consumes these fields.
+##
+
+catalog_try_mode: service
+catalog_try_port:
+  - 443    # HTTPS (web UI + API + login form)
+catalog_try_endpoint: /users/login
+catalog_try_init_timeout: 1500
