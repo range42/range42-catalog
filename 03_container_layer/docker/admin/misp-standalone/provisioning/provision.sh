@@ -4,6 +4,7 @@
 set -euo pipefail
 
 /provisioning/provision-orgs.sh
+/provisioning/provision-sharing-groups.sh
 /provisioning/provision-users.sh
 /provisioning/provision-warninglists.sh
 /provisioning/provision-content.sh

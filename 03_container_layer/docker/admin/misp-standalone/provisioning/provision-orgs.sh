@@ -64,6 +64,26 @@ for entry in data:
 " "${name}" 2>/dev/null || true
 }
 
+# Renames MISP's default org (id=1) to the given name and returns its ID.
+rename_host_org() {
+    local name="$1"
+    local resp
+    resp=$(misp_post "/admin/organisations/edit/1" "$(cat <<JSON
+{
+  "name":        "${name}",
+  "nationality": "International",
+  "local":       true
+}
+JSON
+)" 2>&1 || true)
+    log "rename_host_org('${name}') raw response: ${resp}"
+    echo "${resp}" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+print(data.get('Organisation', {}).get('id', ''))
+" 2>/dev/null || true
+}
+
 # Creates an org and returns its new ID.
 create_org() {
     local name="$1"
@@ -86,23 +106,38 @@ print(data.get('Organisation', {}).get('id', ''))
 " 2>/dev/null || true
 }
 
-# ── Build org list ────────────────────────────────────────────────────────────
+# ── Resolve names ─────────────────────────────────────────────────────────────
 
-INSTRUCTOR_ORG="${MISP_INSTRUCTOR_ORG:-instructors}"
+# Instructor org falls back to MISP_ORG so that a blank MISP_INSTRUCTOR_ORG in
+# .env automatically reuses the host org name without extra configuration.
+INSTRUCTOR_ORG="${MISP_INSTRUCTOR_ORG:-${MISP_ORG:-Range42}}"
 IFS=',' read -ra TEAM_LIST <<< "${MISP_TEAMS:-team-blue,team-red}"
 
-ALL_ORGS=("${INSTRUCTOR_ORG}")
-for t in "${TEAM_LIST[@]}"; do
-    ALL_ORGS+=("${t}")
-done
-
-log "Orgs to provision: ${ALL_ORGS[*]}"
-
-# ── Create orgs ───────────────────────────────────────────────────────────────
+log "Instructor org: ${INSTRUCTOR_ORG}"
+log "Team orgs: ${TEAM_LIST[*]}"
 
 : > "${ORG_IDS_FILE}"
 
-for raw_name in "${ALL_ORGS[@]}"; do
+# ── Instructor org — reuse MISP host org (id=1) ───────────────────────────────
+# cake userInit creates org 1 with a generic placeholder name. Rename it to the
+# instructor org name so the admin user is already in the right org.
+
+instr_id=$(get_org_id "${INSTRUCTOR_ORG}")
+if [ -n "${instr_id}" ]; then
+    log "Instructor org '${INSTRUCTOR_ORG}' already exists (id=${instr_id}) — skipping rename."
+else
+    log "Renaming MISP host org (id=1) to '${INSTRUCTOR_ORG}' …"
+    instr_id=$(rename_host_org "${INSTRUCTOR_ORG}")
+    [ -n "${instr_id}" ] || fail "Failed to rename host org to '${INSTRUCTOR_ORG}' — empty ID returned."
+    log "Host org renamed to '${INSTRUCTOR_ORG}' (id=${instr_id})."
+fi
+
+instr_env_key="MISP_ORG_ID_$(echo "${INSTRUCTOR_ORG}" | tr '[:lower:]-' '[:upper:]_')"
+echo "${instr_env_key}=${instr_id}" >> "${ORG_IDS_FILE}"
+
+# ── Team orgs — create if absent ─────────────────────────────────────────────
+
+for raw_name in "${TEAM_LIST[@]}"; do
     org_name=$(echo "${raw_name}" | tr -d '[:space:]')
     [ -z "${org_name}" ] && continue
 
@@ -117,7 +152,6 @@ for raw_name in "${ALL_ORGS[@]}"; do
         log "Org '${org_name}' created (id=${org_id})."
     fi
 
-    # Convert name to UPPER_SNAKE for the env key, e.g. team-blue → TEAM_BLUE
     env_key="MISP_ORG_ID_$(echo "${org_name}" | tr '[:lower:]-' '[:upper:]_')"
     echo "${env_key}=${org_id}" >> "${ORG_IDS_FILE}"
 done

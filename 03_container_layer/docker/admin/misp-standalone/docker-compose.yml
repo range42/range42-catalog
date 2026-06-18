@@ -95,6 +95,7 @@ services:
       - keys:/keys
       - ./provisioning/provision.sh:/provisioning/provision.sh:ro
       - ./provisioning/provision-orgs.sh:/provisioning/provision-orgs.sh:ro
+      - ./provisioning/provision-sharing-groups.sh:/provisioning/provision-sharing-groups.sh:ro
       - ./provisioning/provision-users.sh:/provisioning/provision-users.sh:ro
       - ./provisioning/provision-warninglists.sh:/provisioning/provision-warninglists.sh:ro
       - ./provisioning/provision-content.sh:/provisioning/provision-content.sh:ro
