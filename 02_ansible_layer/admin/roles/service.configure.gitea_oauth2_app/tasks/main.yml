@@ -19,7 +19,9 @@
     that:
       - gitea_oauth2_app_name | length > 0
       - gitea_oauth2_redirect_uri | length > 0
-    fail_msg: "gitea_oauth2_app_name and gitea_oauth2_redirect_uri must be set"
+      - gitea_oauth2_admin_user | length > 0
+      - gitea_oauth2_admin_pass | length > 0
+    fail_msg: "gitea_oauth2_app_name, gitea_oauth2_redirect_uri, gitea_oauth2_admin_user and gitea_oauth2_admin_pass must all be set"
 
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
 
@@ -33,6 +35,7 @@
     validate_certs: false
     status_code: [200]
   register: _gitea_existing_apps
+  no_log: true
 
 - name: check if app already registered
   ansible.builtin.set_fact:
@@ -66,12 +69,14 @@
     status_code: [200, 201]
   register: _gitea_oauth2_created
   when: not _gitea_app_exists
+  no_log: true
 
 - name: store created app credentials as facts
   ansible.builtin.set_fact:
     gitea_oauth2_client_id: "{{ _gitea_oauth2_created.json.client_id }}"
     gitea_oauth2_client_secret: "{{ _gitea_oauth2_created.json.client_secret }}"
   when: not _gitea_app_exists
+  no_log: true
 
 - name: store existing app client_id as fact (secret not recoverable)
   ansible.builtin.set_fact:
@@ -83,6 +88,7 @@
       }}
     gitea_oauth2_client_secret: ""
   when: _gitea_app_exists
+  no_log: true
 
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
 
@@ -90,7 +96,6 @@
   ansible.builtin.debug:
     msg:
       - "OAuth2 app registered: {{ gitea_oauth2_app_name }}"
-      - "client_id    : {{ gitea_oauth2_client_id }}"
       - "redirect_uri : {{ gitea_oauth2_redirect_uri }}"
       - "authorize    : {{ gitea_oauth2_base_url }}/login/oauth/authorize"
       - "token        : {{ gitea_oauth2_base_url }}/login/oauth/access_token"

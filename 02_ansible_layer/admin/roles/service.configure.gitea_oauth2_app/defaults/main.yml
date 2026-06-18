@@ -8,8 +8,8 @@
 # In cross-service scenarios: http://<gitea_vm_ip>:3000
 gitea_oauth2_base_url: "http://localhost:3000"
 
-gitea_oauth2_admin_user: "admin"
-gitea_oauth2_admin_pass: "Admin1234!"
+gitea_oauth2_admin_user: ""
+gitea_oauth2_admin_pass: ""
 
 # Name of the OAuth2 application to register in Gitea (must be unique).
 # Use a stable, lowercase slug: mattermost, rocketchat, nextcloud, …

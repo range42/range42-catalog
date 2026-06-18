@@ -1,0 +1,13 @@
+---
+mattermost_deploy_dir: "/home/alice/mattermost"
+mattermost_http_port: "8065"
+mattermost_admin_user: "admin"
+mattermost_admin_pass: "Admin1234!"
+mattermost_team_name: "range42"
+mattermost_postgres_user: "mattermost"
+mattermost_postgres_password: ""
+mattermost_postgres_db: "mattermost"
+
+mattermost_gitea_base_url: "http://localhost:3000"
+mattermost_gitea_client_id: ""
+mattermost_gitea_client_secret: ""

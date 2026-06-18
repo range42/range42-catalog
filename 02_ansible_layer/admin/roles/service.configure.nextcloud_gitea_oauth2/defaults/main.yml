@@ -1,0 +1,7 @@
+---
+nextcloud_container_name: "nextcloud"
+nextcloud_oidc_provider_name: "Gitea"
+
+nextcloud_gitea_base_url: "http://localhost:3000"
+nextcloud_gitea_client_id: ""
+nextcloud_gitea_client_secret: ""

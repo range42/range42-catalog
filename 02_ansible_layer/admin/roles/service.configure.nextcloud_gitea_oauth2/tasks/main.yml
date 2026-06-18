@@ -1,0 +1,38 @@
+---
+- name: enable Nextcloud user_oidc app
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - "app:enable"
+      - user_oidc
+  become: true
+  register: _occ_enable
+  changed_when: "'already enabled' not in _occ_enable.stdout | lower"
+
+- name: register Gitea as OIDC provider in Nextcloud
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - "user_oidc:provider"
+      - "{{ nextcloud_oidc_provider_name }}"
+      - "--clientid={{ nextcloud_gitea_client_id }}"
+      - "--clientsecret={{ nextcloud_gitea_client_secret }}"
+      - "--discoveryuri={{ nextcloud_gitea_base_url }}/.well-known/openid-configuration"
+      - "--mapping-uid=preferred_username"
+  become: true
+  changed_when: true
+  no_log: true
