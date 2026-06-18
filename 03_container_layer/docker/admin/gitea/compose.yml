@@ -68,6 +68,10 @@ services:
       GITEA__security__INSTALL_LOCK:    "true"
       GITEA__security__SECRET_KEY:      ${GITEA_SECRET_KEY:-please-change-me-in-production}
       GITEA__security__INTERNAL_TOKEN:  ${GITEA_INTERNAL_TOKEN:-please-change-me-in-production}
+      # JWT_SECRET enables id_token signing — required for full OIDC compliance.
+      # Without it the /.well-known/openid-configuration endpoint is present but
+      # id_token is absent from token responses (OAuth2-only mode).
+      GITEA__oauth2__JWT_SECRET:        ${GITEA_OAUTH2_JWT_SECRET:-please-change-me-in-production}
     volumes:
       - gitea-data:/data
       - gitea-certs:/certs:ro
@@ -117,6 +121,7 @@ services:
       - ./provisioning/provision-users.sh:/provisioning/provision-users.sh:ro
       - ./provisioning/provision-org.sh:/provisioning/provision-org.sh:ro
       - ./provisioning/provision-tokens.sh:/provisioning/provision-tokens.sh:ro
+      - ./provisioning/provision-oauth2.sh:/provisioning/provision-oauth2.sh:ro
     depends_on:
       gitea:
         condition: service_healthy
