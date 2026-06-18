@@ -6,7 +6,7 @@ SERVICE       = gitea-registry
 PROVISIONER   = gitea-registry-provisioner
 DEBUG_SERVICE = $(SERVICE)-debug
 
-.PHONY: help up down stop build rebuild build-up rebuild-up reprovision logs-provisioner tokens term term-debug-build clean print
+.PHONY: help up down stop build rebuild build-up rebuild-up reprovision logs-provisioner tokens keys term term-debug-build clean print
 
 help:
 	@echo ""
@@ -27,6 +27,7 @@ help:
 	@echo "  make logs-provisioner  - tail provisioner output"
 	@echo ""
 	@echo "  make tokens            - display generated registry tokens"
+	@echo "  make keys              - display full credentials JSON"
 	@echo ""
 	@echo "  make term              - open shell in $(SERVICE) container"
 	@echo "  make term-debug-build  - build and open shell in $(DEBUG_SERVICE)"
@@ -67,8 +68,8 @@ rebuild-up:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 reprovision:
-	docker exec $(SERVICE) rm -f /data/gitea/.provisioned
-	docker compose restart $(PROVISIONER)
+	docker run --rm -v gitea-registry_gitea-registry-tokens:/tokens alpine rm -f /tokens/.provisioned
+	docker compose up $(PROVISIONER)
 
 logs-provisioner:
 	docker compose logs -f $(PROVISIONER)
@@ -76,7 +77,10 @@ logs-provisioner:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 tokens:
-	docker run --rm -v gitea-registry-tokens:/tokens alpine cat /tokens/tokens.txt
+	docker run --rm -v gitea-registry_gitea-registry-tokens:/tokens alpine cat /tokens/tokens.txt
+
+keys:
+	docker run --rm -v gitea-registry_gitea-registry-tokens:/tokens alpine cat /tokens/gitea-registry-credentials.json
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 

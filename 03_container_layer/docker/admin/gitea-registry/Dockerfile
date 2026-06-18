@@ -1,30 +1,13 @@
 #
 # ISSUE 142
 #
-
+# Lightweight provisioner using the official Gitea image (Alpine-based).
+# The Gitea CLI is available for admin user creation (direct DB access).
+# Provisioning scripts are volume-mounted at runtime (not baked in),
+# mirroring the misp-standalone provisioner pattern.
 #
-# BUILDER — golang:alpine (same base as official Gitea Dockerfile)
-# Installs yq for YAML parsing; copies and pre-validates provisioning scripts.
-#
-FROM golang:alpine AS builder
+FROM gitea/gitea:latest
 
-RUN apk add --no-cache jq && \
-    wget -q https://github.com/mikefarah/yq/releases/download/v4.44.1/yq_linux_amd64 \
-      -O /usr/bin/yq && chmod +x /usr/bin/yq
+RUN apk add --no-cache bash openssl jq
 
-COPY provisioning/ /provisioning/
-RUN chmod +x /provisioning/init.sh
-
-#
-# RUNTIME — gitea/gitea:latest (Alpine-based, ships the gitea CLI)
-# Copies tooling and provisioning scripts from builder.
-# Acts as the provisioner sidecar: creates users via CLI + SSH keys via REST API
-# and generates personal access tokens for Docker registry usage.
-#
-FROM gitea/gitea:latest AS runtime
-
-COPY --from=builder /usr/bin/yq        /usr/bin/yq
-COPY --from=builder /usr/bin/jq        /usr/bin/jq
-COPY --from=builder /provisioning/     /provisioning/
-
-ENTRYPOINT ["/provisioning/init.sh"]
+ENTRYPOINT ["/provisioning/provision.sh"]
