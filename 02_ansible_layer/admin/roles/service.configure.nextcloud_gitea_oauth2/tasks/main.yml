@@ -1,4 +1,22 @@
 ---
+- name: add ansible_host to Nextcloud trusted_domains
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - config:system:set
+      - trusted_domains
+      - "1"
+      - "--value={{ ansible_host }}:{{ nextcloud_http_port }}"
+  become: true
+  changed_when: true
+
 - name: enable Nextcloud user_oidc app
   ansible.builtin.command:
     argv:
