@@ -13,7 +13,7 @@
       - config:system:set
       - trusted_domains
       - "1"
-      - "--value={{ ansible_host }}:{{ nextcloud_http_port }}"
+      - "--value={{ nextcloud_public_ip }}:{{ nextcloud_http_port }}"
   become: true
   changed_when: true
 

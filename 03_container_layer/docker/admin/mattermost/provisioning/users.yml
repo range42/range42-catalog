@@ -8,7 +8,7 @@
 # The provisioner is idempotent — re-running skips already-created accounts.
 
 admins:
-  - username: mm-admin
+  - username: admin
     email: admin@range42.local
     password: "Admin1234!"
 

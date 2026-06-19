@@ -6,18 +6,19 @@
 # Runs once after Mattermost is healthy; guarded by a stamp file for idempotency.
 #
 # User declarations come from USERS_FILE (default: /provisioning/users.yml).
-# Admin users are created via the mattermost CLI (direct DB access via config.json).
+# All users are created via the Mattermost REST API (POST /api/v4/users).
+# The first admin is created without auth — Mattermost auto-grants system_admin
+# when no system admin exists yet (requires MM_TEAMSETTINGS_ENABLEOPENSERVER=true).
 # Personal access tokens are generated via the Mattermost REST API.
 # Tokens are written to /tokens/tokens.txt and to stdout.
 #
 set -eu
 
 MM_URL="${MM_URL:-http://mattermost:8065}"
-MM_ADMIN_USER="${MM_ADMIN_USER:-mm-admin}"
+MM_ADMIN_USER="${MM_ADMIN_USER:-admin}"
 MM_ADMIN_PASS="${MM_ADMIN_PASS:-Admin1234!}"
 MM_TEAM_NAME="${MM_TEAM_NAME:-range42}"
 USERS_FILE="${USERS_FILE:-/provisioning/users.yml}"
-MM_CONFIG="/mattermost/config/config.json"
 PROVISION_STAMP="/tokens/.provisioned"
 TOKENS_FILE="/tokens/tokens.txt"
 
@@ -40,7 +41,9 @@ if [ -f "${PROVISION_STAMP}" ]; then
   exit 0
 fi
 
-# ── 3. Admin users (mattermost CLI — direct DB, no HTTP auth needed) ─────────
+# ── 3. Admin users (REST API — no auth; first user auto-gets system_admin) ───
+# Mattermost grants system_admin to the first account created when no
+# system admin exists yet, provided MM_TEAMSETTINGS_ENABLEOPENSERVER=true.
 admin_count=$(yq e '.admins | length' "${USERS_FILE}")
 echo "[init] Creating ${admin_count} admin user(s) ..."
 
@@ -51,40 +54,23 @@ while [ "${i}" -lt "${admin_count}" ]; do
   password=$(yq e ".admins[${i}].password" "${USERS_FILE}")
 
   echo "[init]   + admin: ${username}"
-  mattermost --config "${MM_CONFIG}" user create \
-    --email "${email}" \
-    --username "${username}" \
-    --password "${password}" \
-    --system_admin \
-    --email-verified 2>/dev/null \
-    || echo "[warn] ${username} may already exist — skipping"
+  create_resp=$(curl -s -X POST "${MM_URL}/api/v4/users" \
+    -H "Content-Type: application/json" \
+    -d "$(jq -n --arg e "${email}" --arg u "${username}" --arg p "${password}" \
+          '{"email":$e,"username":$u,"password":$p}')")
+  http_status=$(printf '%s' "${create_resp}" | jq -r '.status_code // "0"')
+  created_id=$(printf '%s' "${create_resp}" | jq -r '.id // empty')
+  if [ "${http_status}" = "0" ] && [ -n "${created_id}" ]; then
+    echo "[init]   created ${username} (id=${created_id})"
+  else
+    echo "[warn] ${username} may already exist — skipping"
+  fi
 
   i=$((i + 1))
 done
 
-# ── 4. Regular users (mattermost CLI) ────────────────────────────────────────
-user_count=$(yq e '.users | length' "${USERS_FILE}")
-echo "[init] Creating ${user_count} regular user(s) ..."
-
-i=0
-while [ "${i}" -lt "${user_count}" ]; do
-  username=$(yq e ".users[${i}].username" "${USERS_FILE}")
-  email=$(yq e ".users[${i}].email"       "${USERS_FILE}")
-  password=$(yq e ".users[${i}].password" "${USERS_FILE}")
-
-  echo "[init]   + user: ${username}"
-  mattermost --config "${MM_CONFIG}" user create \
-    --email "${email}" \
-    --username "${username}" \
-    --password "${password}" \
-    --email-verified 2>/dev/null \
-    || echo "[warn] ${username} may already exist — skipping"
-
-  i=$((i + 1))
-done
-
-# ── 5. Login as first admin via REST API ─────────────────────────────────────
-echo "[init] Waiting for REST API to recognize provisioned users ..."
+# ── 4. Login as admin via REST API ───────────────────────────────────────────
+echo "[init] Logging in as admin (${MM_ADMIN_USER}) ..."
 mm_token=""
 attempts=0
 until [ -n "${mm_token}" ] && [ "${mm_token}" != "null" ]; do
@@ -110,6 +96,33 @@ if [ -z "${admin_token}" ] || [ "${admin_id}" = "null" ]; then
   exit 1
 fi
 echo "[init] Admin session established (id=${admin_id})."
+
+# ── 5. Regular users (REST API with admin token) ──────────────────────────────
+user_count=$(yq e '.users | length' "${USERS_FILE}")
+echo "[init] Creating ${user_count} regular user(s) ..."
+
+i=0
+while [ "${i}" -lt "${user_count}" ]; do
+  username=$(yq e ".users[${i}].username" "${USERS_FILE}")
+  email=$(yq e ".users[${i}].email"       "${USERS_FILE}")
+  password=$(yq e ".users[${i}].password" "${USERS_FILE}")
+
+  echo "[init]   + user: ${username}"
+  create_resp=$(curl -s -X POST "${MM_URL}/api/v4/users" \
+    -H "Authorization: Bearer ${admin_token}" \
+    -H "Content-Type: application/json" \
+    -d "$(jq -n --arg e "${email}" --arg u "${username}" --arg p "${password}" \
+          '{"email":$e,"username":$u,"password":$p}')")
+  http_status=$(printf '%s' "${create_resp}" | jq -r '.status_code // "0"')
+  created_id=$(printf '%s' "${create_resp}" | jq -r '.id // empty')
+  if [ "${http_status}" = "0" ] && [ -n "${created_id}" ]; then
+    echo "[init]   created ${username} (id=${created_id})"
+  else
+    echo "[warn] ${username} may already exist — skipping"
+  fi
+
+  i=$((i + 1))
+done
 
 # ── 6. Create default team ────────────────────────────────────────────────────
 echo "[init] Creating team '${MM_TEAM_NAME}' ..."
