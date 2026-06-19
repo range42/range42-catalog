@@ -5,7 +5,7 @@
 services:
 
   mongodb:
-    image: mongo:6.0
+    image: mongo:8.0
     container_name: rocketchat-mongodb
     command: mongod --replSet rs0 --oplogSize 128
     volumes:
@@ -19,7 +19,7 @@ services:
     restart: unless-stopped
 
   mongo-init-replica:
-    image: mongo:6.0
+    image: mongo:8.0
     container_name: rocketchat-mongo-init
     command: >
       bash -c "
@@ -28,7 +28,7 @@ services:
           try { rs.status().ok } catch(e) {
             rs.initiate({ _id: \"rs0\", members: [{ _id: 0, host: \"mongodb:27017\" }] })
           }';
-        until mongosh mongodb:27017/admin --eval 'rs.isMaster().ismaster' 2>/dev/null | grep -q true; do sleep 2; done;
+        until mongosh mongodb:27017/admin --eval 'rs.hello().isWritablePrimary' 2>/dev/null | grep -q true; do sleep 2; done;
         echo \"Replica set PRIMARY ready\"
       "
     depends_on:
