@@ -55,6 +55,8 @@
       community.docker.docker_compose_v2:
         project_src: "{{ REMOTE_PROJECT_DIR }}"
         state: present
+        recreate: "{{ 'always' if FORCE_RECREATE == 'YES' else 'auto' }}"
+        remove_orphans: "{{ FORCE_RECREATE == 'YES' }}"
     #
     - name: DOCKER - GET CONTAINER INFO {{ LABEL_PROJET_NAME }}
       community.docker.docker_container_info:
