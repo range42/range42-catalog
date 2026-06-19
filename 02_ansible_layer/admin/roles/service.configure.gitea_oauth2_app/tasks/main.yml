@@ -41,9 +41,9 @@
   ansible.builtin.set_fact:
     _gitea_existing_app_id: >-
       {{
-        _gitea_existing_apps.json
+        (_gitea_existing_apps.json
         | selectattr('name', 'equalto', gitea_oauth2_app_name)
-        | map(attribute='id') | first | default('')
+        | map(attribute='id') | list)[0] | default('') | string
       }}
 
 - name: delete pre-existing app so creation always returns a fresh secret
