@@ -55,7 +55,7 @@ services:
     volumes:
       - rocketchat-uploads:/app/uploads
     ports:
-      - "${HTTP_PORT:-3000}:3000"
+      - "${HTTP_PORT:-3500}:3000"
     depends_on:
       mongodb:
         condition: service_healthy
