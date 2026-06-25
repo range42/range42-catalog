@@ -1,4 +1,22 @@
 ---
+- name: allow Nextcloud to reach local/private IP addresses (required for Gitea OIDC on RFC1918 IP)
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - config:system:set
+      - allow_local_remote_servers
+      - "--value=true"
+      - "--type=boolean"
+  become: true
+  changed_when: true
+
 - name: add ansible_host to Nextcloud trusted_domains
   ansible.builtin.command:
     argv:
