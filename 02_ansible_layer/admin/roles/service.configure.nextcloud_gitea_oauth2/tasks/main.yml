@@ -1,4 +1,8 @@
 ---
+# SECURITY: allow_local_remote_servers=true disables NC's SSRF guard globally (LocalServerException).
+# This is intentional for Range42: Gitea lives on an RFC1918 address and NC has no per-host allowlist.
+# Acceptable here because NC is a training tool with no untrusted user-submitted URLs (no link previews,
+# no external calendar subs). Do NOT copy this setting to a production NC instance.
 - name: allow Nextcloud to reach local/private IP addresses (required for Gitea OIDC on RFC1918 IP)
   ansible.builtin.command:
     argv:
