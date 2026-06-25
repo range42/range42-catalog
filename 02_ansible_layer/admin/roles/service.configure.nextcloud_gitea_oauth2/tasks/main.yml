@@ -17,6 +17,23 @@
   become: true
   changed_when: true
 
+- name: set Nextcloud overwriteprotocol to https
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - config:system:set
+      - overwriteprotocol
+      - "--value=https"
+  become: true
+  changed_when: true
+
 - name: enable Nextcloud user_oidc app
   ansible.builtin.command:
     argv:
@@ -33,6 +50,56 @@
   become: true
   register: _occ_enable
   changed_when: "'already enabled' not in _occ_enable.stdout | lower"
+
+- name: fetch Gitea self-signed TLS certificate from host
+  ansible.builtin.shell:
+    cmd: >-
+      openssl s_client -connect {{ ansible_default_ipv4.address }}:3000 -showcerts
+      </dev/null 2>/dev/null | openssl x509 -outform PEM
+  register: _gitea_cert
+  changed_when: false
+
+- name: write Gitea cert to temp file on host
+  ansible.builtin.copy:
+    content: "{{ _gitea_cert.stdout }}"
+    dest: /tmp/gitea-cert.pem
+    mode: '0644'
+
+- name: copy Gitea cert into Nextcloud container
+  ansible.builtin.command:
+    cmd: docker cp /tmp/gitea-cert.pem {{ nextcloud_container_name }}:/tmp/gitea-cert.pem
+  become: true
+  changed_when: true
+
+- name: import Gitea cert into Nextcloud trusted certificates
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - security:certificates:import
+      - /tmp/gitea-cert.pem
+  become: true
+  changed_when: true
+
+- name: install Gitea cert into Nextcloud OS trust store
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - root
+      - "{{ nextcloud_container_name }}"
+      - bash
+      - -c
+      - "cp /tmp/gitea-cert.pem /usr/local/share/ca-certificates/gitea.crt && update-ca-certificates"
+  become: true
+  changed_when: true
 
 - name: register Gitea as OIDC provider in Nextcloud
   ansible.builtin.command:
@@ -54,3 +121,21 @@
   become: true
   changed_when: true
   no_log: true
+
+- name: verify Gitea OIDC provider was registered in Nextcloud
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - user_oidc:provider
+      - "--list"
+  become: true
+  register: _occ_provider_list
+  changed_when: false
+  failed_when: nextcloud_oidc_provider_name not in _occ_provider_list.stdout

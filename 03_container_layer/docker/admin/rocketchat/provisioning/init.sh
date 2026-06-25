@@ -23,7 +23,7 @@ echo "[init] Waiting for Rocket.Chat at ${RC_URL} ..."
 attempts=0
 max_attempts=60
 
-until curl -sf "${RC_URL}/api/v1/info" >/dev/null 2>&1; do
+until curl -sf "${RC_URL}/health" >/dev/null 2>&1; do
   attempts=$((attempts + 1))
   if [ "${attempts}" -ge "${max_attempts}" ]; then
     echo "[init] ERROR: Rocket.Chat did not become healthy after $((max_attempts * 3))s. Aborting."

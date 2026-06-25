@@ -54,6 +54,7 @@ services:
       OVERWRITE_SETTING_Show_Setup_Wizard: completed
     volumes:
       - rocketchat-uploads:/app/uploads
+      - /home/alice/certs/gitea.crt:/certs/gitea.crt:ro
     ports:
       - "${HTTP_PORT:-3500}:3000"
     depends_on:
@@ -90,6 +91,15 @@ services:
       RC_ADMIN_USER: ${RC_ADMIN_USER:-rc-admin}
       RC_ADMIN_PASS: ${RC_ADMIN_PASS:-Admin1234!}
       USERS_FILE:    /provisioning/users.yml
+      # Gitea self-registration — provisioner registers RC as an OAuth2 app and
+      # configures the Custom OAuth2 provider. Leave GITEA_URL blank to skip.
+      GITEA_URL:         "${GITEA_BASE_URL:-}"
+      GITEA_ADMIN_USER:  "${GITEA_ADMIN_USER:-gitea-admin}"
+      GITEA_ADMIN_PASS:  "${GITEA_ADMIN_PASS:-}"
+      RC_BASE_URL:       "${RC_BASE_URL:-http://localhost:3500}"
+      # Optional: pre-supply credentials to skip the self-registration step.
+      RC_GITEA_CLIENT_ID:     "${RC_GITEA_CLIENT_ID:-}"
+      RC_GITEA_CLIENT_SECRET: "${RC_GITEA_CLIENT_SECRET:-}"
     volumes:
       - rocketchat-tokens:/tokens
     depends_on:

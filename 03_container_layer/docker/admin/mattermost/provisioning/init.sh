@@ -204,6 +204,6 @@ generate_tokens() {
 generate_tokens admins
 generate_tokens users
 
-# ── 9. Mark as provisioned ────────────────────────────────────────────────────
+# ── 9. Mark as provisioned ───────────────────────────────────────────────────
 touch "${PROVISION_STAMP}"
 echo "[init] Provisioning complete. Tokens written to ${TOKENS_FILE}."

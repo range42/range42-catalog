@@ -26,6 +26,17 @@ case "${GITEA_TLS_MODE}" in
     echo "[cert-gen] Generating self-signed certificate for '${DOMAIN}' ..."
     mkdir -p "${CERTS_DIR}"
 
+    # RFC 2818: TLS hostname check for IP connections uses iPAddress SANs only
+    # (not dNSName SANs). Use IP:${DOMAIN} when DOMAIN is an IPv4 address so
+    # that external clients connecting via the host IP pass hostname verification.
+    # Always include DNS:localhost and IP:127.0.0.1 so intra-stack callers
+    # (provisioner via "gitea" hostname, stage_02 Ansible via "localhost") verify.
+    if [[ "${DOMAIN}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      SAN_ENTRIES="IP:${DOMAIN},DNS:localhost,DNS:gitea,IP:127.0.0.1"
+    else
+      SAN_ENTRIES="DNS:${DOMAIN},DNS:gitea,IP:127.0.0.1"
+    fi
+
     # Use an explicit config file for SAN support (portable across OpenSSL versions)
     CFG="$(mktemp /tmp/openssl-XXXXXX)"
     cat > "${CFG}" <<EOF
@@ -39,7 +50,7 @@ x509_extensions    = san
 CN = ${DOMAIN}
 
 [san]
-subjectAltName = DNS:${DOMAIN},DNS:gitea,IP:127.0.0.1
+subjectAltName = ${SAN_ENTRIES}
 EOF
 
     openssl req -x509 -nodes -newkey rsa:4096 \

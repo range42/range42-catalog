@@ -1,7 +1,7 @@
 ---
 nextcloud_container_name: "nextcloud"
 nextcloud_oidc_provider_name: "Gitea"
-nextcloud_http_port: "8080"
+nextcloud_http_port: "8443"
 
 # Public IP or hostname that clients use to reach Nextcloud.
 # Must be added to Nextcloud trusted_domains so the web browser's Host header

@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
       -o /usr/local/bin/jq && chmod +x /usr/local/bin/jq
 
 COPY provisioning/ /provisioning/
-RUN chmod +x /provisioning/init.sh
+RUN chmod +x /provisioning/init.sh /provisioning/cert-gen.sh
 
 #
 # RUNTIME — nextcloud:latest (PHP/Apache/Debian, provisioner via OCS API)
