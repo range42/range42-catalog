@@ -134,8 +134,8 @@
       - occ
       - --no-warnings
       - user_oidc:provider
-      - "--list"
+      - "{{ nextcloud_oidc_provider_name }}"
   become: true
-  register: _occ_provider_list
+  register: _occ_provider_check
   changed_when: false
-  failed_when: nextcloud_oidc_provider_name not in _occ_provider_list.stdout
+  failed_when: _occ_provider_check.rc != 0
