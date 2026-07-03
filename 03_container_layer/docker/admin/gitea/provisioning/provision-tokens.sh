@@ -25,18 +25,19 @@ while IFS= read -r entry; do
   username="$(printf '%s' "${entry}" | jq -r '.username')"
   password="$(printf '%s' "${entry}" | jq -r '.password')"
 
-  token_resp=$(curl -sf -X POST "${GITEA_URL}/api/v1/users/${username}/tokens" \
+  token_resp=$(curl -sk --max-time 30 -X POST "${GITEA_URL}/api/v1/users/${username}/tokens" \
     -u "${username}:${password}" \
     -H "Content-Type: application/json" \
-    -d '{"name":"API access token"}')
-  token_val=$(printf '%s' "${token_resp}" | jq -r '.sha1 // empty')
+    -d '{"name":"API access token","scopes":["read:repository","write:repository","read:issue","write:issue","read:user","write:user","read:organization"]}') || true
+  # Gitea <1.21 uses .sha1; >=1.21 uses .token
+  token_val=$(printf '%s' "${token_resp}" | jq -r '.token // .sha1 // empty')
 
   if [ -n "${token_val}" ]; then
     printf '%s:%s\n' "${username}" "${token_val}" >> "${TOKENS_FILE}"
     echo "[provision-tokens]   + token for ${username}"
   else
     printf '%s:ERROR\n' "${username}" >> "${TOKENS_FILE}"
-    echo "[warn] Could not create token for ${username}"
+    echo "[warn] Could not create token for ${username}: $(printf '%s' "${token_resp}" | jq -r '.message // .' 2>/dev/null || printf '%s' "${token_resp}")"
   fi
 done < <(jq -c '.users[]' "${CREDS_FILE}")
 

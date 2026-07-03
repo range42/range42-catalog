@@ -18,4 +18,4 @@ catalog_try_port:
   - 3000   # HTTP (web UI + API)
   - 2222   # SSH (git clone)
 catalog_try_endpoint: /api/v1/version
-catalog_try_init_timeout: 90
+catalog_try_init_timeout: 120
