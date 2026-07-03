@@ -5,7 +5,7 @@
 services:
 
   mongodb:
-    image: mongo:6.0
+    image: mongo:8.0
     container_name: rocketchat-mongodb
     command: mongod --replSet rs0 --oplogSize 128
     volumes:
@@ -19,7 +19,7 @@ services:
     restart: unless-stopped
 
   mongo-init-replica:
-    image: mongo:6.0
+    image: mongo:8.0
     container_name: rocketchat-mongo-init
     command: >
       bash -c "
@@ -45,7 +45,7 @@ services:
       ROOT_URL:       ${RC_BASE_URL:-http://localhost:3000}
       PORT:           "3000"
       DEPLOY_PLATFORM: docker
-      ADMIN_USERNAME: ${RC_ADMIN_USER:-rc-admin}
+      ADMIN_USERNAME: ${RC_ADMIN_USER:-admin}
       ADMIN_PASS:     ${RC_ADMIN_PASS:-Admin1234!}
       ADMIN_EMAIL:    ${RC_ADMIN_EMAIL:-admin@range42.local}
       OVERWRITE_SETTING_Show_Setup_Wizard: completed
@@ -59,7 +59,15 @@ services:
       mongo-init-replica:
         condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/info"]
+      # The rocket.chat image ships Node (it runs `node main.js`) but NOT curl,
+      # so a curl-based probe never passes and the container is stuck
+      # "health: starting" forever (blocking the provisioner via depends_on).
+      # Use Node's built-in fetch (Node 18+) to hit the info endpoint instead.
+      test:
+        - CMD
+        - node
+        - -e
+        - "fetch('http://localhost:3000/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
       interval: 20s
       timeout: 10s
       retries: 15
@@ -78,13 +86,14 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: rocketchat-provisioner
+    env_file: .env
     environment:
-      RC_URL:        http://rocketchat:3000
-      RC_ADMIN_USER: ${RC_ADMIN_USER:-rc-admin}
-      RC_ADMIN_PASS: ${RC_ADMIN_PASS:-Admin1234!}
-      USERS_FILE:    /provisioning/users.yml
+      RC_URL: http://rocketchat:3000
     volumes:
       - rocketchat-tokens:/tokens
+      - ./provisioning/provision.sh:/provisioning/provision.sh:ro
+      - ./provisioning/provision-users.sh:/provisioning/provision-users.sh:ro
+      - ./provisioning/provision-tokens.sh:/provisioning/provision-tokens.sh:ro
     depends_on:
       rocketchat:
         condition: service_healthy

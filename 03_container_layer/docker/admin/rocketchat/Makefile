@@ -6,7 +6,7 @@ SERVICE     = rocketchat
 PROVISIONER = rocketchat-provisioner
 DEBUG_SERVICE = $(SERVICE)-debug
 
-.PHONY: help up down stop stop-debug-build build rebuild build-up rebuild-up tokens reprovision term term-debug-build clean print
+.PHONY: help up down stop stop-debug-build build rebuild build-up rebuild-up tokens keys reprovision term term-debug-build clean print
 
 help:
 	@echo ""
@@ -24,7 +24,8 @@ help:
 	@echo "  make rebuild           - full rebuild $(SERVICE) without cache"
 	@echo "  make rebuild-up        - full rebuild $(SERVICE) without cache then run"
 	@echo ""
-	@echo "  make tokens            - print generated personal access tokens"
+	@echo "  make tokens            - print generated personal access tokens (username:PAT)"
+	@echo "  make keys              - print full credentials JSON (all users + passwords)"
 	@echo "  make term              - open shell in $(SERVICE) container"
 	@echo "  make term-debug-build  - build and get term on $(DEBUG_SERVICE) "
 	@echo "  make clean             - delete all containers, images, volumes and unused network"
@@ -69,6 +70,9 @@ rebuild-up:
 
 tokens:
 	docker run --rm -v rocketchat-tokens:/tokens alpine cat /tokens/tokens.txt
+
+keys:
+	docker run --rm -v rocketchat-tokens:/tokens alpine cat /tokens/rc-credentials.json
 
 reprovision:
 	docker run --rm -v rocketchat-tokens:/tokens alpine rm -f /tokens/.provisioned
