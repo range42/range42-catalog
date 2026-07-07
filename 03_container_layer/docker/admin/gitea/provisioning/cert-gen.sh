@@ -61,7 +61,7 @@ EOF
       2>/dev/null
     # gitea runs as uid 1000 (git); key must be readable by that user
     chown 0:1000 "${CERTS_DIR}/server.key"
-    chmod 600 "${CERTS_DIR}/server.key"
+    chmod 640 "${CERTS_DIR}/server.key"
     chmod 644 "${CERTS_DIR}/server.crt"
     rm -f "${CFG}"
     echo "[cert-gen] Self-signed certificate written to ${CERTS_DIR}/server.{crt,key} (valid 10 yr)."
