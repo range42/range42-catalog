@@ -46,7 +46,7 @@ EOF
       -config "${CFG}" \
       2>/dev/null
     chmod 644 "${CERTS_DIR}/server.crt"
-    chmod 644 "${CERTS_DIR}/server.key"
+    chmod 600 "${CERTS_DIR}/server.key"
     rm -f "${CFG}"
     echo "[cert-gen] Self-signed certificate written to ${CERTS_DIR}/server.{crt,key} (valid 10 yr)."
     ;;
