@@ -8,8 +8,7 @@
 #
 FROM golang:alpine AS builder
 
-RUN apk add --no-cache jq && \
-    wget -q https://github.com/mikefarah/yq/releases/download/v4.44.1/yq_linux_amd64 \
+RUN wget -q https://github.com/mikefarah/yq/releases/download/v4.44.1/yq_linux_amd64 \
       -O /usr/bin/yq && chmod +x /usr/bin/yq
 
 COPY provisioning/ /provisioning/
@@ -24,13 +23,15 @@ RUN chmod +x /provisioning/init.sh
 FROM gitea/gitea:latest AS runtime
 
 COPY --from=builder /usr/bin/yq        /usr/bin/yq
-COPY --from=builder /usr/bin/jq        /usr/bin/jq
 COPY --from=builder /provisioning/     /provisioning/
 
+# Install jq natively so libjq.so.1 and libonig.so.5 are present.
+# The builder's jq binary is dynamically linked; copying it alone misses the libs.
 # Create /tokens with git ownership so Docker seeds the named volume with
 # the right permissions when the provisioner first mounts it.
 # gitea CLI calls mustNotRunAsRoot(); run as git (uid 1000) so user create succeeds.
-RUN mkdir -p /tokens && chown git:git /tokens
+RUN apk add --no-cache jq && \
+    mkdir -p /tokens && chown git:git /tokens
 
 USER git
 
