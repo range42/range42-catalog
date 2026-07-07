@@ -3,6 +3,19 @@
 #
 
 #
+# CERT-GEN — minimal Alpine with bash + openssl to generate self-signed certs.
+# Runs as a Docker init container; does not touch the Mattermost runtime image.
+#
+FROM alpine:3 AS cert-gen
+
+RUN apk add --no-cache bash openssl
+
+COPY provisioning/cert-gen.sh /provisioning/cert-gen.sh
+RUN chmod +x /provisioning/cert-gen.sh
+
+ENTRYPOINT ["/provisioning/cert-gen.sh"]
+
+#
 # BUILDER — golang:alpine (Mattermost is Go-based)
 # Installs yq for YAML parsing; copies and pre-validates provisioning scripts.
 #

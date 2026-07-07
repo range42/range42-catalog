@@ -1,6 +1,7 @@
 ---
 mattermost_deploy_dir: "/home/alice/mattermost"
 mattermost_http_port: "8065"
+mattermost_tls_mode: "self-signed"
 mattermost_admin_user: "admin"
 mattermost_admin_pass: "Admin1234!"
 mattermost_admin_email: "admin@range42.local"
