@@ -27,4 +27,11 @@ COPY --from=builder /usr/bin/yq        /usr/bin/yq
 COPY --from=builder /usr/bin/jq        /usr/bin/jq
 COPY --from=builder /provisioning/     /provisioning/
 
+# Create /tokens with git ownership so Docker seeds the named volume with
+# the right permissions when the provisioner first mounts it.
+# gitea CLI calls mustNotRunAsRoot(); run as git (uid 1000) so user create succeeds.
+RUN mkdir -p /tokens && chown git:git /tokens
+
+USER git
+
 ENTRYPOINT ["/provisioning/init.sh"]
