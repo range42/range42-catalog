@@ -138,7 +138,7 @@ create_tokens() {
   while [ "${j}" -lt "${count}" ]; do
     uname=$(yq e ".${section}[${j}].username" "${USERS_FILE}")
     echo "[init]   + registry token for ${uname}"
-    payload=$(jq -n --arg n "registry-token" '{"name":$n}')
+    payload=$(jq -n --arg n "registry-token" '{"name":$n,"scopes":["read:package","write:package"]}')
     token_resp=$(curl -sf -X POST "${GITEA_URL}/api/v1/users/${uname}/tokens" \
       -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" \
       -H "Content-Type: application/json" \
