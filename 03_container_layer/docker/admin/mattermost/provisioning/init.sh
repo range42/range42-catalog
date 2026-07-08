@@ -717,17 +717,28 @@ curl -sf -X PUT "${MM_URL}/api/v4/config/patch" \
       "MaxFileSize": 52428800,
       "AllowedFileExtensions": ".jpg,.jpeg,.png,.gif,.pdf,.txt,.md,.zip,.tar.gz,.log,.csv,.json,.yaml,.yml,.pcap"
     },
-    "DisplaySettings": {
-      "SiteName": "Range42 Chat"
-    },
     "ServiceSettings": {
       "EnableBotAccountCreation": true
     },
     "TeamSettings": {
+      "SiteName": "Range42",
       "DefaultChannels": ["town-square","off-topic"]
+    },
+    "BrandSettings": {
+      "EnableCustomBranding": true,
+      "CustomBrandText": "<strong>Range42</strong> — Cyber Training Platform",
+      "CustomDescriptionText": "NC3.lu cyber range training environment. Sign in with your Gitea account."
     }
   }' >/dev/null || echo "[warn] Could not apply system configuration patch"
 echo "[init] System configuration applied."
+
+if [ -f /provisioning/brand.png ]; then
+  curl -sf -X PUT "${MM_URL}/api/v4/brand/image" \
+    -H "Authorization: Bearer ${admin_token}" \
+    -F "image=@/provisioning/brand.png" \
+    >/dev/null && echo "[init] Brand image uploaded." \
+    || echo "[warn] Could not upload brand image"
+fi
 
 # ── 19. Enable plugins (Playbooks, Calls) and create sample playbook ─────────
 echo "[init] Enabling plugins ..."
