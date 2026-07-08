@@ -737,70 +737,67 @@ for plugin_id in playbooks com.mattermost.calls; do
   echo "[init]   plugin enabled: ${plugin_id}"
 done
 
-# Poll until the Playbooks plugin API is ready (plugin enable returns 200 but
-# routes take additional time to register; 10s was insufficient in practice).
-echo "[init] Waiting for Playbooks plugin API to become ready ..."
+# Retry playbook creation until the Playbooks plugin POST API is ready.
+# The GET endpoint responds before the POST handler is registered, so polling
+# GET first is insufficient — retry the creation itself.
+echo "[init] Creating sample playbook (retrying until Playbooks plugin POST is ready) ..."
+playbook_json=$(jq -n --arg tid "$team_id" '{
+  "title": "Incident Response Runbook",
+  "team_id": $tid,
+  "description": "Step-by-step guide for incident response during training exercises.",
+  "public": true,
+  "checklists": [
+    {
+      "title": "Identification",
+      "items": [
+        {"title": "Detect the incident from alerts in #soc-alerts"},
+        {"title": "Classify incident severity (P1 / P2 / P3)"},
+        {"title": "Notify on-call team and open an incident channel"}
+      ]
+    },
+    {
+      "title": "Containment",
+      "items": [
+        {"title": "Isolate affected systems from the network"},
+        {"title": "Preserve evidence (logs, memory dumps, pcaps)"},
+        {"title": "Block attacker IPs / domains at the perimeter"}
+      ]
+    },
+    {
+      "title": "Eradication and Recovery",
+      "items": [
+        {"title": "Remove malicious artifacts from all affected hosts"},
+        {"title": "Patch the exploited vulnerability"},
+        {"title": "Restore services from a known-good backup"}
+      ]
+    },
+    {
+      "title": "Post-Incident",
+      "items": [
+        {"title": "Write post-mortem in #postmortem (5 Whys format)"},
+        {"title": "Update this runbook with lessons learned"},
+        {"title": "Close incident declaration and debrief the team in #incidents/general"}
+      ]
+    }
+  ]
+}')
+pb_created=0
 pb_attempt=0
-while [ "$pb_attempt" -lt 20 ]; do
-  pb_http=$(curl -s -o /dev/null -w "%{http_code}" \
-    "${MM_URL}/plugins/playbooks/api/v0/playbooks?team_id=${team_id}&per_page=1" \
-    -H "Authorization: Bearer ${admin_token}")
-  [ "$pb_http" = "200" ] && break
-  pb_attempt=$((pb_attempt + 1))
-  sleep 3
+while [ "$pb_attempt" -lt 20 ] && [ "$pb_created" -eq 0 ]; do
+  playbook_resp=$(curl -s -X POST "${MM_URL}/plugins/playbooks/api/v0/playbooks" \
+    -H "Authorization: Bearer ${admin_token}" \
+    -H "Content-Type: application/json" \
+    -d "$playbook_json") || true
+  playbook_id=$(printf '%s' "$playbook_resp" | jq -r '.id // empty')
+  if [ -n "$playbook_id" ]; then
+    pb_created=1
+    echo "[init] Playbook 'Incident Response Runbook' created (id=${playbook_id})"
+  else
+    pb_attempt=$((pb_attempt + 1))
+    sleep 3
+  fi
 done
-if [ "$pb_attempt" -ge 20 ]; then
-  echo "[warn] Playbooks API did not become ready after 60s — playbook creation may fail."
-fi
-
-playbook_resp=$(curl -s -X POST "${MM_URL}/plugins/playbooks/api/v0/playbooks" \
-  -H "Authorization: Bearer ${admin_token}" \
-  -H "Content-Type: application/json" \
-  -d "$(jq -n --arg tid "$team_id" '{
-    "title": "Incident Response Runbook",
-    "team_id": $tid,
-    "description": "Step-by-step guide for incident response during training exercises.",
-    "public": true,
-    "checklists": [
-      {
-        "title": "Identification",
-        "items": [
-          {"title": "Detect the incident from alerts in #soc-alerts"},
-          {"title": "Classify incident severity (P1 / P2 / P3)"},
-          {"title": "Notify on-call team and open an incident channel"}
-        ]
-      },
-      {
-        "title": "Containment",
-        "items": [
-          {"title": "Isolate affected systems from the network"},
-          {"title": "Preserve evidence (logs, memory dumps, pcaps)"},
-          {"title": "Block attacker IPs / domains at the perimeter"}
-        ]
-      },
-      {
-        "title": "Eradication and Recovery",
-        "items": [
-          {"title": "Remove malicious artifacts from all affected hosts"},
-          {"title": "Patch the exploited vulnerability"},
-          {"title": "Restore services from a known-good backup"}
-        ]
-      },
-      {
-        "title": "Post-Incident",
-        "items": [
-          {"title": "Write post-mortem in #postmortem (5 Whys format)"},
-          {"title": "Update this runbook with lessons learned"},
-          {"title": "Close incident declaration and debrief the team in #incidents/general"}
-        ]
-      }
-    ]
-  }')") || true
-
-playbook_id=$(printf '%s' "$playbook_resp" | jq -r '.id // empty')
-if [ -n "$playbook_id" ]; then
-  echo "[init] Playbook 'Incident Response Runbook' created (id=${playbook_id})"
-else
+if [ "$pb_created" -eq 0 ]; then
   echo "[warn] Playbooks plugin not ready or not installed — playbook creation skipped."
 fi
 
