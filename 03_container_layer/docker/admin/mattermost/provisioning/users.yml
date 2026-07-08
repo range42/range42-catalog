@@ -4,8 +4,14 @@
 # !! CHANGE ALL PASSWORDS BEFORE DEPLOYING !!
 # Passwords here are committed in plaintext. Use strong, unique values in production.
 #
-# To scale: add/remove entries under admins: or users:
-# The provisioner is idempotent — re-running skips already-created accounts.
+# Schema:
+#   admins[]          — system admin accounts
+#   users[]           — regular trainee accounts; player_team maps to a channel in the main team
+#   bot               — automation bot account
+#   teams[]           — predefined Mattermost sub-teams with channels and metadata
+#   custom_statuses[] — recommended statuses shown in a pinned guide (per-user initial status also set)
+#   incoming_webhooks[] — pre-configured incoming webhooks
+#   outgoing_webhooks[] — pre-configured outgoing webhooks
 
 admins:
   - username: admin
@@ -16,9 +22,106 @@ users:
   - username: trainee01
     email: trainee01@range42.local
     password: "Trainee1234!"
+    player_team: team-blue
   - username: trainee02
     email: trainee02@range42.local
     password: "Trainee1234!"
+    player_team: team-blue
   - username: trainee03
     email: trainee03@range42.local
     password: "Trainee1234!"
+    player_team: team-red
+
+bot:
+  username: r42bot
+  display_name: "Range42 Bot"
+  description: "Range42 training automation bot — handles alerts and pipeline notifications"
+
+teams:
+  - name: trainees
+    display_name: "Trainees"
+    channels:
+      - name: general
+        display_name: "General"
+        category: Training
+        pinned_message: "Welcome to the trainees team! Use this channel for general discussion during the exercise."
+      - name: announcements
+        display_name: "Announcements"
+        category: Training
+        readonly: true
+        pinned_message: "Read-only channel — instructor announcements only. Monitor here for exercise updates and flag drops."
+      - name: help
+        display_name: "Help"
+        category: Training
+        pinned_message: "Ask questions here. Instructors monitor this channel continuously during exercises."
+      - name: soc-alerts
+        display_name: "SOC Alerts"
+        category: Tools
+        pinned_message: "Automated alerts from monitoring systems (Wazuh, Grafana, Gitea) appear here via webhook."
+      - name: postmortem
+        display_name: "Post-Mortem"
+        category: Training
+        pinned_message: "Write post-incident reviews here after each scenario. Use the Incident Response Playbook as a guide."
+      - name: lounge
+        display_name: "Lounge"
+        category: Social
+        pinned_message: "Off-topic discussion — keep it fun and professional."
+
+  - name: instructors
+    display_name: "Instructors"
+    channels:
+      - name: general
+        display_name: "General"
+        category: Training
+        pinned_message: "Instructor coordination channel — not visible to trainees."
+      - name: scenario-control
+        display_name: "Scenario Control"
+        category: Tools
+        pinned_message: "Coordinate inject timing, flag drops, and scenario state transitions here."
+      - name: debrief
+        display_name: "Debrief"
+        category: Training
+        pinned_message: "Prepare and share debrief notes. Reference post-mortems from the trainees team."
+
+  - name: incidents
+    display_name: "Incidents"
+    channels:
+      - name: general
+        display_name: "General"
+        category: Training
+        pinned_message: "Cross-team incident coordination. All responders bridge here during declared incidents."
+      - name: ir-timeline
+        display_name: "IR Timeline"
+        category: Tools
+        pinned_message: "Log incident response timeline events chronologically. Format: [HH:MM] action taken."
+      - name: qa
+        display_name: "Q&A"
+        category: Training
+        pinned_message: "Instructor <-> trainee Q&A. Ask and answer questions across teams."
+
+custom_statuses:
+  - text: "In Incident"
+    emoji: "rotating_light"
+  - text: "Focus Mode"
+    emoji: "no_entry_sign"
+  - text: "Debrief"
+    emoji: "speech_balloon"
+  - text: "On a Call"
+    emoji: "telephone_receiver"
+  - text: "Pause"
+    emoji: "double_vertical_bar"
+
+incoming_webhooks:
+  - display_name: "Gitea Events"
+    description: "Repository events from Gitea — push, pull-request, and issue notifications"
+    team: trainees
+    channel: soc-alerts
+
+outgoing_webhooks:
+  - display_name: "Gitea Query"
+    description: "Outgoing webhook triggered by /gitea — routes to a handler that queries Gitea repo info"
+    team: trainees
+    channel: general
+    trigger_words:
+      - "/gitea"
+    callback_url: "http://localhost:8080/gitea-webhook"
