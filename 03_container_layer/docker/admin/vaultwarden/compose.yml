@@ -1,0 +1,73 @@
+#
+# range42-catalog - admin/vaultwarden
+#
+# Self-hosted Vaultwarden: a lightweight, Bitwarden-compatible API server
+# (dani-garcia/vaultwarden) used as range42's credential-distribution store.
+# Single container, embedded SQLite on a persistent volume - no external DB.
+#
+# NOTE ON NAMING: the *server* is Vaultwarden. The *client tooling* that the
+# companion `credentials.vaultwarden` Ansible role uses to talk to it is the
+# official Bitwarden CLI (`bw`), because Vaultwarden implements the Bitwarden
+# API. That is the only place the word "Bitwarden" legitimately appears.
+#
+
+services:
+
+  vaultwarden:
+    image: vaultwarden/server:1.36.0-alpine
+    container_name: vaultwarden
+
+    environment:
+      # Public URL Vaultwarden believes it is reached on. Must be correct or
+      # the web vault, attachments and WebAuthn misbehave. Include the host
+      # port unless fronted by a reverse proxy on 80/443.
+      DOMAIN: ${VW_DOMAIN:-http://localhost:8080}
+
+      # Admin panel (/admin) token. REQUIRED - compose refuses to start if it
+      # is unset, so a deploy never silently comes up unprotected.
+      # Generate an argon2 hash with:  make hash
+      ADMIN_TOKEN: "${VW_ADMIN_TOKEN:?set VW_ADMIN_TOKEN in .env (see .env.example, run make hash)}"
+
+      # Lab-safe defaults: public self-registration OFF. To create the first
+      # (service) account, flip VW_SIGNUPS_ALLOWED=true, register once, then
+      # set it back to false. See README "Bootstrap".
+      SIGNUPS_ALLOWED:     ${VW_SIGNUPS_ALLOWED:-false}
+      INVITATIONS_ALLOWED: ${VW_INVITATIONS_ALLOWED:-true}
+
+      # Collections live under an organization; this controls who may create
+      # organizations. Left open for lab convenience.
+      ORG_CREATION_USERS: ${VW_ORG_CREATION_USERS:-all}
+
+      # Internal listen port (also what /healthcheck.sh probes).
+      ROCKET_PORT: "80"
+
+    volumes:
+      # Persistent data dir: SQLite db, attachments, rsa keys, config.json.
+      - vaultwarden-data:/data
+
+    ports:
+      - "${VW_HTTP_PORT:-8080}:80"
+
+    healthcheck:
+      # /healthcheck.sh ships inside the image (curl -> /alive on ROCKET_PORT).
+      test: ["CMD", "/healthcheck.sh"]
+      interval: 20s
+      timeout: 10s
+      retries: 15
+      start_period: 30s
+
+    # Defense-in-depth hardening for a credential store. Verified against
+    # vaultwarden/server:1.36.0-alpine: dropping ALL caps and re-adding only
+    # NET_BIND_SERVICE (needed to bind :80 inside the container) keeps the
+    # service healthy. no-new-privileges blocks setuid privilege escalation.
+    security_opt:
+      - "no-new-privileges:true"
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+
+    restart: unless-stopped
+
+volumes:
+  vaultwarden-data:

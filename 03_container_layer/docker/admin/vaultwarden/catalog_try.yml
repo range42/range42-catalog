@@ -1,0 +1,24 @@
+##
+## catalog_try contract - Vaultwarden (standalone Docker)
+##
+## Used by `range42-context catalog-try docker/admin/vaultwarden` to apply a
+## stricter smoke check (L2 HTTP poll on /alive) instead of the default L1
+## fallback (docker ps -a presence).
+##
+## /alive is Vaultwarden's liveness endpoint: it returns HTTP 200 with a UTC
+## timestamp body as soon as the Rocket web server is serving. Vaultwarden is
+## a single Rust binary with embedded SQLite, so cold start is fast - 90s is
+## a generous ceiling (contrast Nextcloud's 180s).
+##
+## Port 8080 is the externally-mapped host port (compose maps `8080:80`). The
+## smoke check hits that host port from outside the VM.
+##
+## See range42-playbooks/scenarios/catalog_try/catalog_try.element_deploy.yml
+## for the playbook that consumes these fields.
+##
+
+catalog_try_mode: service
+catalog_try_port:
+  - 8080   # HTTP (host-mapped from container :80)
+catalog_try_endpoint: /alive
+catalog_try_init_timeout: 90

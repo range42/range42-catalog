@@ -1,0 +1,40 @@
+---
+##
+## credentials.vaultwarden - defaults
+##
+## Everything here is meant to be overridden by the caller (scenario / bundle),
+## with the secret values coming from an Ansible vault - never hardcoded.
+##
+
+# -- Connection to the Vaultwarden server (all four REQUIRED) ----------------
+# Self-hosted only: point at this catalog element's own container, by
+# convention. There is no default and no fallback to a public endpoint.
+vaultwarden_url: ""
+vaultwarden_client_id: ""        # personal API key: client_id
+vaultwarden_client_secret: ""    # personal API key: client_secret
+vaultwarden_master_password: ""  # account master password (to unlock the vault)
+
+# -- Optional org/collection scoping -----------------------------------------
+# If vaultwarden_organization_id is set, items are created/read in that org.
+# Vaultwarden REQUIRES a collection id for org items, so set the collection too
+# (or per-entry later, once scoping is finalised - see open questions).
+vaultwarden_organization_id: ""
+vaultwarden_collection_id: ""
+
+# -- The mapping that drives everything --------------------------------------
+# List of entries; no credential names are hardcoded in the role. Each entry:
+#   vault_var:  Ansible var name - the SOURCE for `set`, the FACT NAME for `get`
+#   vw_item:    Vaultwarden item name (should be unique)
+#   vw_field:   custom (hidden) field name on that item
+#   direction:  "set" (vault -> Vaultwarden) | "get" (Vaultwarden -> fact)
+vaultwarden_sync_map: []
+
+# -- Behaviour ---------------------------------------------------------------
+# Set true only when debugging: it disables no_log so you can see the engine's
+# stdout/stderr. WARNING: with debug on, pulled secret values may appear in the
+# Ansible output. Leave false in normal runs.
+vaultwarden_debug: false
+
+# Where get-results are collected as a single dict fact (in addition to each
+# value being exposed as a fact named after its vault_var).
+vaultwarden_get_results_var: "vaultwarden_get_results"

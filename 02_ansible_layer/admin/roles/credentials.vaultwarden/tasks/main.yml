@@ -1,0 +1,126 @@
+---
+##
+## credentials.vaultwarden - tasks
+##
+## Validates its inputs, then hands the whole mapping to files/vw_sync.sh on the
+## control node (delegate_to: localhost), which drives the Bitwarden CLI (`bw`)
+## against the Vaultwarden server. The get/set logic lives in that one engine
+## script (see its header) so the bw login/unlock/logout session stays atomic
+## and secrets flow through env + stdin only - never argv, never disk.
+##
+
+- name: "vaultwarden - validate connection vars are provided"
+  ansible.builtin.assert:
+    that:
+      - vaultwarden_url | length > 0
+      - vaultwarden_client_id | length > 0
+      - vaultwarden_client_secret | length > 0
+      - vaultwarden_master_password | length > 0
+    fail_msg: "credentials.vaultwarden: vaultwarden_url, _client_id, _client_secret and _master_password are all required (supply them from the vault)."
+    quiet: true
+  no_log: "{{ not vaultwarden_debug }}"
+
+- name: "vaultwarden - validate sync map is a non-empty list"
+  ansible.builtin.assert:
+    that:
+      - vaultwarden_sync_map is iterable
+      - vaultwarden_sync_map is not string
+      - vaultwarden_sync_map | length > 0
+    fail_msg: "credentials.vaultwarden: vaultwarden_sync_map must be a non-empty list."
+    quiet: true
+  no_log: "{{ not vaultwarden_debug }}"
+
+- name: "vaultwarden - validate every entry is well-formed"
+  ansible.builtin.assert:
+    that:
+      - item.vault_var | default('') | length > 0
+      - item.vw_item | default('') | length > 0
+      - item.vw_field | default('') | length > 0
+      - item.direction | default('') in ['get', 'set']
+    fail_msg: "credentials.vaultwarden: malformed entry {{ item }} - need vault_var, vw_item, vw_field and direction=get|set."
+    quiet: true
+  loop: "{{ vaultwarden_sync_map }}"
+  loop_control:
+    label: "{{ item.vw_item | default('?') }}/{{ item.vw_field | default('?') }}"
+
+- name: "vaultwarden - validate every 'set' entry has a non-empty source var"
+  ansible.builtin.assert:
+    that:
+      - vars[item.vault_var] is defined
+      - vars[item.vault_var] | default('') | string | length > 0
+    fail_msg: "credentials.vaultwarden: set entry references '{{ item.vault_var }}' but it is undefined or empty - refusing to sync a blank secret (no silent fallback)."
+    quiet: true
+  loop: "{{ vaultwarden_sync_map | selectattr('direction', 'equalto', 'set') | list }}"
+  loop_control:
+    label: "{{ item.vault_var }}"
+  no_log: "{{ not vaultwarden_debug }}"
+
+- name: "vaultwarden - build the sync plan (resolve 'set' values from vars)"
+  ansible.builtin.set_fact:
+    _vw_plan_entries: >-
+      {{
+        _vw_plan_entries | default([])
+        + [
+            {
+              'vault_var': item.vault_var,
+              'item': item.vw_item,
+              'field': item.vw_field,
+              'direction': item.direction
+            }
+            | combine(
+                {'value': vars[item.vault_var] | default('')}
+                if item.direction == 'set' else {}
+              )
+          ]
+      }}
+  loop: "{{ vaultwarden_sync_map }}"
+  loop_control:
+    label: "{{ item.vw_item }}/{{ item.vw_field }} ({{ item.direction }})"
+  no_log: "{{ not vaultwarden_debug }}"
+
+- name: "vaultwarden - run the sync engine on the control node"
+  ansible.builtin.command:
+    cmd: "{{ role_path }}/files/vw_sync.sh"
+    stdin: "{{ {'entries': _vw_plan_entries} | to_json }}"
+  environment:
+    VW_URL: "{{ vaultwarden_url }}"
+    BW_CLIENTID: "{{ vaultwarden_client_id }}"
+    BW_CLIENTSECRET: "{{ vaultwarden_client_secret }}"
+    BW_PASSWORD: "{{ vaultwarden_master_password }}"
+    VW_ORG_ID: "{{ vaultwarden_organization_id }}"
+    VW_COLLECTION_ID: "{{ vaultwarden_collection_id }}"
+  delegate_to: localhost
+  run_once: true
+  register: _vw_sync
+  # Only a 'set' entry mutates Vaultwarden; a get-only map is a pure read, so
+  # report changed accordingly instead of always-changed.
+  changed_when: vaultwarden_sync_map | selectattr('direction', 'equalto', 'set') | list | length > 0
+  no_log: "{{ not vaultwarden_debug }}"
+
+- name: "vaultwarden - scrub the resolved sync plan from memory"
+  ansible.builtin.set_fact:
+    _vw_plan_entries: []
+  no_log: "{{ not vaultwarden_debug }}"
+
+# NOTE: the get-results below are exposed as facts on purpose - they are this
+# role's OUTPUT, so the caller can consume pulled values. They therefore hold
+# plaintext secrets in memory for the rest of the play and CANNOT be scrubbed
+# here without defeating the feature. The caller owns them: do not dump all
+# facts (e.g. `debug: var=hostvars`) after this role, and keep no_log on any
+# task that consumes them. (The internal _vw_plan_entries above, by contrast,
+# is not output and is scrubbed immediately.)
+- name: "vaultwarden - expose get-results as a single dict fact"
+  ansible.builtin.set_fact:
+    "{{ vaultwarden_get_results_var }}": "{{ _vw_sync.stdout | from_json }}"
+  when: _vw_sync.stdout | default('') | trim | length > 0
+  no_log: "{{ not vaultwarden_debug }}"
+
+- name: "vaultwarden - expose each pulled value as a fact named after its vault_var"
+  ansible.builtin.set_fact:
+    "{{ item.key }}": "{{ item.value }}"
+  # Reuse the dict fact set just above instead of re-parsing stdout again.
+  loop: "{{ vars[vaultwarden_get_results_var] | default({}) | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when: _vw_sync.stdout | default('') | trim | length > 0
+  no_log: "{{ not vaultwarden_debug }}"

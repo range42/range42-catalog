@@ -1,0 +1,23 @@
+---
+galaxy_info:
+  role_name: credentials_vaultwarden
+  namespace: range42
+  author: range42
+  description: >-
+    Mapping-driven get/set sync between an Ansible vault and a self-hosted
+    Vaultwarden (Bitwarden-compatible) server, via the Bitwarden CLI.
+  license: GPL-3.0
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - noble
+  galaxy_tags:
+    - credentials
+    - vaultwarden
+    - secrets
+    - vault
+
+# Talks to Vaultwarden purely through the `bw` CLI on the control node; no
+# Ansible role dependencies.
+dependencies: []

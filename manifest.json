@@ -59,6 +59,10 @@
                   "description": "Misconfigured services"
                 }
               }
+            },
+            "admin": {
+              "path": "admin",
+              "description": "Administrative self-hosted service stacks (e.g. misp-standalone, gitea, nextcloud, mattermost, rocketchat, vaultwarden) deployed to scenario VMs via docker compose"
             }
           }
         },
