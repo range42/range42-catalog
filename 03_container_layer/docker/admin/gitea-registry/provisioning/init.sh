@@ -22,7 +22,7 @@ PROVISION_STAMP="/data/gitea/.provisioned"
 # ── 1. Wait for Gitea HTTP (max 180 s) ─────────────────────────────────────
 echo "[init] Waiting for Gitea at ${GITEA_URL} ..."
 attempts=0
-until curl -sf "${GITEA_URL}/api/v1/version" >/dev/null 2>&1; do
+until curl -sfk "${GITEA_URL}/api/v1/version" >/dev/null 2>&1; do
   attempts=$((attempts + 1))
   if [ "${attempts}" -ge 60 ]; then
     echo "[fatal] Gitea did not become healthy after 180 s. Aborting."
@@ -111,7 +111,7 @@ inject_keys() {
       # Use jq to build the JSON payload to avoid injection via crafted key strings.
       payload=$(jq -n --arg k "${key}" --arg t "${uname}-key-${k}" \
         '{"key":$k,"read_only":false,"title":$t}')
-      curl -sf -X POST "${GITEA_URL}/api/v1/admin/users/${uname}/keys" \
+      curl -sfk -X POST "${GITEA_URL}/api/v1/admin/users/${uname}/keys" \
         -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" \
         -H "Content-Type: application/json" \
         -d "${payload}" \
@@ -139,7 +139,7 @@ create_tokens() {
     uname=$(yq e ".${section}[${j}].username" "${USERS_FILE}")
     echo "[init]   + registry token for ${uname}"
     payload=$(jq -n --arg n "registry-token" '{"name":$n,"scopes":["read:package","write:package"]}')
-    token_resp=$(curl -sf -X POST "${GITEA_URL}/api/v1/users/${uname}/tokens" \
+    token_resp=$(curl -sfk -X POST "${GITEA_URL}/api/v1/users/${uname}/tokens" \
       -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" \
       -H "Content-Type: application/json" \
       -d "${payload}" || echo '{}')
@@ -158,6 +158,12 @@ create_tokens admins
 create_tokens users
 echo "[init] Tokens written to /tokens/tokens.txt"
 
-# ── 7. Mark as provisioned ──────────────────────────────────────────────────
+# ── 7. Export TLS certificate so clients can trust it for docker login ───────
+if [ -f "/certs/server.crt" ]; then
+  cp /certs/server.crt /tokens/registry-cert.pem
+  echo "[init] TLS certificate copied to /tokens/registry-cert.pem"
+fi
+
+# ── 8. Mark as provisioned ──────────────────────────────────────────────────
 touch "${PROVISION_STAMP}"
 echo "[init] Provisioning complete."

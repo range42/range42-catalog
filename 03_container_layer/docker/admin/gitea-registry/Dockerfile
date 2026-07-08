@@ -30,7 +30,7 @@ COPY --from=builder /provisioning/     /provisioning/
 # Create /tokens with git ownership so Docker seeds the named volume with
 # the right permissions when the provisioner first mounts it.
 # gitea CLI calls mustNotRunAsRoot(); run as git (uid 1000) so user create succeeds.
-RUN apk add --no-cache jq && \
+RUN apk add --no-cache bash jq openssl && \
     mkdir -p /tokens && chown git:git /tokens
 
 USER git

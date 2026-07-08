@@ -20,6 +20,22 @@ services:
       retries: 5
     restart: unless-stopped
 
+  cert-gen:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gitea-registry-cert-gen
+    user: root
+    entrypoint: ["/bin/bash", "/cert-gen.sh"]
+    env_file: .env
+    environment:
+      GITEA_TLS_MODE: ${GITEA_TLS_MODE:-disabled}
+      GITEA_DOMAIN:   ${GITEA_DOMAIN:-localhost}
+    volumes:
+      - gitea-registry-certs:/certs
+      - ./provisioning/cert-gen.sh:/cert-gen.sh:ro
+    restart: "no"
+
   gitea: &main
     image: gitea/gitea:latest
     container_name: gitea-registry
@@ -45,13 +61,22 @@ services:
       # port in clone URLs) is unchanged.
       GITEA__server__SSH_LISTEN_PORT: "2022"
       GITEA__server__SSH_PORT:        "${SSH_PORT:-2222}"
+      GITEA__server__PROTOCOL:        "${GITEA_PROTOCOL:-http}"
+      GITEA__server__CERT_FILE:       "/certs/server.crt"
+      GITEA__server__KEY_FILE:        "/certs/server.key"
       GITEA__packages__ENABLED:      "true"
       GITEA__service__DISABLE_REGISTRATION: "true"
+      # Unique cookie name prevents collision with the admin Gitea instance
+      # (port 3000, also HTTPS). Browsers scope cookies by domain, not by port,
+      # so both instances would share the same i_like_gitea cookie on the same
+      # IP, causing the Secure-flag downgrade rejection seen in ISSUE 142.
+      GITEA__session__COOKIE_NAME:    "i_like_gitea_registry"
       GITEA__security__INSTALL_LOCK:    "true"
       GITEA__security__SECRET_KEY:      ${GITEA_SECRET_KEY:-please-change-me-in-production}
       GITEA__security__INTERNAL_TOKEN:  ${GITEA_INTERNAL_TOKEN:-please-change-me-in-production}
     volumes:
       - gitea-registry-data:/data
+      - gitea-registry-certs:/certs:ro
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
@@ -63,8 +88,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      cert-gen:
+        condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/version"]
+      test: ["CMD-SHELL", "curl -fk ${GITEA_PROTOCOL:-http}://localhost:3000/api/v1/version"]
       interval: 15s
       timeout: 10s
       retries: 10
@@ -86,13 +113,14 @@ services:
       dockerfile: Dockerfile
     container_name: gitea-registry-provisioner
     environment:
-      GITEA_URL:        http://gitea:3000
+      GITEA_URL:        "${GITEA_PROTOCOL:-http}://gitea:3000"
       GITEA_ADMIN_USER: ${GITEA_ADMIN_USER:-gitea-admin}
       GITEA_ADMIN_PASS: ${GITEA_ADMIN_PASS:-Admin1234!}
       USERS_FILE:       /provisioning/users.yml
     volumes:
       - gitea-registry-data:/data
       - gitea-registry-tokens:/tokens
+      - gitea-registry-certs:/certs:ro
     depends_on:
       gitea:
         condition: service_healthy
@@ -102,3 +130,4 @@ volumes:
   gitea-registry-data:
   gitea-registry-db-data:
   gitea-registry-tokens:
+  gitea-registry-certs:
