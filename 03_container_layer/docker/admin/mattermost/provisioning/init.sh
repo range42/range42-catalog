@@ -723,22 +723,10 @@ curl -sf -X PUT "${MM_URL}/api/v4/config/patch" \
     "TeamSettings": {
       "SiteName": "Range42",
       "DefaultChannels": ["town-square","off-topic"]
-    },
-    "BrandSettings": {
-      "EnableCustomBranding": true,
-      "CustomBrandText": "<strong>Range42</strong> — Cyber Training Platform",
-      "CustomDescriptionText": "NC3.lu cyber range training environment. Sign in with your Gitea account."
     }
   }' >/dev/null || echo "[warn] Could not apply system configuration patch"
 echo "[init] System configuration applied."
-
-if [ -f /provisioning/brand.png ]; then
-  curl -sf -X PUT "${MM_URL}/api/v4/brand/image" \
-    -H "Authorization: Bearer ${admin_token}" \
-    -F "image=@/provisioning/brand.png" \
-    >/dev/null && echo "[init] Brand image uploaded." \
-    || echo "[warn] Could not upload brand image"
-fi
+echo "[info] Custom branding (logo, login page text) requires Enterprise license — skipped."
 
 # ── 19. Enable plugins (Playbooks, Calls) and create sample playbook ─────────
 echo "[init] Enabling plugins ..."
@@ -749,8 +737,21 @@ for plugin_id in playbooks com.mattermost.calls; do
   echo "[init]   plugin enabled: ${plugin_id}"
 done
 
-# Allow plugin time to register its API routes before creating a playbook.
-sleep 10
+# Poll until the Playbooks plugin API is ready (plugin enable returns 200 but
+# routes take additional time to register; 10s was insufficient in practice).
+echo "[init] Waiting for Playbooks plugin API to become ready ..."
+pb_attempt=0
+while [ "$pb_attempt" -lt 20 ]; do
+  pb_http=$(curl -s -o /dev/null -w "%{http_code}" \
+    "${MM_URL}/plugins/playbooks/api/v0/playbooks?team_id=${team_id}&per_page=1" \
+    -H "Authorization: Bearer ${admin_token}")
+  [ "$pb_http" = "200" ] && break
+  pb_attempt=$((pb_attempt + 1))
+  sleep 3
+done
+if [ "$pb_attempt" -ge 20 ]; then
+  echo "[warn] Playbooks API did not become ready after 60s — playbook creation may fail."
+fi
 
 playbook_resp=$(curl -s -X POST "${MM_URL}/plugins/playbooks/api/v0/playbooks" \
   -H "Authorization: Bearer ${admin_token}" \
