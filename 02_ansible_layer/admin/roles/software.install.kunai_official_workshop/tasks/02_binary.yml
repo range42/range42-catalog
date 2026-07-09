@@ -1,0 +1,46 @@
+---
+# Pinned kunai eBPF binary : GPG-verified download, then placed in /usr/local/bin.
+# We deliberately do NOT run `kunai install` : it sets up a systemd capture service
+# that conflicts with the interactive `sudo kunai run` used in the workshop
+# exercises. The binary in PATH is all the exercises need.
+
+- name: kunai - import the release signing key from the keyserver
+  ansible.builtin.command:
+    argv:
+      - gpg
+      - --keyserver
+      - "{{ kunai_gpg_keyserver }}"
+      - --recv-keys
+      - "{{ kunai_gpg_fingerprint }}"
+  register: kunai_recv_key
+  until: kunai_recv_key.rc == 0
+  retries: 5
+  delay: 10
+  changed_when: false
+  # robustness follow-up : embed the armored key in files/ and import from the
+  # file to drop the keyserver dependency at deploy time.
+
+- name: kunai - download the pinned binary + detached signature
+  ansible.builtin.get_url:
+    url: "https://github.com/kunai-project/kunai/releases/download/{{ kunai_version }}/kunai-{{ kunai_arch }}{{ item }}"
+    dest: "/usr/local/src/kunai-{{ kunai_arch }}{{ item }}"
+    mode: "0644"
+  loop:
+    - ""
+    - ".asc"
+
+- name: kunai - GPG-verify the binary (aborts the play if the signature is invalid)
+  ansible.builtin.command:
+    argv:
+      - gpg
+      - --verify
+      - "/usr/local/src/kunai-{{ kunai_arch }}.asc"
+      - "/usr/local/src/kunai-{{ kunai_arch }}"
+  changed_when: false
+
+- name: kunai - install the verified binary to /usr/local/bin
+  ansible.builtin.copy:
+    src: "/usr/local/src/kunai-{{ kunai_arch }}"
+    dest: /usr/local/bin/kunai
+    mode: "0755"
+    remote_src: true

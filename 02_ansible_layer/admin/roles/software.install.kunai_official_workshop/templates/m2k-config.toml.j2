@@ -1,0 +1,22 @@
+# Managed by range42 (bundle software.install.kunai). Do not edit by hand.
+#
+# misp-to-kunai reads this file to pull IoCs and format them for kunai.
+# See the workshop ioc-config exercise : misp-to-kunai -c /tmp/m2k-config.toml -l 90
+
+[misp]
+# MISP Server Name
+name = "range42 local MISP"
+# MISP server URL
+url = "{{ kunai_misp_url if kunai_misp_url else 'https://misp.local' }}"
+# API key to access MISP server (reader, read-only)
+key = "{{ kunai_misp_key if kunai_misp_key else 'CHANGE_ME' }}"
+# TLS verification (self-signed local MISP)
+ssl = false
+# Enabled only when the local MISP tier is wired (INSTALL_MISP)
+enable = {{ 'true' if (kunai_misp_local_enable | bool) else 'false' }}
+
+# Support feeds in MISP format - public CIRCL OSINT feed, always available.
+[[misp-feeds]]
+name = "CIRCL OSINT Feed"
+url = "https://www.circl.lu/doc/misp/feed-osint"
+enable = true
