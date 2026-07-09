@@ -1,0 +1,8 @@
+---
+# systems.configure.sudo - defaults
+#
+# Grant/revoke sudo for a user via a validated /etc/sudoers.d/ drop-in.
+
+TARGET_USER: ""            # user to grant/revoke sudo (required)
+SUDO_STATE: "present"      # present | absent
+SUDO_NOPASSWD: false       # true -> NOPASSWD:ALL ; false -> password-required sudo

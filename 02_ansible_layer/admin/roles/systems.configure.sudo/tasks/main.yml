@@ -1,0 +1,27 @@
+---
+# systems.configure.sudo
+# Grant/revoke sudo for a user via a /etc/sudoers.d/ drop-in. The drop-in is
+# validated with `visudo -cf` BEFORE it lands (a malformed file is rejected, never
+# written) -> cannot break sudo on the host. Idempotent.
+
+- name: sudo - assert required vars
+  ansible.builtin.assert:
+    that:
+      - TARGET_USER | length > 0
+    fail_msg: "TARGET_USER is required"
+
+- name: sudo - grant sudo (validated drop-in)
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/90-range42-{{ TARGET_USER }}"
+    content: "{{ TARGET_USER }} ALL=(ALL) {{ 'NOPASSWD:' if (SUDO_NOPASSWD | default(false) | bool) else '' }}ALL\n"
+    owner: root
+    group: root
+    mode: "0440"
+    validate: "visudo -cf %s"
+  when: (SUDO_STATE | default('present')) == 'present'
+
+- name: sudo - revoke sudo (remove drop-in)
+  ansible.builtin.file:
+    path: "/etc/sudoers.d/90-range42-{{ TARGET_USER }}"
+    state: absent
+  when: (SUDO_STATE | default('present')) == 'absent'
