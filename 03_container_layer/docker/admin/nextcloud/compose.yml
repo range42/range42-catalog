@@ -93,6 +93,10 @@ services:
       domain: ".*"
       DONT_GEN_SSL_CERT: "YES"
       extra_params: "--o:ssl.enable=false --o:ssl.termination=true"
+      # server_name tells Collabora what external hostname:port to embed in its WOPI
+      # discovery XML. The browser uses the urlsrc from that XML verbatim, so this
+      # must be the IP/hostname that browsers can reach (nginx TLS proxy port).
+      server_name: "${NC_HOST_IP:-localhost}:${COLLABORA_PORT:-9443}"
     cap_add:
       - MKNOD
     restart: unless-stopped
