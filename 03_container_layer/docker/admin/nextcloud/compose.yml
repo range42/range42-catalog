@@ -62,6 +62,7 @@ services:
       NEXTCLOUD_TRUSTED_PROXIES: "10.0.0.0/8 172.16.0.0/12 192.168.0.0/16"
       OVERWRITECLIURL:   "${NC_BASE_URL:-https://localhost}"
       OVERWRITEPROTOCOL: "https"
+      NC_COLLABORA_URL:  "${NC_COLLABORA_URL:-https://localhost:9443}"
     volumes:
       - nextcloud-data:/var/www/html
       - ./provisioning/nextcloud-hooks:/docker-entrypoint-hooks.d/post-installation:ro
@@ -85,11 +86,33 @@ services:
 #     container_name: nextcloud-debug
 #     command: ["sleep", "infinity"]
 
+  collabora:
+    image: collabora/code
+    container_name: nextcloud-collabora
+    environment:
+      domain: ".*"
+      DONT_GEN_SSL_CERT: "YES"
+      extra_params: "--o:ssl.enable=false --o:ssl.termination=true"
+    cap_add:
+      - MKNOD
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit
+    container_name: nextcloud-mailpit
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY:     "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+    ports:
+      - "${MAILPIT_PORT:-8025}:8025"
+    restart: unless-stopped
+
   nginx:
     image: nginx:alpine
     container_name: nextcloud-nginx
     ports:
       - "${HTTP_PORT:-8443}:443"
+      - "${COLLABORA_PORT:-9443}:9443"
     volumes:
       - ./provisioning/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - nextcloud-certs:/certs:ro
@@ -98,6 +121,8 @@ services:
         condition: service_completed_successfully
       nextcloud:
         condition: service_healthy
+      collabora:
+        condition: service_started
     restart: unless-stopped
 
   provisioner:
@@ -106,13 +131,16 @@ services:
       dockerfile: Dockerfile
     container_name: nextcloud-provisioner
     environment:
-      NC_URL:        http://nextcloud
-      NC_BASE_URL:   ${NC_BASE_URL:-https://localhost}
-      NC_ADMIN_USER: ${NC_ADMIN_USER:-nc-admin}
-      NC_ADMIN_PASS: ${NC_ADMIN_PASS:-Admin1234!}
-      USERS_FILE:    /provisioning/users.yml
+      NC_URL:             http://nextcloud
+      NC_BASE_URL:        ${NC_BASE_URL:-https://localhost}
+      NC_ADMIN_USER:      ${NC_ADMIN_USER:-nc-admin}
+      NC_ADMIN_PASS:      ${NC_ADMIN_PASS:-Admin1234!}
+      NC_COLLABORA_URL:   ${NC_COLLABORA_URL:-https://localhost:9443}
+      NC_MAILPIT_URL:     ${NC_MAILPIT_URL:-http://localhost:8025}
+      USERS_FILE:         /provisioning/users.yml
     volumes:
       - nextcloud-tokens:/tokens
+      - nextcloud-data:/var/www/html
     depends_on:
       nextcloud:
         condition: service_healthy

@@ -24,3 +24,17 @@ echo "[hook] activity grouping enabled"
 $OCC config:app:set password_policy enforceNonCommonPassword --value="0" 2>/dev/null || true
 $OCC config:app:set password_policy enforceHaveIBeenPwned --value="0" 2>/dev/null || true
 echo "[hook] password breach checks disabled (training env)"
+
+# Collabora CODE — point richdocuments at the nginx-proxied Collabora endpoint.
+# NC_COLLABORA_URL is set by docker-compose from the host environment (or defaults to localhost:9443).
+# wopi_allowlist covers the RFC-1918 ranges used inside Docker networks.
+$OCC config:app:set richdocuments wopi_url \
+  --value="${NC_COLLABORA_URL:-https://localhost:9443}" 2>/dev/null || true
+$OCC config:app:set richdocuments wopi_allowlist \
+  --value="10.0.0.0/8 172.16.0.0/12 192.168.0.0/16" 2>/dev/null || true
+echo "[hook] Collabora WOPI URL: ${NC_COLLABORA_URL:-https://localhost:9443}"
+
+# Enforce 2FA (TOTP) for instructors group. twofactorauth:enforce stores a group
+# list in config; it is safe to set before the group exists — Nextcloud checks it at login time.
+$OCC twofactorauth:enforce --on --group=instructors 2>/dev/null || true
+echo "[hook] 2FA enforcement enabled for group: instructors"

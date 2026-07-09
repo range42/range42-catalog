@@ -21,6 +21,8 @@ NC_URL="${NC_URL:-http://nextcloud}"
 NC_BASE_URL="${NC_BASE_URL:-https://localhost}"
 NC_ADMIN_USER="${NC_ADMIN_USER:-nc-admin}"
 NC_ADMIN_PASS="${NC_ADMIN_PASS:-Admin1234!}"
+NC_COLLABORA_URL="${NC_COLLABORA_URL:-https://localhost:9443}"
+NC_MAILPIT_URL="${NC_MAILPIT_URL:-http://localhost:8025}"
 USERS_FILE="${USERS_FILE:-/provisioning/users.yml}"
 TOKENS_DIR="/tokens"
 TOKENS_FILE="${TOKENS_DIR}/tokens.txt"
@@ -234,6 +236,33 @@ while [ "${i}" -lt "${user_count}" ]; do
   i=$((i + 1))
 done
 
+# ── 6b. Create per-user home folders (Exercises + Credentials) ──────────────
+echo "[init] Creating per-user home folders ..."
+
+NC_WEBDAV_BASE="${NC_URL}/remote.php/dav/files"
+
+i=0
+while [ "${i}" -lt "${admin_count}" ]; do
+  username=$(yq e ".admins[${i}].username" "${USERS_FILE}")
+  for folder in Exercises Credentials; do
+    curl -sf -X MKCOL "${NC_WEBDAV_BASE}/${username}/${folder}" \
+      -u "${NC_ADMIN_USER}:${NC_ADMIN_PASS}" >/dev/null 2>&1 || true
+  done
+  echo "[init]   + home folders created: ${username}"
+  i=$((i + 1))
+done
+
+i=0
+while [ "${i}" -lt "${user_count}" ]; do
+  username=$(yq e ".users[${i}].username" "${USERS_FILE}")
+  for folder in Exercises Credentials; do
+    curl -sf -X MKCOL "${NC_WEBDAV_BASE}/${username}/${folder}" \
+      -u "${NC_ADMIN_USER}:${NC_ADMIN_PASS}" >/dev/null 2>&1 || true
+  done
+  echo "[init]   + home folders created: ${username}"
+  i=$((i + 1))
+done
+
 # ── 7. Create /Shared/Welcome folder and seed sample files ───────────────────
 echo "[init] Seeding /Shared/Welcome folder ..."
 
@@ -274,6 +303,16 @@ You can download, preview, and share files from the Nextcloud web interface.
   --data-binary @- >/dev/null || echo "[warn] Failed to upload sample.txt"
 
 echo "[init]   + /Shared/Welcome seeded (Welcome.md, sample.txt)"
+
+# /Shared/StudentCredentials — aggregation folder, shared read/write with instructors group
+curl -sf -X MKCOL "${NC_WEBDAV}/Shared/StudentCredentials" \
+  -u "${NC_ADMIN_USER}:${NC_ADMIN_PASS}" >/dev/null 2>&1 || true
+ocs_post "/ocs/v2.php/apps/files_sharing/api/v1/shares" \
+  --data-urlencode "path=/Shared/StudentCredentials" \
+  --data-urlencode "shareType=1" \
+  --data-urlencode "shareWith=instructors" \
+  --data-urlencode "permissions=17" >/dev/null
+echo "[init]   + /Shared/StudentCredentials created and shared with instructors (read+share)"
 
 # ── 8. Create sample shares (3 patterns) ────────────────────────────────────
 echo "[init] Creating sample shares ..."
@@ -424,6 +463,45 @@ else
   echo "[warn] Deck board creation failed (Deck app may not be enabled yet)"
 fi
 
+# ── 11b. Configure mail accounts (Mailpit IMAP/SMTP for each user) ──────────
+echo "[init] Configuring Nextcloud Mail accounts ..."
+
+# Mail app v5.x removed the REST create endpoint; use occ mail:account:create instead.
+# The nextcloud-data volume is mounted at /var/www/html so this provisioner image
+# (nextcloud:latest) can run occ against the live installation.
+configure_mail_account() {
+  local username="${1}"
+  local password="${2}"
+  local email="${3}"
+  php /var/www/html/occ --no-warnings mail:account:create \
+    "${username}" "${username}" "${email}" \
+    mailpit 1143 none \
+    "${username}" "${password}" \
+    mailpit 1025 none \
+    "${username}" "${password}" \
+    >/dev/null 2>&1 \
+    || echo "[warn] Failed to configure mail for ${username}"
+  echo "[init]   + mail account: ${username} <${email}>"
+}
+
+i=0
+while [ "${i}" -lt "${admin_count}" ]; do
+  username=$(yq e ".admins[${i}].username" "${USERS_FILE}")
+  password=$(yq e ".admins[${i}].password" "${USERS_FILE}")
+  email=$(yq e ".admins[${i}].email" "${USERS_FILE}")
+  configure_mail_account "${username}" "${password}" "${email}"
+  i=$((i + 1))
+done
+
+i=0
+while [ "${i}" -lt "${user_count}" ]; do
+  username=$(yq e ".users[${i}].username" "${USERS_FILE}")
+  password=$(yq e ".users[${i}].password" "${USERS_FILE}")
+  email=$(yq e ".users[${i}].email" "${USERS_FILE}")
+  configure_mail_account "${username}" "${password}" "${email}"
+  i=$((i + 1))
+done
+
 # ── 12. Emit nextcloud-credentials.json ─────────────────────────────────────
 echo "[init] Writing nextcloud-credentials.json ..."
 
@@ -462,7 +540,9 @@ while [ "${i}" -lt "${user_count}" ]; do
 done
 
 jq -n \
-  --arg base_url       "${NC_BASE_URL}" \
+  --arg base_url          "${NC_BASE_URL}" \
+  --arg collabora_url     "${NC_COLLABORA_URL}" \
+  --arg mailpit_url       "${NC_MAILPIT_URL}" \
   --argjson app_passwords "${app_passwords}" \
   --argjson groups        "${groups_json}" \
   '{
@@ -474,7 +554,9 @@ jq -n \
       "group_memberships": $groups,
       "shares": ["public_link","password_protected","time_expiring"],
       "home_folder_path": "/Shared/Welcome",
-      "auto_joined_paths": ["/Shared/Welcome"]
+      "auto_joined_paths": ["/Shared/Welcome"],
+      "collabora_url": $collabora_url,
+      "mailpit_url": $mailpit_url
     }
   }' > "${CREDS_JSON}"
 

@@ -5,7 +5,7 @@ set -e
 
 OCC="php /var/www/html/occ"
 
-for app in calendar contacts deck notes forms polls talk mail; do
+for app in calendar contacts deck notes forms polls talk mail richdocuments twofactor_totp; do
   if $OCC app:enable "${app}" 2>/dev/null; then
     echo "[hook] enabled app: ${app}"
   else
