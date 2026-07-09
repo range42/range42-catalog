@@ -25,14 +25,19 @@ $OCC config:app:set password_policy enforceNonCommonPassword --value="0" 2>/dev/
 $OCC config:app:set password_policy enforceHaveIBeenPwned --value="0" 2>/dev/null || true
 echo "[hook] password breach checks disabled (training env)"
 
-# Collabora CODE — point richdocuments at the nginx-proxied Collabora endpoint.
-# NC_COLLABORA_URL is set by docker-compose from the host environment (or defaults to localhost:9443).
-# wopi_allowlist covers the RFC-1918 ranges used inside Docker networks.
+# Collabora CODE — two-URL WOPI configuration:
+#   wopi_url       : internal URL (server→Collabora, no TLS needed inside Docker)
+#   public_wopi_url: external URL (browser→Collabora, through nginx TLS proxy)
+# NC_COLLABORA_URL is the external URL set by docker-compose (or defaults to localhost:9443).
+# Keeping wopi_url on the internal plain-HTTP endpoint avoids self-signed cert
+# failures when Nextcloud fetches the WOPI discovery XML from PHP.
 $OCC config:app:set richdocuments wopi_url \
+  --value="http://collabora:9980" 2>/dev/null || true
+$OCC config:app:set richdocuments public_wopi_url \
   --value="${NC_COLLABORA_URL:-https://localhost:9443}" 2>/dev/null || true
 $OCC config:app:set richdocuments wopi_allowlist \
   --value="10.0.0.0/8 172.16.0.0/12 192.168.0.0/16" 2>/dev/null || true
-echo "[hook] Collabora WOPI URL: ${NC_COLLABORA_URL:-https://localhost:9443}"
+echo "[hook] Collabora wopi_url: http://collabora:9980 / public: ${NC_COLLABORA_URL:-https://localhost:9443}"
 
 # Enforce 2FA (TOTP) for instructors group. twofactorauth:enforce stores a group
 # list in config; it is safe to set before the group exists — Nextcloud checks it at login time.
