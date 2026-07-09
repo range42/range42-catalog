@@ -49,7 +49,7 @@ services:
     environment:
       NEXTCLOUD_ADMIN_USER:     ${NC_ADMIN_USER:-nc-admin}
       NEXTCLOUD_ADMIN_PASSWORD: ${NC_ADMIN_PASS:-Admin1234!}
-      NEXTCLOUD_TRUSTED_DOMAINS: ${NC_DOMAIN:-localhost}
+      NEXTCLOUD_TRUSTED_DOMAINS: "${NC_DOMAIN:-localhost} nextcloud"
       POSTGRES_HOST:     db
       POSTGRES_DB:       ${POSTGRES_DB:-nextcloud}
       POSTGRES_USER:     ${POSTGRES_USER:-nextcloud}
@@ -64,6 +64,7 @@ services:
       OVERWRITEPROTOCOL: "https"
     volumes:
       - nextcloud-data:/var/www/html
+      - ./provisioning/nextcloud-hooks:/docker-entrypoint-hooks.d/post-installation:ro
     depends_on:
       db:
         condition: service_healthy
@@ -106,6 +107,7 @@ services:
     container_name: nextcloud-provisioner
     environment:
       NC_URL:        http://nextcloud
+      NC_BASE_URL:   ${NC_BASE_URL:-https://localhost}
       NC_ADMIN_USER: ${NC_ADMIN_USER:-nc-admin}
       NC_ADMIN_PASS: ${NC_ADMIN_PASS:-Admin1234!}
       USERS_FILE:    /provisioning/users.yml
