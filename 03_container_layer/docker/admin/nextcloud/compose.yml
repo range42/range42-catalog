@@ -61,8 +61,12 @@ services:
       # that header when the proxy IP matches NEXTCLOUD_TRUSTED_PROXIES.
       NEXTCLOUD_TRUSTED_PROXIES: "10.0.0.0/8 172.16.0.0/12 192.168.0.0/16"
       OVERWRITECLIURL:   "${NC_BASE_URL:-https://localhost}"
-      OVERWRITEPROTOCOL: "https"
-      NC_COLLABORA_URL:  "${NC_COLLABORA_URL:-https://localhost:9443}"
+      # OVERWRITEPROTOCOL is intentionally absent. nginx sets X-Forwarded-Proto: https
+      # for browser requests (nginx IP is in NEXTCLOUD_TRUSTED_PROXIES), so external URLs
+      # remain https://. Collabora's internal HTTP calls get http:// URLs, which is required
+      # so that template/preset URLs in the wopi/settings response are reachable over the
+      # Docker bridge network (https://nextcloud is unreachable internally — no TLS listener).
+      NC_COLLABORA_URL:  "${NC_COLLABORA_URL:-https://localhost:8443}"
     volumes:
       - nextcloud-data:/var/www/html
       - ./provisioning/nextcloud-hooks:/docker-entrypoint-hooks.d/post-installation:ro
@@ -92,11 +96,17 @@ services:
     environment:
       domain: ".*"
       DONT_GEN_SSL_CERT: "YES"
-      extra_params: "--o:ssl.enable=false --o:ssl.termination=true"
+      extra_params: "--o:ssl.enable=false --o:ssl.termination=true --o:mount_jail_tree=false"
       # server_name tells Collabora what external hostname:port to embed in its WOPI
-      # discovery XML. The browser uses the urlsrc from that XML verbatim, so this
-      # must be the IP/hostname that browsers can reach (nginx TLS proxy port).
-      server_name: "${NC_HOST_IP:-localhost}:${COLLABORA_PORT:-9443}"
+      # discovery XML. The browser uses the urlsrc verbatim, so this must be the
+      # origin that browsers already trust. Routing Collabora through the same nginx
+      # port as Nextcloud (HTTP_PORT) avoids a second TLS certificate exception.
+      server_name: "${NC_HOST_IP:-localhost}:${HTTP_PORT:-8443}"
+    volumes:
+      # Mount a patched coolwsd.xml that routes WOPI callbacks to the internal Docker
+      # service name instead of the external IP. Collabora cannot reach the host's
+      # published port from within the Docker bridge network (hairpin NAT).
+      - ./provisioning/collabora/coolwsd.xml:/etc/coolwsd/coolwsd.xml:ro
     cap_add:
       - MKNOD
     restart: unless-stopped
@@ -116,7 +126,6 @@ services:
     container_name: nextcloud-nginx
     ports:
       - "${HTTP_PORT:-8443}:443"
-      - "${COLLABORA_PORT:-9443}:9443"
     volumes:
       - ./provisioning/nginx.conf:/etc/nginx/conf.d/default.conf:ro
       - nextcloud-certs:/certs:ro
@@ -139,7 +148,7 @@ services:
       NC_BASE_URL:        ${NC_BASE_URL:-https://localhost}
       NC_ADMIN_USER:      ${NC_ADMIN_USER:-nc-admin}
       NC_ADMIN_PASS:      ${NC_ADMIN_PASS:-Admin1234!}
-      NC_COLLABORA_URL:   ${NC_COLLABORA_URL:-https://localhost:9443}
+      NC_COLLABORA_URL:   ${NC_COLLABORA_URL:-https://localhost:8443}
       NC_MAILPIT_URL:     ${NC_MAILPIT_URL:-http://localhost:8025}
       USERS_FILE:         /provisioning/users.yml
     volumes:
