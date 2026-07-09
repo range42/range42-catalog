@@ -1,0 +1,59 @@
+---
+# os_auto_updates - Ubuntu (apt). TESTED.
+# disabled -> stop + disable + mask apt-daily{,.upgrade} timers/services +
+#             unattended-upgrades.service (stopping releases a held dpkg lock), and
+#             write /etc/apt/apt.conf.d/20auto-upgrades with every periodic key at "0".
+# enabled  -> unmask + enable + start the timers + unattended-upgrades, periodic config back to daily.
+
+- name: os_auto_updates (ubuntu) - stop + disable + mask apt units
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+    masked: true
+  loop: "{{ _os_auto_updates_apt_units }}"
+  register: _oau_disable
+  when: (OS_AUTO_UPDATES_STATE | default('disabled')) == 'disabled'
+  failed_when:
+    - _oau_disable is failed
+    - "'Could not find' not in (_oau_disable.msg | default(''))"
+    - "'not loaded' not in (_oau_disable.msg | default(''))"
+
+- name: os_auto_updates (ubuntu) - write periodic config (all off)
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      // range42 - OS background auto-updates disabled during provisioning
+      APT::Periodic::Update-Package-Lists "0";
+      APT::Periodic::Unattended-Upgrade "0";
+      APT::Periodic::Download-Upgradeable-Packages "0";
+      APT::Periodic::AutocleanInterval "0";
+  when: (OS_AUTO_UPDATES_STATE | default('disabled')) == 'disabled'
+
+- name: os_auto_updates (ubuntu) - unmask + enable + start apt units
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    masked: false
+    enabled: true
+    state: started
+  loop: "{{ _os_auto_updates_apt_enable_units }}"
+  register: _oau_enable
+  when: (OS_AUTO_UPDATES_STATE | default('disabled')) == 'enabled'
+  failed_when:
+    - _oau_enable is failed
+    - "'Could not find' not in (_oau_enable.msg | default(''))"
+    - "'not loaded' not in (_oau_enable.msg | default(''))"
+
+- name: os_auto_updates (ubuntu) - write periodic config (daily)
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+  when: (OS_AUTO_UPDATES_STATE | default('disabled')) == 'enabled'

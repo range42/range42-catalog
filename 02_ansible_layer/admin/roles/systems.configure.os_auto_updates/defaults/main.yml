@@ -1,0 +1,35 @@
+---
+# systems.configure.os_auto_updates - defaults
+#
+# Disable (default) or enable the OS background auto-updater so it never holds the
+# package lock during provisioning. OS-branched (see tasks/<distro>/unattended_updates.yml) :
+#   - Ubuntu / Debian : apt-daily timers + unattended-upgrades
+#   - Fedora          : dnf-automatic timers + PackageKit
+
+OS_AUTO_UPDATES_STATE: "disabled"   # disabled | enabled
+
+# --- internal (not meant to be overridden by callers) ---
+
+# apt (Ubuntu / Debian) : units neutralised when disabling
+_os_auto_updates_apt_units:
+  - apt-daily.timer
+  - apt-daily-upgrade.timer
+  - apt-daily.service
+  - apt-daily-upgrade.service
+  - unattended-upgrades.service
+# apt : units restarted when re-enabling (timers drive the rest)
+_os_auto_updates_apt_enable_units:
+  - apt-daily.timer
+  - apt-daily-upgrade.timer
+  - unattended-upgrades.service
+
+# dnf (Fedora) : units neutralised when disabling
+_os_auto_updates_dnf_units:
+  - dnf-automatic.timer
+  - dnf-automatic-install.timer
+  - dnf-automatic-download.timer
+  - dnf-automatic-notifyonly.timer
+  - packagekit.service
+# dnf : units restarted when re-enabling
+_os_auto_updates_dnf_enable_units:
+  - dnf-automatic.timer
