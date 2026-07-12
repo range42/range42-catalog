@@ -1,8 +1,14 @@
 ---
-# Pinned kunai eBPF binary : GPG-verified download, then placed in /usr/local/bin.
-# We deliberately do NOT run `kunai install` : it sets up a systemd capture service
-# that conflicts with the interactive `sudo kunai run` used in the workshop
-# exercises. The binary in PATH is all the exercises need.
+# Pinned kunai eBPF binary : GPG-verified, then placed in /usr/local/bin.
+# Source, per artifact (binary + detached signature) :
+#   - vendored in this role's files/ -> copied from the CONTROLLER (no GitHub hit).
+#     The 28M binary lives in files/kunai-<arch> to avoid N VMs hammering the GitHub
+#     release in parallel (read timeouts / throttling).
+#   - not vendored -> downloaded from the GitHub release (get_url, retries + timeout).
+# GPG verification is identical either way (the .asc is the real signature). Typical
+# setup : the binary is vendored, the tiny .asc is fetched from GitHub.
+# We deliberately do NOT run `kunai install` (systemd capture service) - the binary in
+# PATH is all the workshop exercises need.
 
 - name: kunai - import the release signing key from the keyserver
   ansible.builtin.command:
@@ -20,14 +26,41 @@
   # robustness follow-up : embed the armored key in files/ and import from the
   # file to drop the keyserver dependency at deploy time.
 
-- name: kunai - download the pinned binary + detached signature
-  ansible.builtin.get_url:
-    url: "https://github.com/kunai-project/kunai/releases/download/{{ kunai_version }}/kunai-{{ kunai_arch }}{{ item }}"
-    dest: "/usr/local/src/kunai-{{ kunai_arch }}{{ item }}"
-    mode: "0644"
+- name: kunai - detect which artifacts are vendored in the role files/
+  ansible.builtin.stat:
+    path: "{{ role_path }}/files/kunai-{{ kunai_arch }}{{ item }}"
   loop:
     - ""
     - ".asc"
+  delegate_to: localhost
+  run_once: true
+  become: false
+  register: kunai_vendored
+
+- name: kunai - copy vendored artifacts from the role files/ (no GitHub hit)
+  ansible.builtin.copy:
+    src: "kunai-{{ kunai_arch }}{{ item.item }}"
+    dest: "/usr/local/src/kunai-{{ kunai_arch }}{{ item.item }}"
+    mode: "0644"
+  loop: "{{ kunai_vendored.results }}"
+  loop_control:
+    label: "kunai-{{ kunai_arch }}{{ item.item }}"
+  when: item.stat.exists
+
+- name: kunai - download artifacts not vendored (GitHub, retries + longer timeout)
+  ansible.builtin.get_url:
+    url: "https://github.com/kunai-project/kunai/releases/download/{{ kunai_version }}/kunai-{{ kunai_arch }}{{ item.item }}"
+    dest: "/usr/local/src/kunai-{{ kunai_arch }}{{ item.item }}"
+    mode: "0644"
+    timeout: 60
+  loop: "{{ kunai_vendored.results }}"
+  loop_control:
+    label: "kunai-{{ kunai_arch }}{{ item.item }}"
+  register: kunai_dl
+  until: kunai_dl is succeeded
+  retries: 3
+  delay: 10
+  when: not item.stat.exists
 
 - name: kunai - GPG-verify the binary (aborts the play if the signature is invalid)
   ansible.builtin.command:
