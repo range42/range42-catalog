@@ -34,12 +34,17 @@ tasks/
 
 ## What it does
 
-- `disabled` : stop + disable + mask the background auto-updater units, and write the periodic
-  config off (`/etc/apt/apt.conf.d/20auto-upgrades` on apt ; `apply_updates = no` in
-  `/etc/dnf/automatic.conf` on dnf).
+- `disabled` (apt) : stop + disable + mask the apt-daily **timers** (no future scheduled runs) ;
+  **wait** for any in-flight run to finish (services still unmasked, so `systemctl is-active` is
+  reliable and a running unattended-upgrade is never killed - killing it mid-transaction corrupts
+  dpkg) ; then disable + mask the now-idle **services** ; write `/etc/apt/apt.conf.d/20auto-upgrades` off.
+- `disabled` (dnf, untested) : stop + mask the dnf-automatic timers + PackageKit ;
+  `apply_updates = no` in `/etc/dnf/automatic.conf`.
 - `enabled` : unmask + enable + start the timers, periodic config back on.
 
-Missing units / config files are tolerated (minimal images).
+The updater is only prevented from starting NEW runs ; a run already in progress is left to
+finish (never force-killed), which is why no `dpkg --configure -a` repair is needed. Missing
+units / config files are tolerated (minimal images).
 
 ## Variables
 

@@ -10,17 +10,17 @@ OS_AUTO_UPDATES_STATE: "disabled"   # disabled | enabled
 
 # --- internal (not meant to be overridden by callers) ---
 
-# apt (Ubuntu / Debian) : units neutralised when disabling
-_os_auto_updates_apt_units:
+# apt (Ubuntu / Debian) TIMERS : stop + disable + mask when disabling
+# (safe - a timer holds no dpkg transaction ; stopping just deactivates the schedule)
+_os_auto_updates_apt_timers:
   - apt-daily.timer
   - apt-daily-upgrade.timer
+# apt (Ubuntu / Debian) SERVICES : disable + mask when disabling, but NEVER stop them.
+# Stopping unattended-upgrades mid-run would SIGKILL dpkg and corrupt the package DB.
+# We only prevent FUTURE starts (mask) and then WAIT for any in-flight run to finish.
+_os_auto_updates_apt_services:
   - apt-daily.service
   - apt-daily-upgrade.service
-  - unattended-upgrades.service
-# apt : units restarted when re-enabling (timers drive the rest)
-_os_auto_updates_apt_enable_units:
-  - apt-daily.timer
-  - apt-daily-upgrade.timer
   - unattended-upgrades.service
 
 # dnf (Fedora) : units neutralised when disabling
