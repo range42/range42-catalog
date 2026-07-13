@@ -35,9 +35,12 @@ tasks/
 ## What it does
 
 - `disabled` (apt) : stop + disable + mask the apt-daily **timers** (no future scheduled runs) ;
-  **wait** for any in-flight run to finish (services still unmasked, so `systemctl is-active` is
-  reliable and a running unattended-upgrade is never killed - killing it mid-transaction corrupts
-  dpkg) ; then disable + mask the now-idle **services** ; write `/etc/apt/apt.conf.d/20auto-upgrades` off.
+  **wait** for the transient lock holders (`apt-daily.service` = download, `apt-daily-upgrade.service`
+  = install) to go inactive so the dpkg lock is free - they are never killed (killing one
+  mid-transaction corrupts dpkg). `unattended-upgrades.service` is deliberately NOT waited on : it
+  is a long-running `--wait-for-signal` daemon that is always active during uptime (it only upgrades
+  at shutdown), so it is only masked (never stopped - stopping it would trigger the shutdown upgrade).
+  Then disable + mask the services ; write `/etc/apt/apt.conf.d/20auto-upgrades` off.
 - `disabled` (dnf, untested) : stop + mask the dnf-automatic timers + PackageKit ;
   `apply_updates = no` in `/etc/dnf/automatic.conf`.
 - `enabled` : unmask + enable + start the timers, periodic config back on.

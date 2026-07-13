@@ -36,7 +36,7 @@
   delay: 5
   changed_when: false
   failed_when: false
-  loop: "{{ _os_auto_updates_apt_services }}"
+  loop: "{{ _os_auto_updates_apt_wait_units }}"
   when: (OS_AUTO_UPDATES_STATE | default('disabled')) == 'disabled'
 
 - name: os_auto_updates (ubuntu) - disable + mask the now-idle apt/unattended services
