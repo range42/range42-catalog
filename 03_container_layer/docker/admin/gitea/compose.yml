@@ -72,6 +72,8 @@ services:
       # Without it the /.well-known/openid-configuration endpoint is present but
       # id_token is absent from token responses (OAuth2-only mode).
       GITEA__oauth2__JWT_SECRET:        ${GITEA_OAUTH2_JWT_SECRET:-please-change-me-in-production}
+      # Allow webhook delivery to HTTPS endpoints with self-signed certs (lab only).
+      GITEA__webhook__SKIP_TLS_VERIFY:  "true"
     volumes:
       - gitea-data:/data
       - gitea-certs:/certs:ro
