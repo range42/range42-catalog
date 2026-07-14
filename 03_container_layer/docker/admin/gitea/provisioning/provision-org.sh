@@ -255,6 +255,120 @@ if [[ -n "${GITEA_MIRRORS}" ]]; then
   done
 fi
 
+# ── 8. Sample repository seeding ─────────────────────────────────────────────
+# Creates a "hello-range42" training repo under the org with:
+#   • 2 feature branches, pre-defined labels & milestones, open issues, open PRs
+#   • Branch protection on main (1 required approval)
+#   • Topics for discoverability
+#   • Optional webhook if GITEA_WEBHOOK_URL is set
+#   • Repo added to all teams (instructors + per-team write teams)
+echo "[provision-org] Seeding sample repository 'hello-range42' ..."
+SAMPLE_REPO="hello-range42"
+create_repo "${SAMPLE_REPO}" "Range42 training sandbox — branches, issues, and pull-request workflow"
+
+# Labels
+echo "[provision-org]   labels ..."
+LBL_BUG="$(create_label "${SAMPLE_REPO}" "bug"         "#d73a4a")"
+LBL_ENH="$(create_label "${SAMPLE_REPO}" "enhancement" "#a2eeef")"
+LBL_EXE="$(create_label "${SAMPLE_REPO}" "exercise"    "#7057ff")"
+LBL_BLK="$(create_label "${SAMPLE_REPO}" "blocked"     "#e4e669")" ; : "${LBL_BLK}"  # label exists for trainee self-tagging
+
+# Milestones
+echo "[provision-org]   milestones ..."
+MS1="$(create_milestone "${SAMPLE_REPO}" "Sprint 1")"
+MS2="$(create_milestone "${SAMPLE_REPO}" "Sprint 2")"
+
+# Feature branches + file commits
+echo "[provision-org]   branches and commits ..."
+create_branch "${SAMPLE_REPO}" "feature/add-docs"
+commit_file "${SAMPLE_REPO}" "feature/add-docs" "docs/CONTRIBUTING.md" \
+  "# Contributing
+
+Welcome to the Range42 training repo.  Open a pull request from your feature
+branch and request a review before merging into \`main\`.
+
+## Workflow
+
+1. Create a branch: \`git checkout -b feature/<your-task>\`
+2. Commit your changes
+3. Push and open a PR
+4. Request a review from your instructor
+" \
+  "docs: add CONTRIBUTING guide"
+
+create_branch "${SAMPLE_REPO}" "feature/exercise-01"
+commit_file "${SAMPLE_REPO}" "feature/exercise-01" "exercises/01-hello-git.md" \
+  "# Exercise 01 — Hello Git
+
+## Objective
+
+Practice the basic Git workflow inside the Range42 Gitea instance.
+
+## Steps
+
+1. Clone this repository using your SSH key
+2. Create a branch named \`solution/<your-username>\`
+3. Add a file \`answers/01-hello-git.txt\` with your name and the current date
+4. Commit and push your branch
+5. Open a pull request targeting \`main\`
+
+## Acceptance criteria
+
+- [ ] Branch exists and is named correctly
+- [ ] File \`answers/01-hello-git.txt\` is present
+- [ ] Pull request is open and assigned to your instructor
+" \
+  "exercises: add exercise 01 hello-git"
+
+# Issues
+echo "[provision-org]   issues ..."
+create_issue "${SAMPLE_REPO}" \
+  "Exercise 01: Hello Git workflow" \
+  "Complete the steps in \`exercises/01-hello-git.md\` and open a pull request." \
+  "${LBL_EXE}" "${MS1}"
+
+create_issue "${SAMPLE_REPO}" \
+  "Add setup instructions to README" \
+  "The repository README is missing SSH clone instructions and a link to the contributing guide." \
+  "${LBL_ENH}" "${MS1}"
+
+create_issue "${SAMPLE_REPO}" \
+  "SSH key upload fails for some trainees" \
+  "Some trainees reported that \`git clone\` returns 'Permission denied (publickey)'.  Verify their SSH keys are uploaded correctly in Gitea." \
+  "${LBL_BUG}" "${MS2}"
+
+# Pull requests (one per feature branch)
+echo "[provision-org]   pull requests ..."
+create_pr "${SAMPLE_REPO}" "feature/add-docs" \
+  "docs: add CONTRIBUTING guide" \
+  "Adds a step-by-step contribution guide so trainees understand the review-then-merge workflow before starting exercises."
+
+create_pr "${SAMPLE_REPO}" "feature/exercise-01" \
+  "exercises: add exercise 01 — hello git" \
+  "Introduces the first hands-on exercise covering the basic Git workflow (branch → commit → push → PR)."
+
+# Branch protection on main
+echo "[provision-org]   branch protection on main ..."
+protect_main "${SAMPLE_REPO}"
+
+# Topics
+echo "[provision-org]   topics ..."
+set_topics "${SAMPLE_REPO}" "training" "range42" "exercise" "git-workflow"
+
+# Webhook (optional)
+maybe_create_webhook "${SAMPLE_REPO}" "${GITEA_WEBHOOK_URL}"
+
+# Grant all teams access to the sample repo
+echo "[provision-org]   adding repo to teams ..."
+add_repo_to_team "${INSTRUCTORS_TEAM_ID}" "${SAMPLE_REPO}"
+IFS=',' read -ra _SAMPLE_TEAMS <<< "${GITEA_TEAMS}"
+for _t in "${_SAMPLE_TEAMS[@]}"; do
+  _tid="$(get_team_id "${_t}")"
+  [[ -n "${_tid}" ]] && add_repo_to_team "${_tid}" "${SAMPLE_REPO}" || true
+done
+
+echo "[provision-org] Sample repository '${SAMPLE_REPO}' seeded."
+
 # ── 7. Update credentials JSON with org metadata ──────────────────────────────
 echo "[provision-org] Updating credentials JSON ..."
 gitea_version="$(_get "/version" 2>/dev/null | jq -r '.version // "unknown"')"
