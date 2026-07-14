@@ -61,11 +61,11 @@ services:
       # that header when the proxy IP matches NEXTCLOUD_TRUSTED_PROXIES.
       NEXTCLOUD_TRUSTED_PROXIES: "10.0.0.0/8 172.16.0.0/12 192.168.0.0/16"
       OVERWRITECLIURL:   "${NC_BASE_URL:-https://localhost}"
-      # OVERWRITEPROTOCOL is intentionally absent. nginx sets X-Forwarded-Proto: https
-      # for browser requests (nginx IP is in NEXTCLOUD_TRUSTED_PROXIES), so external URLs
-      # remain https://. Collabora's internal HTTP calls get http:// URLs, which is required
-      # so that template/preset URLs in the wopi/settings response are reachable over the
-      # Docker bridge network (https://nextcloud is unreachable internally — no TLS listener).
+      # OVERWRITEPROTOCOL is NOT set here. The OIDC role (service.configure.nextcloud_gitea_oauth2)
+      # sets overwriteprotocol=https via occ at deploy time (OIDC requires https:// redirects).
+      # It also sets overwritecondaddr to exclude Docker bridge IPs (172.16–31.x.x) so that
+      # Collabora's internal HTTP calls to Nextcloud receive http:// URLs in responses — required
+      # because https://nextcloud is unreachable from Docker (no TLS listener on port 443).
       NC_COLLABORA_URL:  "${NC_COLLABORA_URL:-https://localhost:8443}"
     volumes:
       - nextcloud-data:/var/www/html

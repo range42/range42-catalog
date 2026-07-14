@@ -56,6 +56,30 @@
   become: true
   changed_when: true
 
+# overwritecondaddr limits when overwriteprotocol=https applies. Without it, Nextcloud generates
+# https:// URLs for ALL requests — including Collabora's internal Docker HTTP calls — making preset
+# template URLs (https://nextcloud/...) unreachable because the nextcloud container has no TLS
+# listener on port 443. The regex matches only non-Docker-bridge IPs (excludes 172.16–31.x.x):
+# browser requests proxied by nginx carry X-Forwarded-For with a lab IP → regex matches →
+# overwriteprotocol=https applies; Collabora's direct HTTP calls carry no X-Forwarded-For →
+# Nextcloud sees the Docker bridge IP → regex does not match → http:// URLs generated.
+- name: set Nextcloud overwritecondaddr (restrict protocol override to non-Docker clients)
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - config:system:set
+      - overwritecondaddr
+      - "--value=^(?!172\\.(1[6-9]|2[0-9]|3[0-1])\\.)"
+  become: true
+  changed_when: true
+
 - name: enable Nextcloud user_oidc app
   ansible.builtin.command:
     argv:
