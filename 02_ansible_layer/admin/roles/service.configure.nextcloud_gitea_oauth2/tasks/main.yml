@@ -56,13 +56,55 @@
   become: true
   changed_when: true
 
+# trusted_proxies must contain ONLY the Docker bridge range (nginx's network).
+# Adding 192.168.0.0/16 (browser clients) causes getRemoteAddress() to walk the X-Forwarded-For
+# chain past the browser IP — which is also "trusted" — and fall back to nginx's Docker IP
+# (172.22.x.x). overwritecondaddr then sees a Docker IP for BOTH browser and Collabora requests,
+# making it unable to distinguish them → overwriteprotocol=https suppressed for browsers →
+# OIDC isSecure() check fails with "You must access Nextcloud with HTTPS to use OpenID Connect."
+- name: reset Nextcloud trusted_proxies to Docker bridge only
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - config:system:delete
+      - trusted_proxies
+  become: true
+  changed_when: true
+
+- name: set Nextcloud trusted_proxies — Docker bridge only (nginx at 172.16.0.0/12)
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - config:system:set
+      - trusted_proxies
+      - "0"
+      - "--value=172.16.0.0/12"
+  become: true
+  changed_when: true
+
 # overwritecondaddr limits when overwriteprotocol=https applies. Without it, Nextcloud generates
 # https:// URLs for ALL requests — including Collabora's internal Docker HTTP calls — making preset
 # template URLs (https://nextcloud/...) unreachable because the nextcloud container has no TLS
-# listener on port 443. The regex matches only non-Docker-bridge IPs (excludes 172.16–31.x.x):
-# browser requests proxied by nginx carry X-Forwarded-For with a lab IP → regex matches →
-# overwriteprotocol=https applies; Collabora's direct HTTP calls carry no X-Forwarded-For →
-# Nextcloud sees the Docker bridge IP → regex does not match → http:// URLs generated.
+# listener on port 443. With trusted_proxies narrowed to 172.16.0.0/12, getRemoteAddress()
+# correctly returns the browser's lab IP (192.168.x.x) for requests via nginx, and Collabora's
+# Docker IP for internal WOPI calls — so the regex can distinguish the two.
+# Regex: matches IPs that do NOT start with 172.16–31.x (Docker bridge range).
+# Browser via nginx: getRemoteAddress() → 192.168.x.x → matches → overwriteprotocol=https ✓
+# Collabora internal: getRemoteAddress() → 172.22.x.x → no match → http:// URLs generated ✓
 - name: set Nextcloud overwritecondaddr (restrict protocol override to non-Docker clients)
   ansible.builtin.command:
     argv:

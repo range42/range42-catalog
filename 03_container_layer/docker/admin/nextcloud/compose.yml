@@ -59,7 +59,11 @@ services:
       # Reverse-proxy awareness — required for OIDC (Nextcloud refuses OIDC over plain HTTP).
       # nginx terminates TLS and sets X-Forwarded-Proto: https, but Nextcloud only trusts
       # that header when the proxy IP matches NEXTCLOUD_TRUSTED_PROXIES.
-      NEXTCLOUD_TRUSTED_PROXIES: "10.0.0.0/8 172.16.0.0/12 192.168.0.0/16"
+      # Only the Docker bridge network (nginx lives at 172.22.x.x, covered by 172.16.0.0/12).
+      # Do NOT add 192.168.0.0/16 or 10.0.0.0/8 — those are end-client ranges, not proxy ranges.
+      # Including them causes getRemoteAddress() to walk past browser IPs in X-Forwarded-For
+      # and fall back to nginx's Docker IP, defeating overwritecondaddr (set by the OIDC role).
+      NEXTCLOUD_TRUSTED_PROXIES: "172.16.0.0/12"
       OVERWRITECLIURL:   "${NC_BASE_URL:-https://localhost}"
       # OVERWRITEPROTOCOL is NOT set here. The OIDC role (service.configure.nextcloud_gitea_oauth2)
       # sets overwriteprotocol=https via occ at deploy time (OIDC requires https:// redirects).
