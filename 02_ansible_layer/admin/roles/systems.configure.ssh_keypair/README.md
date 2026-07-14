@@ -3,7 +3,7 @@
 Deploy an SSH keypair (private + optional public) into `~<TARGET_USER>/.ssh/`, so the user
 can SSH out. Single-responsibility, composable, idempotent.
 
-Invoked via the thin bundle `range42-playbooks/bundles/core/systems.configure.ssh_keypair/`.
+Invoked via the thin bundle `range42-playbooks/bundles/generic/systems.configure.ssh_keypair/`.
 
 ## Variables
 

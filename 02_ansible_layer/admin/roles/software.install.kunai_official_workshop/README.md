@@ -5,7 +5,7 @@ host, turnkey: the operator user runs the exercises, nothing to install or confi
 by hand. Mirrors the upstream CIRCL VSS workshop (`kunai-project/workshops`).
 
 Invoked via the thin bundle
-`range42-playbooks/bundles/core/software.install.kunai_official_workshop/`.
+`range42-playbooks/bundles/generic/software.install.kunai_official_workshop/`.
 
 > A future `software.install.kunai` role is reserved for a clean production install
 > of kunai (distinct from this workshop toolchain).
