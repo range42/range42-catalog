@@ -1,0 +1,13 @@
+---
+# /tmp is wiped on reboot. A systemd-tmpfiles rule recreates the workshop config
+# at /tmp/m2k-config.toml on boot, copied from the persistent operator-owned copy.
+
+- name: kunai - tmpfiles.d rule to reseed /tmp/m2k-config.toml on boot
+  ansible.builtin.copy:
+    dest: /etc/tmpfiles.d/range42-kunai-m2k-config.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Recreate the workshop m2k-config at /tmp on boot (from the persistent copy).
+      C /tmp/m2k-config.toml 0644 {{ kunai_operator_user }} {{ kunai_operator_user }} - /home/{{ kunai_operator_user }}/kunai-project/m2k-config.toml

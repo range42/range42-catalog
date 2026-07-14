@@ -1,46 +1,41 @@
 ---
+# systems.configure.add_user
 #
+# Create a user with home + shell + password. The password is set via the user
+# module (NO chpasswd shell) : hashed, honoring update_password.
+#   - TARGET_UPDATE_PASSWORD: always     (default) sets/updates the password every run
+#                                         -> preserves the prior chpasswd behaviour (backend-api).
+#   - TARGET_UPDATE_PASSWORD: on_create   sets the password only at user creation
+#                                         -> idempotent (used by the kunai_lab user provisioning).
 
-- name: check - check provided username
+- name: check - TARGET_USER provided
   ansible.builtin.assert:
     that:
       - TARGET_USER is defined
       - TARGET_USER | length > 0
     fail_msg: "variable 'TARGET_USER' not provided"
 
-- name: check - check provided pwd
+- name: check - TARGET_PASSWORD provided
   ansible.builtin.assert:
     that:
-      - TARGET_USER is defined
-      - TARGET_USER | length > 0
-    fail_msg: "variable 'TARGET_USER' not provided"
+      - TARGET_PASSWORD is defined
+      - TARGET_PASSWORD | length > 0
+    fail_msg: "variable 'TARGET_PASSWORD' not provided"
 
-- name: configure - create user, homedir and shell
+- name: configure - create user, homedir, shell and password
   ansible.builtin.user:
     name: "{{ TARGET_USER }}"
     state: present
-    create_home: yes
-    shell: "{{ TARGET_SHELL_PATH}}"
-
-    #
-    # set a default pwd just in case next tasks fail.
-    #
-    # password: "{{ (TARGET_PASSWORD | default('aiT9-AhW3-xu7eP-h8ih-u8ePoYi')) | password_hash('sha512') }}"
-    password: "*"
-  become: true
-  no_log: true
-
-#
-- name: configure - reset password account
-  ansible.builtin.shell: |
-    printf '%s:%s\n' "{{ TARGET_USER }}" "{{ TARGET_PASSWORD }}" | chpasswd
-  args:
-    executable: /bin/bash
+    create_home: true
+    shell: "{{ TARGET_SHELL_PATH }}"
+    password: "{{ TARGET_PASSWORD | password_hash('sha512') }}"
+    update_password: "{{ TARGET_UPDATE_PASSWORD | default('always') }}"
   become: true
   no_log: true
 
 - name: configure - force pwd change on next logon
-  ansible.builtin.command: chage -d 0 {{ TARGET_USER }}
+  ansible.builtin.command: "chage -d 0 {{ TARGET_USER }}"
   become: true
   no_log: true
+  changed_when: false
   when: CHANGE_PWD_AT_LOGON | default(false) | bool

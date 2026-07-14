@@ -1,0 +1,43 @@
+---
+# systems.configure.os_auto_updates - defaults
+#
+# Disable (default) or enable the OS background auto-updater so it never holds the
+# package lock during provisioning. OS-branched (see tasks/<distro>/unattended_updates.yml) :
+#   - Ubuntu / Debian : apt-daily timers + unattended-upgrades
+#   - Fedora          : dnf-automatic timers + PackageKit
+
+OS_AUTO_UPDATES_STATE: "disabled"   # disabled | enabled
+
+# --- internal (not meant to be overridden by callers) ---
+
+# apt (Ubuntu / Debian) TIMERS : stop + disable + mask when disabling
+# (safe - a timer holds no dpkg transaction ; stopping just deactivates the schedule)
+_os_auto_updates_apt_timers:
+  - apt-daily.timer
+  - apt-daily-upgrade.timer
+# apt (Ubuntu / Debian) SERVICES : disable + mask when disabling, but NEVER stop them.
+# Stopping unattended-upgrades mid-run would SIGKILL dpkg and corrupt the package DB
+# (and stopping the shutdown daemon would itself trigger the upgrade). We only prevent
+# FUTURE starts (mask), never touch a running one.
+_os_auto_updates_apt_services:
+  - apt-daily.service
+  - apt-daily-upgrade.service
+  - unattended-upgrades.service
+# apt : services we WAIT on until inactive = only the TRANSIENT lock holders
+# (apt-daily = download, apt-daily-upgrade = install). unattended-upgrades.service is a
+# long-running `--wait-for-signal` daemon that stays active the whole uptime (it only
+# runs upgrades at shutdown), so it must NOT be waited on - it would burn every retry.
+_os_auto_updates_apt_wait_units:
+  - apt-daily.service
+  - apt-daily-upgrade.service
+
+# dnf (Fedora) : units neutralised when disabling
+_os_auto_updates_dnf_units:
+  - dnf-automatic.timer
+  - dnf-automatic-install.timer
+  - dnf-automatic-download.timer
+  - dnf-automatic-notifyonly.timer
+  - packagekit.service
+# dnf : units restarted when re-enabling
+_os_auto_updates_dnf_enable_units:
+  - dnf-automatic.timer

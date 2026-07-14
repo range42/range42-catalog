@@ -1,0 +1,50 @@
+---
+# os_auto_updates - Fedora (dnf).
+# ############################################################################
+# # NOT YET TESTED ON FEDORA (no test environment available).                #
+# # Neutralises the dnf-automatic timers + PackageKit ; validate on a real    #
+# # Fedora VM before relying on it.                                           #
+# ############################################################################
+# disabled -> stop + disable + mask dnf-automatic{,-install,-download,-notifyonly}.timer
+#             + packagekit.service ; set /etc/dnf/automatic.conf apply_updates = no (if present).
+# enabled  -> unmask + enable + start dnf-automatic.timer.
+
+- name: os_auto_updates (fedora) - stop + disable + mask dnf units
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+    masked: true
+  loop: "{{ _os_auto_updates_dnf_units }}"
+  register: _oau_disable
+  when: (OS_AUTO_UPDATES_STATE | default('disabled')) == 'disabled'
+  failed_when:
+    - _oau_disable is failed
+    - "'Could not find' not in (_oau_disable.msg | default(''))"
+    - "'not loaded' not in (_oau_disable.msg | default(''))"
+
+- name: os_auto_updates (fedora) - set dnf-automatic apply_updates = no (if config present)
+  ansible.builtin.lineinfile:
+    path: /etc/dnf/automatic.conf
+    regexp: '^\s*apply_updates\s*='
+    line: "apply_updates = no"
+    backrefs: false
+  register: _oau_dnf_conf
+  when: (OS_AUTO_UPDATES_STATE | default('disabled')) == 'disabled'
+  failed_when:
+    - _oau_dnf_conf is failed
+    - "'does not exist' not in (_oau_dnf_conf.msg | default(''))"
+
+- name: os_auto_updates (fedora) - unmask + enable + start dnf-automatic timers
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    masked: false
+    enabled: true
+    state: started
+  loop: "{{ _os_auto_updates_dnf_enable_units }}"
+  register: _oau_enable
+  when: (OS_AUTO_UPDATES_STATE | default('disabled')) == 'enabled'
+  failed_when:
+    - _oau_enable is failed
+    - "'Could not find' not in (_oau_enable.msg | default(''))"
+    - "'not loaded' not in (_oau_enable.msg | default(''))"
