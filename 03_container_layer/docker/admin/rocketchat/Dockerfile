@@ -34,6 +34,8 @@ FROM rocketchat/rocket.chat:latest AS runtime
 
 USER root
 
+RUN apk add --no-cache curl
+
 COPY --from=builder /usr/bin/yq    /usr/bin/yq
 COPY --from=builder /usr/bin/jq    /usr/bin/jq
 COPY --from=builder /provisioning/ /provisioning/
