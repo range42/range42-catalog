@@ -17,6 +17,9 @@ RC_BASE_URL="${RC_BASE_URL:-https://localhost:3500}"
 RC_ADMIN_USER="${RC_ADMIN_USER:-rc-admin}"
 RC_ADMIN_PASS="${RC_ADMIN_PASS:-Admin1234!}"
 RC_TEAMS="${RC_TEAMS:-}"
+GITEA_URL="${GITEA_URL:-}"
+GITEA_ADMIN_USER="${GITEA_ADMIN_USER:-}"
+GITEA_ADMIN_PASS="${GITEA_ADMIN_PASS:-}"
 USERS_FILE="${USERS_FILE:-/provisioning/users.yml}"
 TOKENS_FILE="/tokens/tokens.txt"
 CREDS_FILE="/tokens/rocketchat-credentials.json"
@@ -111,7 +114,8 @@ create_user() {
   _payload=$(jq -n --arg u "${_username}" --arg e "${_email}" \
     --arg p "${_password}" --arg n "${_name}" --argjson r "${_roles}" \
     '{"username":$u,"email":$e,"password":$p,"name":$n,"roles":$r,
-      "joinDefaultChannels":true,"sendWelcomeEmail":false,"verified":true}')
+      "joinDefaultChannels":true,"sendWelcomeEmail":false,"verified":true,
+      "requirePasswordChange":false}')
   _resp=$(curl -sf -X POST "${RC_URL}/api/v1/users.create" \
     -H "X-Auth-Token: ${rc_admin_token}" -H "X-User-Id: ${rc_admin_id}" \
     -H "Content-Type: application/json" -d "${_payload}" 2>&1) || true
@@ -138,12 +142,16 @@ generate_token() {
   if [ -z "${_user_token}" ] || [ "${_user_token}" = "null" ]; then
     echo "[token]   WARNING: could not log in as ${_username} -- skipping."; return
   fi
+  # Delete existing "api-token" PAT if present so reprovision always gets a fresh value.
+  curl -sf -X POST "${RC_URL}/api/v1/users.removePersonalAccessToken" \
+    -H "X-Auth-Token: ${_user_token}" -H "X-User-Id: ${_user_id}" \
+    -H "Content-Type: application/json" -d '{"tokenName":"api-token"}' >/dev/null 2>&1 || true
   _token_resp=$(curl -sf -X POST "${RC_URL}/api/v1/users.generatePersonalAccessToken" \
     -H "X-Auth-Token: ${_user_token}" -H "X-User-Id: ${_user_id}" \
     -H "Content-Type: application/json" -d '{"tokenName":"api-token"}') || true
   _pat=$(printf '%s' "${_token_resp}" | jq -r '.token // empty')
   if [ -z "${_pat}" ]; then
-    echo "[token]   WARNING: could not generate PAT (may already exist)."; return
+    echo "[token]   WARNING: could not generate PAT."; return
   fi
   echo "[token]   done."
   printf '%s:%s\n' "${_username}" "${_pat}" >> "${TOKENS_FILE}"
@@ -176,7 +184,34 @@ if [ -z "${rc_admin_token}" ] || [ "${rc_admin_token}" = "null" ]; then
 fi
 echo "[init] Admin auth OK (userId=${rc_admin_id})."
 
-# 4. Create admin users
+# 4. Bootstrap custom OAuth providers (detected from OVERWRITE_SETTING_ env vars)
+# addOAuthService seeds the settings doc so OVERWRITE_SETTING_ values take effect.
+echo "[init] --- Bootstrapping custom OAuth providers ---"
+_oauth_names=$(env | grep '^OVERWRITE_SETTING_Accounts_OAuth_Custom-[^-]*=' \
+  | sed 's/^OVERWRITE_SETTING_Accounts_OAuth_Custom-\([^-=]*\)=.*/\1/')
+if [ -z "$_oauth_names" ]; then
+  echo "[init]   No custom OAuth providers configured -- skipping."
+else
+  printf '%s\n' "$_oauth_names" | while IFS= read -r _pname; do
+    [ -z "$_pname" ] && continue
+    _existing=$(curl -sf "${RC_URL}/api/v1/settings/Accounts_OAuth_Custom-${_pname}" \
+      -H "X-Auth-Token: ${rc_admin_token}" -H "X-User-Id: ${rc_admin_id}" 2>/dev/null \
+      | jq -r '.setting._id // empty') || true
+    if [ -z "$_existing" ]; then
+      _inner=$(jq -n --arg n "$_pname" \
+        '{"msg":"method","method":"addOAuthService","params":[$n],"id":"1"}')
+      _payload=$(jq -n --arg m "$_inner" '{"message":$m}')
+      curl -sf -X POST "${RC_URL}/api/v1/method.call/addOAuthService" \
+        -H "X-Auth-Token: ${rc_admin_token}" -H "X-User-Id: ${rc_admin_id}" \
+        -H "Content-Type: application/json" -d "$_payload" >/dev/null || true
+      echo "[init]   OAuth provider '${_pname}' created."
+    else
+      echo "[init]   OAuth provider '${_pname}' already exists -- skipping."
+    fi
+  done
+fi
+
+# 5. Create admin users
 echo "[init] --- Creating admin users ---"
 admin_count=$(yq '.admins | length' "${USERS_FILE}")
 i=0; while [ "${i}" -lt "${admin_count}" ]; do
@@ -270,7 +305,7 @@ if [ -n "${trainee_team_id}" ]; then
 # 10. Player-team channels from RC_TEAMS env
 echo "[init] --- Creating player-team channels ---"
 if [ -n "${RC_TEAMS}" ]; then
-  printf '%s' "${RC_TEAMS}" | tr ',' '\n' | while IFS= read -r pt_name; do
+  printf '%s\n' "${RC_TEAMS}" | tr ',' '\n' | while IFS= read -r pt_name; do
     [ -z "$pt_name" ] && continue
     pt_id=$(get_or_create_channel "$pt_name" "false")
     echo "[init]   #${pt_name} (id=${pt_id})"
@@ -304,7 +339,8 @@ _bot_resp=$(curl -s -X POST "${RC_URL}/api/v1/users.create" \
   -d "$(jq -n --arg u "$bot_username" --arg e "$bot_email" \
     --arg p "$bot_pass" --arg n "$bot_name" \
     '{"username":$u,"email":$e,"password":$p,"name":$n,"roles":["bot"],
-      "joinDefaultChannels":false,"sendWelcomeEmail":false,"verified":true}')") || true
+      "joinDefaultChannels":false,"sendWelcomeEmail":false,"verified":true,
+      "requirePasswordChange":false}')") || true
 bot_id=$(printf '%s' "$_bot_resp" | jq -r '.user._id // empty')
 [ -z "$bot_id" ] && bot_id=$(get_user_id "$bot_username") || true
 if [ -n "$bot_id" ]; then
@@ -321,6 +357,11 @@ if [ -n "$bot_id" ]; then
       -H "Content-Type: application/json" \
       -d '{"permissions":[{"_id":"create-personal-access-tokens","roles":["admin","user","bot"]}]}' \
       >/dev/null || true
+    # Delete existing "bot-api-token" PAT if present so reprovision always gets a fresh value.
+    curl -sf -X POST "${RC_URL}/api/v1/users.removePersonalAccessToken" \
+      -H "X-Auth-Token: ${_bot_sess}" -H "X-User-Id: ${_bot_uid}" \
+      -H "Content-Type: application/json" \
+      -d '{"tokenName":"bot-api-token"}' >/dev/null 2>&1 || true
     _bot_pat=$(curl -sf -X POST "${RC_URL}/api/v1/users.generatePersonalAccessToken" \
       -H "X-Auth-Token: ${_bot_sess}" -H "X-User-Id: ${_bot_uid}" \
       -H "Content-Type: application/json" \
@@ -346,15 +387,27 @@ wh_count=$(yq '.incoming_webhooks | length' "${USERS_FILE}" 2>/dev/null || echo 
 wi=0; while [ "${wi}" -lt "${wh_count}" ]; do
   wh_name=$(yq ".incoming_webhooks[${wi}].name"    "${USERS_FILE}")
   wh_chan=$(yq  ".incoming_webhooks[${wi}].channel" "${USERS_FILE}")
-  _wh_resp=$(curl -sf -X POST "${RC_URL}/api/v1/integrations.create" \
-    -H "X-Auth-Token: ${rc_admin_token}" -H "X-User-Id: ${rc_admin_id}" \
-    -H "Content-Type: application/json" \
-    -d "$(jq -n --arg n "$wh_name" --arg ch "$wh_chan" --arg u "$bot_username" \
-      '{"type":"webhook-incoming","name":$n,"enabled":true,"channel":$ch,
-        "username":$u,"scriptEnabled":false,
-        "overrideDestinationChannelEnabled":true}')") || true
-  _wh_id=$(printf '%s'  "$_wh_resp" | jq -r '.integration._id   // empty')
-  _wh_tok=$(printf '%s' "$_wh_resp" | jq -r '.integration.token // empty')
+  # Check if a webhook with this name already exists (idempotency on reprovision).
+  _existing_wh=$(curl -sf "${RC_URL}/api/v1/integrations.list" \
+    -H "X-Auth-Token: ${rc_admin_token}" -H "X-User-Id: ${rc_admin_id}" 2>/dev/null \
+    | jq -r --arg n "$wh_name" \
+      '.integrations[] | select(.type=="webhook-incoming" and .name==$n) | "\(._id):\(.token)"' \
+    | head -1) || true
+  if [ -n "$_existing_wh" ]; then
+    _wh_id=$(printf '%s' "$_existing_wh"  | cut -d: -f1)
+    _wh_tok=$(printf '%s' "$_existing_wh" | cut -d: -f2-)
+    echo "[init]   '${wh_name}' already exists -- reusing."
+  else
+    _wh_resp=$(curl -sf -X POST "${RC_URL}/api/v1/integrations.create" \
+      -H "X-Auth-Token: ${rc_admin_token}" -H "X-User-Id: ${rc_admin_id}" \
+      -H "Content-Type: application/json" \
+      -d "$(jq -n --arg n "$wh_name" --arg ch "$wh_chan" --arg u "$bot_username" \
+        '{"type":"webhook-incoming","name":$n,"enabled":true,"channel":$ch,
+          "username":$u,"scriptEnabled":false,
+          "overrideDestinationChannelEnabled":true}')") || true
+    _wh_id=$(printf '%s'  "$_wh_resp" | jq -r '.integration._id   // empty')
+    _wh_tok=$(printf '%s' "$_wh_resp" | jq -r '.integration.token // empty')
+  fi
   if [ -n "$_wh_id" ] && [ -n "$_wh_tok" ]; then
     incoming_webhook_url="${RC_BASE_URL}/hooks/${_wh_id}/${_wh_tok}"
     printf 'webhook_incoming:%s\n' "${incoming_webhook_url}" >> "${TOKENS_FILE}"
@@ -362,7 +415,56 @@ wi=0; while [ "${wi}" -lt "${wh_count}" ]; do
   else echo "[init]   WARNING: could not create webhook '${wh_name}'."; fi
   wi=$((wi + 1)); done
 
-# 14. Pin welcome messages
+# 14. Register RC incoming webhook on Gitea repos
+echo "[init] --- Registering RC webhook on Gitea repos ---"
+if [ -z "${GITEA_URL}" ] || [ -z "${GITEA_ADMIN_USER}" ] || [ -z "${GITEA_ADMIN_PASS}" ]; then
+  echo "[init]   GITEA_URL/GITEA_ADMIN_USER/GITEA_ADMIN_PASS not set -- skipping."
+elif [ -z "${incoming_webhook_url}" ]; then
+  echo "[init]   No incoming webhook URL available -- skipping."
+else
+  _GITEA_EVENTS='["push","issues","issue_comment","issue_label","issue_assign","issue_milestone","pull_request","pull_request_assign","pull_request_label","pull_request_comment","pull_request_review","pull_request_review_request","pull_request_sync","pull_request_milestone"]'
+  # Wait briefly for Gitea to be reachable (parallel startup on fresh deploy).
+  _gi=0
+  until curl -skf -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" \
+      "${GITEA_URL}/api/v1/user" >/dev/null 2>&1; do
+    _gi=$((_gi + 1))
+    [ "${_gi}" -ge 12 ] && { echo "[init]   WARNING: Gitea not reachable after 60s -- skipping."; break; }
+    echo "[init]   Waiting for Gitea ... (${_gi}/12)"; sleep 5
+  done
+  if curl -skf -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" \
+      "${GITEA_URL}/api/v1/user" >/dev/null 2>&1; then
+    _repos=$(curl -sk -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" \
+      "${GITEA_URL}/api/v1/repos/search?limit=50" \
+      | jq -r '.data[].full_name') || true
+    printf '%s\n' "$_repos" | while IFS= read -r _repo; do
+      [ -z "$_repo" ] && continue
+      _existing_gh=$(curl -sk -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" \
+        "${GITEA_URL}/api/v1/repos/${_repo}/hooks" \
+        | jq -r --arg u "$incoming_webhook_url" \
+          '.[] | select(.config.url==$u) | .id' | head -1) || true
+      if [ -n "$_existing_gh" ]; then
+        echo "[init]   ${_repo}: already has RC webhook (id=${_existing_gh}) -- skipping."
+      else
+        _gh_resp=$(curl -sk -X POST \
+          -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" \
+          "${GITEA_URL}/api/v1/repos/${_repo}/hooks" \
+          -H 'Content-Type: application/json' \
+          -d "$(jq -n --arg url "$incoming_webhook_url" \
+            --argjson ev "$_GITEA_EVENTS" \
+            '{"type":"slack","active":true,"events":$ev,
+              "config":{"url":$url,"content_type":"json","channel":"#general"}}')") || true
+        _gh_id=$(printf '%s' "$_gh_resp" | jq -r '.id // empty') || true
+        if [ -n "$_gh_id" ]; then
+          echo "[init]   ${_repo}: RC webhook registered (id=${_gh_id})."
+        else
+          echo "[init]   ${_repo}: WARNING could not register RC webhook."
+        fi
+      fi
+    done
+  fi
+fi
+
+# 15. Pin welcome messages
 echo "[init] --- Pinning welcome messages ---"
 i=0; while [ "${i}" -lt "${ch_count}" ]; do
   pin_msg=$(yq ".channels[${i}].pinned_message // \"\"" "${USERS_FILE}" 2>/dev/null || true)

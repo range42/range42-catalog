@@ -317,29 +317,50 @@ echo "[init]   + /Shared/StudentCredentials created and shared with instructors 
 # ── 8. Create sample shares (3 patterns) ────────────────────────────────────
 echo "[init] Creating sample shares ..."
 
+_nc_share_exists() {
+  local path="${1}" sharetype="${2}"
+  curl -sf "${NC_URL}/ocs/v2.php/apps/files_sharing/api/v1/shares?path=${path}" \
+    -u "${NC_ADMIN_USER}:${NC_ADMIN_PASS}" \
+    -H "OCS-APIRequest: true" -H "Accept: application/json" 2>/dev/null \
+    | jq -e --argjson st "${sharetype}" '.ocs.data[]? | select(.share_type == $st)' \
+    >/dev/null 2>&1
+}
+
 # Public link (shareType=3, permissions=1=read-only)
-ocs_post "/ocs/v2.php/apps/files_sharing/api/v1/shares" \
-  --data-urlencode "path=/Shared/Welcome" \
-  --data-urlencode "shareType=3" \
-  --data-urlencode "permissions=1" >/dev/null
-echo "[init]   + public link share: /Shared/Welcome"
+if _nc_share_exists "/Shared/Welcome" 3; then
+  echo "[init]   public link share already exists: /Shared/Welcome"
+else
+  ocs_post "/ocs/v2.php/apps/files_sharing/api/v1/shares" \
+    --data-urlencode "path=/Shared/Welcome" \
+    --data-urlencode "shareType=3" \
+    --data-urlencode "permissions=1" >/dev/null
+  echo "[init]   + public link share: /Shared/Welcome"
+fi
 
 # Password-protected link
-ocs_post "/ocs/v2.php/apps/files_sharing/api/v1/shares" \
-  --data-urlencode "path=/Shared/Welcome/sample.txt" \
-  --data-urlencode "shareType=3" \
-  --data-urlencode "permissions=1" \
-  --data-urlencode "password=WelcomeShare42!" >/dev/null
-echo "[init]   + password-protected share: /Shared/Welcome/sample.txt"
+if _nc_share_exists "/Shared/Welcome/sample.txt" 3; then
+  echo "[init]   password-protected share already exists: /Shared/Welcome/sample.txt"
+else
+  ocs_post "/ocs/v2.php/apps/files_sharing/api/v1/shares" \
+    --data-urlencode "path=/Shared/Welcome/sample.txt" \
+    --data-urlencode "shareType=3" \
+    --data-urlencode "permissions=1" \
+    --data-urlencode "password=WelcomeShare42!" >/dev/null
+  echo "[init]   + password-protected share: /Shared/Welcome/sample.txt"
+fi
 
 # Time-expiring link (30 days)
 EXPIRE_DATE=$(date -d "+30 days" +%Y-%m-%d 2>/dev/null || echo "2026-08-09")
-ocs_post "/ocs/v2.php/apps/files_sharing/api/v1/shares" \
-  --data-urlencode "path=/Shared/Welcome/Welcome.md" \
-  --data-urlencode "shareType=3" \
-  --data-urlencode "permissions=1" \
-  --data-urlencode "expireDate=${EXPIRE_DATE}" >/dev/null
-echo "[init]   + time-expiring share (until ${EXPIRE_DATE}): /Shared/Welcome/Welcome.md"
+if _nc_share_exists "/Shared/Welcome/Welcome.md" 3; then
+  echo "[init]   time-expiring share already exists: /Shared/Welcome/Welcome.md"
+else
+  ocs_post "/ocs/v2.php/apps/files_sharing/api/v1/shares" \
+    --data-urlencode "path=/Shared/Welcome/Welcome.md" \
+    --data-urlencode "shareType=3" \
+    --data-urlencode "permissions=1" \
+    --data-urlencode "expireDate=${EXPIRE_DATE}" >/dev/null
+  echo "[init]   + time-expiring share (until ${EXPIRE_DATE}): /Shared/Welcome/Welcome.md"
+fi
 
 # ── 9. Seed calendar event ───────────────────────────────────────────────────
 echo "[init] Seeding calendar event ..."
@@ -413,12 +434,24 @@ done
 # ── 11. Create Deck kanban board ─────────────────────────────────────────────
 echo "[init] Creating Deck board ..."
 
+# Check if board already exists before creating (idempotency on reprovision)
+board_id=$(curl -sf "${NC_URL}/index.php/apps/deck/api/v1.0/boards" \
+  -u "${NC_ADMIN_USER}:${NC_ADMIN_PASS}" \
+  -H "Accept: application/json" 2>/dev/null \
+  | jq -r '.[]? | select(.title == "Training Tasks") | .id // empty' \
+  2>/dev/null | head -1 || true)
+
+if [ -n "${board_id}" ]; then
+  echo "[init]   Deck board 'Training Tasks' already exists (id=${board_id})"
+  board_resp="{\"id\":\"${board_id}\"}"
+else
 board_resp=$(curl -sf -X POST \
   "${NC_URL}/index.php/apps/deck/api/v1.0/boards" \
   -u "${NC_ADMIN_USER}:${NC_ADMIN_PASS}" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -d '{"title":"Training Tasks","color":"0069AF"}' || echo '{}')
+fi
 
 board_id=$(printf '%s' "${board_resp}" | jq -r '.id // empty')
 

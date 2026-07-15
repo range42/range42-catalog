@@ -301,6 +301,16 @@ generate_tokens() {
     uid=$(curl -sf "${MM_URL}/api/v4/users/username/${uname}" \
       -H "Authorization: Bearer ${admin_token}" | jq -r '.id')
 
+    # Revoke any existing token with this description before creating (idempotency)
+    _old_tok_id=$(curl -sf "${MM_URL}/api/v4/users/${uid}/tokens" \
+      -H "Authorization: Bearer ${admin_token}" 2>/dev/null \
+      | jq -r '.[] | select(.description == "API access token") | .id // empty' 2>/dev/null \
+      | head -1 || true)
+    if [ -n "${_old_tok_id}" ]; then
+      curl -sf -X DELETE "${MM_URL}/api/v4/users/${uid}/tokens/${_old_tok_id}" \
+        -H "Authorization: Bearer ${admin_token}" >/dev/null 2>&1 || true
+    fi
+
     token_resp=$(curl -sf -X POST "${MM_URL}/api/v4/users/${uid}/tokens" \
       -H "Authorization: Bearer ${admin_token}" \
       -H "Content-Type: application/json" \
@@ -326,6 +336,16 @@ generate_tokens users
 # built-in "GitLab" SSO provider in Mattermost.  Skipped when GITEA_URL is unset.
 if [ -n "${GITEA_URL}" ] && [ -n "${GITEA_ADMIN_PASS}" ]; then
   echo "[init] Registering Mattermost as OAuth2 app in Gitea (${GITEA_URL}) ..."
+  # Delete-before-recreate: Gitea does not expose client_secret after creation,
+  # so we must delete any existing app with this name to obtain fresh credentials.
+  _existing_app_id=$(curl -sf "${GITEA_URL}/api/v1/user/applications/oauth2" \
+    -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" 2>/dev/null \
+    | jq -r '.[] | select(.name == "mattermost-sso") | .id // empty' 2>/dev/null || true)
+  if [ -n "${_existing_app_id}" ]; then
+    curl -sf -X DELETE "${GITEA_URL}/api/v1/user/applications/oauth2/${_existing_app_id}" \
+      -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" >/dev/null 2>&1 || true
+    echo "[init]   removed existing Gitea OAuth2 app (id=${_existing_app_id})"
+  fi
   oauth_resp=$(curl -sf -X POST "${GITEA_URL}/api/v1/user/applications/oauth2" \
     -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" \
     -H "Content-Type: application/json" \
@@ -503,19 +523,38 @@ while [ "${wi}" -lt "${wh_count}" ]; do
   wh_cid=$(channel_id_for "$wh_team" "$wh_chan" "$wh_tid")
 
   if [ -n "$wh_cid" ]; then
-    wh_resp=$(curl -sf -X POST "${MM_URL}/api/v4/hooks/incoming" \
-      -H "Authorization: Bearer ${admin_token}" \
-      -H "Content-Type: application/json" \
-      -d "$(jq -n --arg cid "$wh_cid" --arg dn "$wh_disp" --arg d "$wh_desc" \
-        '{"channel_id":$cid,"display_name":$dn,"description":$d}')") || true
-    wh_id=$(printf '%s' "$wh_resp" | jq -r '.id // empty')
+    # Check for existing webhook by display name before creating (idempotency)
+    wh_id=$(curl -sf "${MM_URL}/api/v4/hooks/incoming?per_page=200" \
+      -H "Authorization: Bearer ${admin_token}" 2>/dev/null \
+      | jq -r --arg dn "$wh_disp" '.[] | select(.display_name == $dn) | .id // empty' \
+      2>/dev/null | head -1 || true)
+    if [ -n "$wh_id" ]; then
+      echo "[init]   incoming webhook '${wh_disp}' already exists (id=${wh_id})"
+    else
+      wh_resp=$(curl -sf -X POST "${MM_URL}/api/v4/hooks/incoming" \
+        -H "Authorization: Bearer ${admin_token}" \
+        -H "Content-Type: application/json" \
+        -d "$(jq -n --arg cid "$wh_cid" --arg dn "$wh_disp" --arg d "$wh_desc" \
+          '{"channel_id":$cid,"display_name":$dn,"description":$d}')") || true
+      wh_id=$(printf '%s' "$wh_resp" | jq -r '.id // empty')
+    fi
     if [ -n "$wh_id" ]; then
       incoming_webhook_url="${MM_BASE_URL}/hooks/${wh_id}"
       printf 'webhook_incoming:%s\n' "${incoming_webhook_url}" >> "${TOKENS_FILE}"
       echo "[init]   incoming webhook '${wh_disp}' -> ${incoming_webhook_url}"
 
       # Register as system webhook in Gitea so repo events flow into Mattermost.
+      # First remove any stale MM system webhooks (from previous deploys) then create fresh.
       if [ -n "${GITEA_URL}" ] && [ -n "${GITEA_ADMIN_PASS}" ]; then
+        _stale_ids=$(curl -sf "${GITEA_URL}/api/v1/admin/hooks?limit=50" \
+          -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" 2>/dev/null \
+          | jq -r --arg base "${MM_BASE_URL}/hooks/" \
+            '.[] | select(.config.url | startswith($base)) | .id' 2>/dev/null || true)
+        for _sid in ${_stale_ids}; do
+          curl -sf -X DELETE "${GITEA_URL}/api/v1/admin/hooks/${_sid}" \
+            -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" >/dev/null 2>&1 || true
+          echo "[init]   removed stale Gitea system webhook (id=${_sid})"
+        done
         curl -s -X POST "${GITEA_URL}/api/v1/admin/hooks" \
           -u "${GITEA_ADMIN_USER}:${GITEA_ADMIN_PASS}" \
           -H "Content-Type: application/json" \
@@ -738,6 +777,14 @@ for plugin_id in playbooks com.mattermost.calls; do
 done
 
 echo "[init] Creating sample playbook ..."
+# Check for existing playbook by title before creating (idempotency)
+playbook_id=$(curl -sf "${MM_URL}/plugins/playbooks/api/v0/playbooks?team_id=${team_id}&per_page=100" \
+  -H "Authorization: Bearer ${admin_token}" 2>/dev/null \
+  | jq -r '.items[]? | select(.title == "Incident Response Runbook") | .id // empty' \
+  2>/dev/null | head -1 || true)
+if [ -n "$playbook_id" ]; then
+  echo "[init] Playbook 'Incident Response Runbook' already exists (id=${playbook_id})"
+else
 playbook_resp=$(curl -s -X POST "${MM_URL}/plugins/playbooks/api/v0/playbooks" \
   -H "Authorization: Bearer ${admin_token}" \
   -H "Content-Type: application/json" \
@@ -787,6 +834,7 @@ if [ -n "$playbook_id" ]; then
   echo "[init] Playbook 'Incident Response Runbook' created (id=${playbook_id})"
 else
   echo "[warn] Playbooks plugin not ready or not installed — playbook creation skipped."
+fi
 fi
 
 # ── 20. Custom statuses ────────────────────────────────────────────────────────

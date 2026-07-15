@@ -3,7 +3,7 @@
 #
 
 SERVICE     = rocketchat
-PROVISIONER = rocketchat-provisioner
+PROVISIONER = provisioner
 DEBUG_SERVICE = $(SERVICE)-debug
 
 .PHONY: help up down stop stop-debug-build build rebuild build-up rebuild-up tokens creds logs-provisioner reprovision term term-debug-build clean print

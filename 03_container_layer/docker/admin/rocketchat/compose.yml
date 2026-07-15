@@ -126,6 +126,7 @@ services:
       # Optional: pre-supply credentials to skip the self-registration step.
       RC_GITEA_CLIENT_ID:     "${RC_GITEA_CLIENT_ID:-}"
       RC_GITEA_CLIENT_SECRET: "${RC_GITEA_CLIENT_SECRET:-}"
+      RC_TEAMS:               "${RC_TEAMS:-}"
     volumes:
       - rocketchat-tokens:/tokens
     depends_on:

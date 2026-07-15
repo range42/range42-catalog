@@ -1,22 +1,77 @@
-# !! CHANGE ALL PASSWORDS BEFORE DEPLOYING !!
-# Personal access tokens are auto-generated and written to /tokens/tokens.txt
+#
+# ISSUE 147 / ISSUE 175
+#
+# Rocket.Chat provisioner user / channel / team declarations.
+# Consumed by init.sh via yq (mikefarah v4).
+#
 
 admins:
   - username: rc-admin2
-    email: admin2@range42.local
-    password: "Admin1234!"
-    name: "RC Admin 2"
+    email: rc-admin2@range42.local
+    password: Admin1234!
+    name: RC Admin 2
 
 users:
   - username: trainee01
     email: trainee01@range42.local
-    password: "Trainee1234!"
-    name: "Trainee 01"
+    password: Trainee1234!
+    name: Trainee 01
+    player_team: team-blue
   - username: trainee02
     email: trainee02@range42.local
-    password: "Trainee1234!"
-    name: "Trainee 02"
+    password: Trainee1234!
+    name: Trainee 02
+    player_team: team-red
   - username: trainee03
     email: trainee03@range42.local
-    password: "Trainee1234!"
-    name: "Trainee 03"
+    password: Trainee1234!
+    name: Trainee 03
+    player_team: team-blue
+
+teams:
+  - name: trainees
+  - name: instructors
+
+channels:
+  - name: general
+    readonly: false
+    pinned_message: "Welcome to the Range42 training exercise. Please read the briefing and set your status."
+  - name: announcements
+    readonly: true
+    pinned_message: "Announcements channel — instructors only can post here."
+  - name: help
+    readonly: false
+  - name: soc-alerts
+    readonly: false
+  - name: incidents
+    readonly: false
+  - name: ir-timeline
+    readonly: false
+  - name: scenario-control
+    readonly: false
+
+auto_join:
+  - group: users
+    channels: [general, help, soc-alerts, incidents]
+  - group: admins
+    channels: [general, announcements, help, soc-alerts, incidents, scenario-control]
+
+bot:
+  username: rc-bot
+  name: Range42 Bot
+  email: bot@range42.local
+  password: Bot1234!
+
+incoming_webhooks:
+  - name: Gitea Events
+    channel: "#general"
+
+custom_statuses:
+  - text: "On Duty"
+    emoji: "green_circle"
+  - text: "Investigating"
+    emoji: "mag"
+  - text: "On Break"
+    emoji: "pause_button"
+  - text: "Offline"
+    emoji: "red_circle"

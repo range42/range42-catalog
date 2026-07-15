@@ -25,6 +25,10 @@ while IFS= read -r entry; do
   username="$(printf '%s' "${entry}" | jq -r '.username')"
   password="$(printf '%s' "${entry}" | jq -r '.password')"
 
+  # Delete any existing token with this name before creating (idempotency on reprovision)
+  curl -sk --max-time 30 -X DELETE "${GITEA_URL}/api/v1/users/${username}/tokens/API%20access%20token" \
+    -u "${username}:${password}" >/dev/null 2>&1 || true
+
   token_resp=$(curl -sk --max-time 30 -X POST "${GITEA_URL}/api/v1/users/${username}/tokens" \
     -u "${username}:${password}" \
     -H "Content-Type: application/json" \
