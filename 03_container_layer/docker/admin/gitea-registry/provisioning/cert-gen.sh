@@ -15,6 +15,7 @@ set -euo pipefail
 GITEA_TLS_MODE="${GITEA_TLS_MODE:-disabled}"
 DOMAIN="${GITEA_DOMAIN:-localhost}"
 CERTS_DIR="/certs"
+OPERATOR_CERTS_DIR="/certs-operator"
 
 case "${GITEA_TLS_MODE}" in
   disabled)
@@ -68,12 +69,25 @@ EOF
     ;;
 
   provided)
+    # Operator slot: ./certs/ next to compose.yml is bind-mounted read-only at
+    # /certs-operator. Copy into the shared certs volume so gitea (uid 1000)
+    # can read the key without the operator having to fix host permissions.
+    if [[ -f "${OPERATOR_CERTS_DIR}/server.crt" && -f "${OPERATOR_CERTS_DIR}/server.key" ]]; then
+      echo "[cert-gen] Importing operator-provided certificate from ${OPERATOR_CERTS_DIR}/ ..."
+      mkdir -p "${CERTS_DIR}"
+      cp "${OPERATOR_CERTS_DIR}/server.crt" "${CERTS_DIR}/server.crt"
+      cp "${OPERATOR_CERTS_DIR}/server.key" "${CERTS_DIR}/server.key"
+      chown 0:1000 "${CERTS_DIR}/server.key"
+      chmod 640 "${CERTS_DIR}/server.key"
+      chmod 644 "${CERTS_DIR}/server.crt"
+    fi
     if [[ ! -f "${CERTS_DIR}/server.crt" || ! -f "${CERTS_DIR}/server.key" ]]; then
-      echo "[fatal] GITEA_TLS_MODE=provided but cert files not found in ${CERTS_DIR}/."
-      echo "        Mount your certificate to ${CERTS_DIR}/server.crt and ${CERTS_DIR}/server.key."
+      echo "[fatal] GITEA_TLS_MODE=provided but no certificate found."
+      echo "        Drop server.crt and server.key into ./certs/ next to compose.yml"
+      echo "        (bind-mounted at ${OPERATOR_CERTS_DIR}) and re-run."
       exit 1
     fi
-    echo "[cert-gen] Operator-provided certificate found in ${CERTS_DIR}/."
+    echo "[cert-gen] Operator-provided certificate ready in ${CERTS_DIR}/."
     ;;
 
   *)
