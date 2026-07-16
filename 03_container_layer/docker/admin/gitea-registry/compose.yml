@@ -36,6 +36,10 @@ services:
       # Operator slot for a signed certificate (GITEA_TLS_MODE=provided):
       # drop server.crt + server.key into ./certs/ next to this compose file.
       - ./certs:/certs-operator:ro
+      # Tokens volume so every cert-gen run refreshes the exported
+      # registry-cert.pem — the provisioner only exports at first boot, which
+      # goes stale when the deploy flow regenerates the cert with the VM IP.
+      - gitea-registry-tokens:/tokens
       - ./provisioning/cert-gen.sh:/cert-gen.sh:ro
     restart: "no"
 

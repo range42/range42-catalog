@@ -95,3 +95,14 @@ EOF
     exit 1
     ;;
 esac
+
+# Keep the client-distributable copy in sync with the active cert. The
+# provisioner also exports it at first boot, but only cert-gen re-runs when
+# the cert is regenerated (e.g. deploy flow re-issues it with the VM IP SAN) —
+# without this, docker clients trust a stale localhost-only cert and fail
+# TLS verification against the VM IP.
+if [[ -d /tokens && -f "${CERTS_DIR}/server.crt" ]]; then
+  cp "${CERTS_DIR}/server.crt" /tokens/registry-cert.pem
+  chown 1000:1000 /tokens/registry-cert.pem 2>/dev/null || true
+  echo "[cert-gen] Active certificate exported to /tokens/registry-cert.pem."
+fi
