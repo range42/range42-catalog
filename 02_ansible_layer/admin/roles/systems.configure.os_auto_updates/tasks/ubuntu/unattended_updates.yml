@@ -1,0 +1,103 @@
+---
+# os_auto_updates - Ubuntu (apt). TESTED.
+# Goal : disable the AUTO-updater (not apt) without ever corrupting dpkg.
+# disabled ->
+#   1. stop + disable + mask the apt-daily TIMERS (no future scheduled runs ; a timer
+#      holds no dpkg transaction, so stopping it is safe).
+#   2. WAIT for any in-flight run to finish (services no longer active). Done BEFORE
+#      masking the services, so `systemctl is-active` is reliable and we truly wait -
+#      a running unattended-upgrade is never killed (that would corrupt dpkg).
+#   3. disable + mask the now-idle SERVICES (block manual / boot starts).
+#   4. write /etc/apt/apt.conf.d/20auto-upgrades with every periodic key at "0".
+# enabled  -> unmask + enable the units, restart the timers (reactivate the schedule),
+#             periodic config back to daily. The services are NOT started (no forced
+#             immediate upgrade) - they run on their timer / at boot as usual.
+
+- name: os_auto_updates (ubuntu) - stop + disable + mask the apt-daily timers
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+    masked: true
+  loop: "{{ _os_auto_updates_apt_timers }}"
+  register: _oau_timers
+  when: (OS_AUTO_UPDATES_STATE | default('disabled')) == 'disabled'
+  failed_when:
+    - _oau_timers is failed
+    - "'Could not find' not in (_oau_timers.msg | default(''))"
+    - "'not loaded' not in (_oau_timers.msg | default(''))"
+
+- name: os_auto_updates (ubuntu) - wait until any in-flight run is no longer active (services still unmasked -> is-active reliable ; never killed)
+  ansible.builtin.command:
+    cmd: "systemctl is-active --quiet {{ item }}"
+  register: _oau_active
+  until: _oau_active.rc != 0        # rc 0 = still active ; retry until it finishes
+  retries: 60
+  delay: 5
+  changed_when: false
+  failed_when: false
+  loop: "{{ _os_auto_updates_apt_wait_units }}"
+  when: (OS_AUTO_UPDATES_STATE | default('disabled')) == 'disabled'
+
+- name: os_auto_updates (ubuntu) - disable + mask the now-idle apt/unattended services
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: false
+    masked: true
+  loop: "{{ _os_auto_updates_apt_services }}"
+  register: _oau_services
+  when: (OS_AUTO_UPDATES_STATE | default('disabled')) == 'disabled'
+  failed_when:
+    - _oau_services is failed
+    - "'Could not find' not in (_oau_services.msg | default(''))"
+    - "'not loaded' not in (_oau_services.msg | default(''))"
+
+- name: os_auto_updates (ubuntu) - write periodic config (all off)
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      // range42 - OS background auto-updates disabled during provisioning
+      APT::Periodic::Update-Package-Lists "0";
+      APT::Periodic::Unattended-Upgrade "0";
+      APT::Periodic::Download-Upgradeable-Packages "0";
+      APT::Periodic::AutocleanInterval "0";
+  when: (OS_AUTO_UPDATES_STATE | default('disabled')) == 'disabled'
+
+- name: os_auto_updates (ubuntu) - unmask + enable the apt units (no forced start)
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    masked: false
+    enabled: true
+  loop: "{{ _os_auto_updates_apt_timers + _os_auto_updates_apt_services }}"
+  register: _oau_reenable
+  when: (OS_AUTO_UPDATES_STATE | default('disabled')) == 'enabled'
+  failed_when:
+    - _oau_reenable is failed
+    - "'Could not find' not in (_oau_reenable.msg | default(''))"
+    - "'not loaded' not in (_oau_reenable.msg | default(''))"
+
+- name: os_auto_updates (ubuntu) - restart the apt-daily timers (reactivate the schedule)
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    state: started
+  loop: "{{ _os_auto_updates_apt_timers }}"
+  register: _oau_start_timers
+  when: (OS_AUTO_UPDATES_STATE | default('disabled')) == 'enabled'
+  failed_when:
+    - _oau_start_timers is failed
+    - "'Could not find' not in (_oau_start_timers.msg | default(''))"
+    - "'not loaded' not in (_oau_start_timers.msg | default(''))"
+
+- name: os_auto_updates (ubuntu) - write periodic config (daily)
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+  when: (OS_AUTO_UPDATES_STATE | default('disabled')) == 'enabled'

@@ -1,0 +1,26 @@
+---
+# pykunai (one package) provides all the workshop tools : kunai-search,
+# kunai-iocgen, misp-to-kunai, kunai-to-misp, kunai-graph. Installed as the
+# operator user so the tools land in ~<user>/.local/bin.
+
+- name: kunai - install pykunai via pipx (as the operator user)
+  community.general.pipx:
+    name: "pykunai=={{ kunai_pykunai_version }}"
+    state: present
+  become: true
+  become_user: "{{ kunai_operator_user }}"
+
+# pipx installs to ~<user>/.local/bin, which is NOT on the interactive zsh PATH
+# (the baseline dotfiles set an absolute PATH without it). Append it after that
+# reset so the workshop commands (misp-to-kunai, kunai-search, ...) resolve.
+- name: kunai - ensure ~/.local/bin is on the operator's interactive zsh PATH
+  ansible.builtin.blockinfile:
+    path: "/home/{{ kunai_operator_user }}/.zshrc"
+    create: true
+    owner: "{{ kunai_operator_user }}"
+    group: "{{ kunai_operator_user }}"
+    mode: "0644"
+    marker: "# {mark} ANSIBLE MANAGED - kunai pykunai PATH"
+    block: |
+      export PATH="$HOME/.local/bin:$PATH"
+  become: true
