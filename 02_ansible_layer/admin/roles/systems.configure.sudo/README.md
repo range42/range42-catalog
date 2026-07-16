@@ -4,7 +4,7 @@ Grant or revoke sudo for a user via a `/etc/sudoers.d/90-range42-<user>` drop-in
 with `visudo -cf` before it lands (a malformed file is rejected, never written -> cannot break
 sudo on the host). Single-responsibility, composable, idempotent.
 
-Invoked via the thin bundle `range42-playbooks/bundles/core/systems.configure.sudo/`.
+Invoked via the thin bundle `range42-playbooks/bundles/generic/systems.configure.sudo/`.
 
 ## Variables
 

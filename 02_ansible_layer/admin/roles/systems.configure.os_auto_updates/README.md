@@ -9,7 +9,7 @@ controlled package state, so disabling the auto-updater is both the fix and the 
 Run it EARLY in a play (before any package task). Stopping the units also releases a lock that is
 already held. Single-responsibility, composable, idempotent.
 
-Invoked via the thin bundle `range42-playbooks/bundles/core/systems.configure.os_auto_updates/`.
+Invoked via the thin bundle `range42-playbooks/bundles/generic/systems.configure.os_auto_updates/`.
 
 ## Structure
 
