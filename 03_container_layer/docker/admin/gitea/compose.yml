@@ -76,7 +76,10 @@ services:
       GITEA__webhook__SKIP_TLS_VERIFY:   "true"
       # Allow webhooks to call back to the VM's own IP (private range).
       # Without this Gitea denies delivery to 192.168.x.x with SSRF protection.
-      GITEA__webhook__ALLOWED_HOST_LIST: "private"
+      # [security] is the current section for this key — the [webhook] variant
+      # is deprecated (removal in v28, image tag is :latest) and logs a boot
+      # warning. Same switch already verified on gitea-registry (ed2c5b7).
+      GITEA__security__ALLOWED_HOST_LIST: "private"
     volumes:
       - gitea-data:/data
       - gitea-certs:/certs:ro
