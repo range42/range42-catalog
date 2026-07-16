@@ -80,6 +80,24 @@ services:
       ADMIN_PASS:     ${RC_ADMIN_PASS:-Admin1234!}
       ADMIN_EMAIL:    ${RC_ADMIN_EMAIL:-admin@range42.local}
       OVERWRITE_SETTING_Show_Setup_Wizard: completed
+      # ── Custom branding ──────────────────────────────────────────────────
+      OVERWRITE_SETTING_Organization_Name:     "${RC_ORG_NAME:-Range42}"
+      OVERWRITE_SETTING_Site_Name:             "${RC_SITE_NAME:-Range42 Cyber Range}"
+      OVERWRITE_SETTING_Layout_Sidenav_Footer:      "${RC_SIDEBAR_FOOTER:-}"
+      OVERWRITE_SETTING_Layout_Sidenav_Footer_Dark: "${RC_SIDEBAR_FOOTER:-}"
+      # ── Rate-limiting (anti-spam training) ──────────────────────────────
+      # API_Enable_Rate_Limiter_Limit_Time_Default is in milliseconds.
+      # API_Enable_Rate_Limiter_Limit_Calls_Default is calls per route per window.
+      OVERWRITE_SETTING_API_Enable_Rate_Limiter:                        "true"
+      OVERWRITE_SETTING_API_Enable_Rate_Limiter_Limit_Time_Default:     "${RC_RATE_LIMIT_WINDOW_MS:-60000}"
+      OVERWRITE_SETTING_API_Enable_Rate_Limiter_Limit_Calls_Default:    "${RC_RATE_LIMIT_CALLS:-10}"
+      # ── File-upload allowlist ────────────────────────────────────────────
+      OVERWRITE_SETTING_FileUpload_MaxFileSize:        "${RC_UPLOAD_MAX_SIZE:-5242880}"
+      OVERWRITE_SETTING_FileUpload_MediaTypeWhiteList: "${RC_UPLOAD_MIME_WHITELIST:-image/png,image/jpeg,image/gif,image/webp,application/pdf,text/plain,text/csv}"
+      # ── Moderation: banned-words filter (training lab) ──────────────────
+      OVERWRITE_SETTING_Message_AllowBadWordsFilter:   "${RC_BADWORDS_ENABLED:-false}"
+      OVERWRITE_SETTING_Message_BadWordsFilterList:    "${RC_BADWORDS_LIST:-}"
+      OVERWRITE_SETTING_Message_BadWordsFilterReplace: "${RC_BADWORDS_REPLACE:-***}"
     volumes:
       - rocketchat-uploads:/app/uploads
       - /home/alice/certs/gitea.crt:/certs/gitea.crt:ro

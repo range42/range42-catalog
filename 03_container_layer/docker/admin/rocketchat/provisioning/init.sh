@@ -253,6 +253,24 @@ i=0; while [ "${i}" -lt "${ch_count}" ]; do
   else echo "[init]   WARNING: could not get ID for #${ch_name}"; fi
   i=$((i + 1)); done
 
+# 7b. Channel announcements
+echo "[init] --- Setting channel announcements ---"
+i=0; while [ "${i}" -lt "${ch_count}" ]; do
+  ch_ann=$(yq ".channels[${i}].announcement // \"\"" "${USERS_FILE}" 2>/dev/null || true)
+  if [ -n "$ch_ann" ] && [ "$ch_ann" != "null" ]; then
+    ch_name=$(yq ".channels[${i}].name" "${USERS_FILE}")
+    ch_id=$(channel_id_for "$ch_name")
+    if [ -n "$ch_id" ]; then
+      curl -s -X POST "${RC_URL}/api/v1/channels.setAnnouncement" \
+        -H "X-Auth-Token: ${rc_admin_token}" -H "X-User-Id: ${rc_admin_id}" \
+        -H "Content-Type: application/json" \
+        -d "$(jq -n --arg id "$ch_id" --arg ann "$ch_ann" \
+          '{"roomId":$id,"announcement":$ann}')" >/dev/null || true
+      echo "[init]   #${ch_name}: announcement set."
+    fi
+  fi
+  i=$((i + 1)); done
+
 # 8. RC Teams
 echo "[init] --- Creating RC Teams ---"
 team_count=$(yq '.teams | length' "${USERS_FILE}" 2>/dev/null || echo 0)
@@ -488,6 +506,40 @@ if [ "${cs_count}" -gt 0 ]; then
       guide="${guide}:${cs_emoji}: **${cs_text}**\n"; cs=$((cs+1)); done
     post_and_pin "$gen_id" "$(printf '%b' "$guide")"
     echo "[init]   Status guide pinned in #general."; fi; fi
+
+# 15b. Seed channel threads (sample reply chains)
+echo "[init] --- Seeding channel threads ---"
+i=0; while [ "${i}" -lt "${ch_count}" ]; do
+  ch_name=$(yq ".channels[${i}].name" "${USERS_FILE}")
+  ch_id=$(channel_id_for "$ch_name")
+  [ -z "$ch_id" ] && { i=$((i+1)); continue; }
+  th_count=$(yq ".channels[${i}].seed_threads | length" "${USERS_FILE}" 2>/dev/null || echo 0)
+  [ "${th_count}" = "0" ] && { i=$((i+1)); continue; }
+  ti=0; while [ "${ti}" -lt "${th_count}" ]; do
+    root_text=$(yq ".channels[${i}].seed_threads[${ti}].text" "${USERS_FILE}")
+    _root_resp=$(curl -s -X POST "${RC_URL}/api/v1/chat.postMessage" \
+      -H "X-Auth-Token: ${rc_admin_token}" -H "X-User-Id: ${rc_admin_id}" \
+      -H "Content-Type: application/json" \
+      -d "$(jq -n --arg rid "$ch_id" --arg t "$root_text" \
+        '{"roomId":$rid,"text":$t}')") || true
+    _root_mid=$(printf '%s' "$_root_resp" | jq -r '.message._id // empty')
+    if [ -n "$_root_mid" ]; then
+      reply_count=$(yq ".channels[${i}].seed_threads[${ti}].replies | length" \
+        "${USERS_FILE}" 2>/dev/null || echo 0)
+      ri=0; while [ "${ri}" -lt "${reply_count}" ]; do
+        reply_text=$(yq ".channels[${i}].seed_threads[${ti}].replies[${ri}]" "${USERS_FILE}")
+        curl -s -X POST "${RC_URL}/api/v1/chat.postMessage" \
+          -H "X-Auth-Token: ${rc_admin_token}" -H "X-User-Id: ${rc_admin_id}" \
+          -H "Content-Type: application/json" \
+          -d "$(jq -n --arg rid "$ch_id" --arg t "$reply_text" --arg mid "$_root_mid" \
+            '{"roomId":$rid,"text":$t,"tmid":$mid}')" >/dev/null || true
+        ri=$((ri+1)); done
+      echo "[init]   Thread seeded in #${ch_name} (${reply_count} repl.)."
+    else
+      echo "[init]   WARN: thread root post failed in #${ch_name}: $(printf '%s' "$_root_resp" | jq -r '.error // .errorType // "empty response"')"
+    fi
+    ti=$((ti+1)); done
+  i=$((i+1)); done
 
 # 16. Emit credentials JSON
 echo "[init] --- Writing rocketchat-credentials.json ---"
