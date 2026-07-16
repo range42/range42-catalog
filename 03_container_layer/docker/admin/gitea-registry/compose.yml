@@ -80,9 +80,8 @@ services:
       # ── Webhooks: allow delivery to lab-internal HTTPS endpoints ──────────
       # (Rocket.Chat runs self-signed on a private IP — same as admin/gitea)
       GITEA__webhook__SKIP_TLS_VERIFY:   "true"
-      # ALLOWED_HOST_LIST moves from [webhook] to [security] in Gitea v28
-      # (image tag is :latest) — set both so the setting survives the upgrade.
-      GITEA__webhook__ALLOWED_HOST_LIST:  "private"
+      # [security].ALLOWED_HOST_LIST is the current key; the [webhook] variant
+      # is deprecated (removed in v28) and logs a warning at every boot.
       GITEA__security__ALLOWED_HOST_LIST: "private"
       # ── Package quotas (issue #172: per-image quota) ──────────────────────
       # Humanized sizes accepted ("500 MB", "5 GiB"); -1 = unlimited.
@@ -96,9 +95,11 @@ services:
       GITEA__cron_0X2E_cleanup_packages__SCHEDULE:     "${GITEA_PKG_GC_SCHEDULE:-@weekly}"
       GITEA__cron_0X2E_cleanup_packages__OLDER_THAN:   "${GITEA_PKG_GC_OLDER_THAN:-24h}"
       # ── Audit trail (issue #172: push/pull tracked + retention) ───────────
-      # Access log records every HTTP request incl. registry push/pull; it goes
-      # to container stdout, retention enforced by the logging block below.
-      GITEA__log__ENABLE_ACCESS_LOG: "true"
+      # Access log records every HTTP request incl. registry push/pull; routed
+      # to the console writer (container stdout), retention enforced by the
+      # logging block below. logger.access.MODE is the current key —
+      # ENABLE_ACCESS_LOG is deprecated. _0x2E_ decodes to '.' in the key.
+      GITEA__log__logger_0x2E_access_0x2E_MODE: "console"
       # Purge old system notices so the admin panel does not grow unbounded.
       GITEA__cron_0X2E_delete_old_system_notices__ENABLED:   "true"
       GITEA__cron_0X2E_delete_old_system_notices__OLDER_THAN: "${GITEA_NOTICE_RETENTION:-2160h}"
