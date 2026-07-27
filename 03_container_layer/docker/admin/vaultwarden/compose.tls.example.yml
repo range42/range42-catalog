@@ -1,0 +1,29 @@
+#
+# range42-catalog - admin/vaultwarden - TLS override (reference)
+#
+# Vaultwarden's embedded Rocket server does TLS natively - no reverse proxy
+# needed. To enable it, copy this file to `compose.override.yml` (docker
+# compose auto-loads that name, so `make up` / `make down` keep working):
+#
+#     make cert     # generate a self-signed cert into ./ssl/ (see Makefile)
+#     make tls      # cp compose.tls.example.yml compose.override.yml
+#     make up
+#
+# Remember to switch VW_DOMAIN in .env to https:// and re-create the
+# container (`make reload-env`) if it was already running.
+#
+# PERMISSIONS: the container drops ALL capabilities (see compose.yml), so
+# in-container root cannot read files owned by another uid. The ssl/ files
+# must be root-owned: key.pem 0600 root:root, cert.pem 0644 root:root.
+# `make cert` prints the exact chown/chmod to run.
+#
+# The ROCKET_TLS value is single-quoted on purpose: it is one literal string,
+# and unquoted `{...}` would be parsed by YAML as a mapping.
+#
+
+services:
+  vaultwarden:
+    environment:
+      ROCKET_TLS: '{certs="/ssl/cert.pem",key="/ssl/key.pem"}'
+    volumes:
+      - ./ssl:/ssl:ro

@@ -31,10 +31,11 @@ touches a public endpoint either way.
 | File | Purpose |
 |------|---------|
 | `compose.yml` | Vaultwarden service: persistent volume, healthcheck, admin token |
+| `compose.tls.example.yml` | Reference TLS override — copy to `compose.override.yml` via `make tls` |
 | `.env.example` | Copy to `.env` and fill in — admin token, domain, ports, signups |
-| `.gitignore` | Keeps the real `.env` out of git |
+| `.gitignore` | Keeps the real `.env`, `ssl/` and `compose.override.yml` out of git |
 | `catalog_try.yml` | Smoke-check contract (`/alive`, port 8080) for catalog-try |
-| `Makefile` | `up` / `down` / `hash` / `logs` / `term` / `clean` |
+| `Makefile` | `up` / `down` / `hash` / `cert` / `tls` / `reload-env` / `logs` / `term` / `clean` |
 
 ## Deploy (standalone)
 
@@ -55,6 +56,40 @@ curl -f http://<host>:8080/alive     # 200 + UTC timestamp once serving
 The admin panel is at `http://<host>:8080/admin` (log in with the *plaintext*
 token you hashed, not the hash).
 
+### TLS (self-signed, built-in)
+
+Two independent reasons to serve HTTPS even in a lab:
+
+- the **web vault refuses to log in outside a secure context** (it needs
+  browser WebCrypto), so any non-localhost plain-HTTP access dead-ends at the
+  login screen;
+- **recent Bitwarden CLIs refuse plain-HTTP servers outright** — see
+  [Client compatibility](#client-compatibility-bw-cli).
+
+Vaultwarden's embedded Rocket server does TLS natively; no reverse proxy:
+
+```sh
+make cert VW_CERT_IP=<ip clients use>   # self-signed cert into ./ssl/, SAN: <ip>,127.0.0.1,localhost
+sudo chown -R root:root ssl && sudo chmod 600 ssl/key.pem && sudo chmod 644 ssl/cert.pem
+make tls                                # compose.tls.example.yml -> compose.override.yml
+# edit .env: VW_DOMAIN=https://<ip clients use>:8080
+make reload-env
+curl -fk https://<host>:8080/alive
+```
+
+Notes:
+
+- Same port — TLS replaces HTTP on `VW_HTTP_PORT`; nothing else changes.
+  `compose.override.yml` is auto-loaded by docker compose, so all other `make`
+  targets keep working.
+- The **root-owned `ssl/` files are required**, not cosmetic: the hardened
+  container drops ALL capabilities, so in-container root lacks
+  `DAC_OVERRIDE` and cannot read a key owned by the deploy user.
+- The SAN includes `127.0.0.1`/`localhost` on purpose: operators reaching the
+  server through an SSH tunnel still get a certificate that matches.
+- Clients trust the cert explicitly: browsers by accepting the warning once,
+  `bw` via `export NODE_EXTRA_CA_CERTS=<path to cert.pem>`.
+
 ### Deploy inside a scenario
 
 Scenarios do not run `make` — they deploy this directory to a VM via the
@@ -69,8 +104,10 @@ they are **not** auto-provisioned here (doing it wrong would silently create
 unusable accounts). One-time steps, done once per instance:
 
 1. **Create the service account.** Temporarily set `VW_SIGNUPS_ALLOWED=true`,
-   `make restart`, register one account via the web vault
-   (`http://<host>:8080`), then set it back to `false` and `make restart`.
+   `make reload-env` (**not** `make restart` — compose bakes `.env` into the
+   container at creation, a plain restart does not pick up the change),
+   register one account via the web vault (`https://<host>:8080`), then set it
+   back to `false` and `make reload-env` again.
    (Alternatively, invite from the `/admin` panel with invitations enabled.)
 2. **Create an organization + collections.** In the web vault, create an org
    (e.g. `range42`) and the collections you want to scope credentials to
@@ -113,6 +150,23 @@ vaultwarden_sync_map:
 named after `vault_var`. The role **fails loudly** if the server is
 unreachable or a mapped item/field is missing — no silent fallback, because
 this is secret distribution. See the role README for the full contract.
+
+## Client compatibility (bw CLI)
+
+The companion role drives the official Bitwarden CLI, and recent releases
+changed behavior in ways that matter here (verified 2026-07 against this
+element):
+
+| bw CLI | plain HTTP | HTTPS (self-signed + `NODE_EXTRA_CA_CERTS`) |
+|--------|------------|---------------------------------------------|
+| ≤ 2025.6.1 | works | works |
+| ≥ 2025.12.1 | refused (`Insecure URL not allowed`) | works (see server note) |
+| 2026.7.0 | refused | works **only against server ≥ 1.37.0** — 1.36.0 responses crash the CLI's item deserializer (`invalid type: JsValue(...)` from the new Rust/WASM SDK) |
+
+Bottom line: with this element's TLS enabled and the pinned
+`vaultwarden/server:1.37.0` image, the **current bw CLI works** — no client
+pin needed. Only fall back to `bw` 2025.6.1 (standalone binary, tag
+`cli-v2025.6.1`) if you must run an older server or plain HTTP.
 
 ## Security notes
 

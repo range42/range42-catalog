@@ -14,7 +14,9 @@
 services:
 
   vaultwarden:
-    image: vaultwarden/server:1.36.0-alpine
+    # 1.37.0+ required for the SDK-based (2026.x) Bitwarden CLIs - 1.36.0
+    # responses crash their item deserializer. See README "Client compatibility".
+    image: vaultwarden/server:1.37.0-alpine
     container_name: vaultwarden
 
     environment:

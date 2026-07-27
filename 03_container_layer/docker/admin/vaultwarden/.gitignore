@@ -1,2 +1,7 @@
 # Never commit the real environment file - it holds the admin token.
 .env
+
+# Per-deployment TLS material and the live override that enables it
+# (compose.tls.example.yml is the committed reference).
+ssl/
+compose.override.yml
