@@ -3,10 +3,10 @@
 #
 
 SERVICE     = rocketchat
-PROVISIONER = rocketchat-provisioner
+PROVISIONER = provisioner
 DEBUG_SERVICE = $(SERVICE)-debug
 
-.PHONY: help up down stop stop-debug-build build rebuild build-up rebuild-up tokens keys reprovision term term-debug-build clean print
+.PHONY: help up down stop stop-debug-build build rebuild build-up rebuild-up tokens creds logs-provisioner reprovision term term-debug-build clean print
 
 help:
 	@echo ""
@@ -24,8 +24,9 @@ help:
 	@echo "  make rebuild           - full rebuild $(SERVICE) without cache"
 	@echo "  make rebuild-up        - full rebuild $(SERVICE) without cache then run"
 	@echo ""
-	@echo "  make tokens            - print generated personal access tokens (username:PAT)"
-	@echo "  make keys              - print full credentials JSON (all users + passwords)"
+	@echo "  make tokens            - print generated personal access tokens"
+	@echo "  make creds             - print full credentials JSON (rocketchat-credentials.json)"
+	@echo "  make logs-provisioner  - tail provisioner container logs"
 	@echo "  make term              - open shell in $(SERVICE) container"
 	@echo "  make term-debug-build  - build and get term on $(DEBUG_SERVICE) "
 	@echo "  make clean             - delete all containers, images, volumes and unused network"
@@ -69,14 +70,17 @@ rebuild-up:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 tokens:
-	docker run --rm -v rocketchat-tokens:/tokens alpine cat /tokens/tokens.txt
-
-keys:
-	docker run --rm -v rocketchat-tokens:/tokens alpine cat /tokens/rc-credentials.json
+	docker compose run --rm --no-deps --entrypoint sh $(PROVISIONER) -c 'cat /tokens/tokens.txt'
 
 reprovision:
-	docker run --rm -v rocketchat-tokens:/tokens alpine rm -f /tokens/.provisioned
+	docker compose run --rm --no-deps --entrypoint sh $(PROVISIONER) -c 'rm -f /tokens/.provisioned'
 	docker compose up $(PROVISIONER)
+
+creds:
+	docker compose run --rm --no-deps --entrypoint sh $(PROVISIONER) -c 'cat /tokens/rocketchat-credentials.json'
+
+logs-provisioner:
+	docker compose logs -f $(PROVISIONER)
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 

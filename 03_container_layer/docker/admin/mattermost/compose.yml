@@ -20,6 +20,34 @@ services:
       retries: 5
     restart: unless-stopped
 
+  cert-gen:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: cert-gen
+    container_name: mattermost-cert-gen
+    environment:
+      MM_TLS_MODE: ${MM_TLS_MODE:-self-signed}
+      MM_HOST_IP:  ${MM_HOST_IP:-127.0.0.1}
+    volumes:
+      - mattermost-certs:/certs
+    restart: "no"
+
+  nginx:
+    image: nginx:alpine
+    container_name: mattermost-nginx
+    ports:
+      - "${HTTP_PORT:-8065}:443"
+    volumes:
+      - ./provisioning/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - mattermost-certs:/certs:ro
+    depends_on:
+      cert-gen:
+        condition: service_completed_successfully
+      mattermost:
+        condition: service_healthy
+    restart: unless-stopped
+
   mattermost: &main
     # Pinned to 10.9.5 : Mattermost 10.10.x+ has an upstream healthcheck bug
     # (mmctl panics on non-root UID resolution) breaking the container's
@@ -28,27 +56,37 @@ services:
     image: mattermost/mattermost-team-edition:10.9.5
     # Upstream bug : https://github.com/mattermost/mattermost/issues/36224
     container_name: mattermost
+    env_file:
+      - path: .env
+        required: false
     environment:
       MM_SQLSETTINGS_DRIVERNAME:        postgres
       MM_SQLSETTINGS_DATASOURCE:        "postgres://${POSTGRES_USER:-mattermost}:${POSTGRES_PASSWORD:-mattermost}@db:5432/${POSTGRES_DB:-mattermost}?sslmode=disable&connect_timeout=10"
-      MM_SERVICESETTINGS_SITEURL:       ${MM_BASE_URL:-http://localhost:8065}
+      MM_SERVICESETTINGS_SITEURL:       ${MM_BASE_URL:-https://localhost:8065}
       MM_SERVICESETTINGS_ENABLEUSERSTATUSESFORPOSTS: "false"
       MM_SERVICESETTINGS_ENABLEAPITEAMCREATION: "true"
       MM_SERVICESETTINGS_ENABLEAPICREATEACCOUNT: "true"
       MM_SERVICESETTINGS_ENABLEUSERACCESSTOKENS: "true"
       MM_TEAMSETTINGS_MAXUSERSPERTEAM:  "200"
       MM_TEAMSETTINGS_ENABLEOPENSERVER: "true"
+      MM_SERVICESETTINGS_ENABLEBOTACCOUNTCREATION: "true"
       MM_EMAILSETTINGS_SENDEMAILNOTIFICATIONS: "false"
       MM_EMAILSETTINGS_REQUIREEMAILVERIFICATION: "false"
       MM_LOGSETTINGS_CONSOLELEVEL:      "ERROR"
       MM_LOGSETTINGS_ENABLEFILE:        "false"
+      # ── Gitea OAuth2 (wired through Mattermost's built-in "GitLab" SSO) ─────────
+      # Endpoint env vars are pinned here so they always override any stale value
+      # in config.json. Enable/Id/Secret are NOT set as env vars — empty-string
+      # env vars would override the config API values written by the provisioner.
+      # IMPORTANT: Gitea's user API is /api/v1/user — NOT /api/v4/user (GitLab).
+      MM_GITLABSETTINGS_AUTHENDPOINT:    "${GITEA_BASE_URL:-http://localhost:3000}/login/oauth/authorize"
+      MM_GITLABSETTINGS_TOKENENDPOINT:   "${GITEA_BASE_URL:-http://localhost:3000}/login/oauth/access_token"
+      MM_GITLABSETTINGS_USERAPIENDPOINT: "${GITEA_BASE_URL:-http://localhost:3000}/api/v1/user"
     volumes:
       - mattermost-data:/mattermost/data
       - mattermost-logs:/mattermost/logs
       - mattermost-config:/mattermost/config
       - mattermost-plugins:/mattermost/plugins
-    ports:
-      - "${HTTP_PORT:-8065}:8065"
     depends_on:
       db:
         condition: service_healthy
@@ -72,14 +110,22 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: mattermost-provisioner
-    env_file: .env
     environment:
-      MM_URL: http://mattermost:8065
+      MM_URL:        http://mattermost:8065
+      MM_ADMIN_USER: ${MM_ADMIN_USER:-admin}
+      MM_ADMIN_PASS: ${MM_ADMIN_PASS:-Admin1234!}
+      MM_TEAM_NAME:  ${MM_TEAM_NAME:-range42}
+      USERS_FILE:    /provisioning/users.yml
+      # Gitea self-registration — provisioner registers MM as an OAuth2 app and
+      # configures SSO via PUT /api/v4/config/patch. Leave GITEA_URL blank to skip.
+      GITEA_URL:        "${GITEA_BASE_URL:-}"
+      GITEA_ADMIN_USER: "${GITEA_ADMIN_USER:-gitea-admin}"
+      GITEA_ADMIN_PASS: "${GITEA_ADMIN_PASS:-}"
+      MM_BASE_URL:      "${MM_BASE_URL:-https://localhost:8065}"
+      MM_TEAMS:         "${MM_TEAMS:-team-blue,team-red}"
     volumes:
+      - mattermost-config:/mattermost/config
       - mattermost-tokens:/tokens
-      - ./provisioning/provision.sh:/provisioning/provision.sh:ro
-      - ./provisioning/provision-users.sh:/provisioning/provision-users.sh:ro
-      - ./provisioning/provision-tokens.sh:/provisioning/provision-tokens.sh:ro
     depends_on:
       mattermost:
         condition: service_healthy
@@ -92,3 +138,4 @@ volumes:
   mattermost-config:
   mattermost-plugins:
   mattermost-tokens:
+  mattermost-certs:

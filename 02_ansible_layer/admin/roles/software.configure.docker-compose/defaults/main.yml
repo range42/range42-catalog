@@ -1,1 +1,5 @@
 ---
+# Set to "YES" to force-recreate all containers in the stack on each deploy.
+# Useful for lab/training environments where a prior partial run may leave
+# containers on orphaned Docker networks.
+FORCE_RECREATE: "NO"

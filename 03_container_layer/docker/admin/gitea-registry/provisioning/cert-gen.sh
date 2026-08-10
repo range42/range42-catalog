@@ -1,0 +1,108 @@
+#!/usr/bin/env bash
+#
+# ISSUE 142
+#
+# cert-gen.sh — TLS certificate management for gitea-registry.
+# Runs as a Docker init container (provisioner image) BEFORE Gitea starts.
+#
+# GITEA_TLS_MODE:
+#   disabled     → exit 0 immediately; Gitea runs plain HTTP (default)
+#   self-signed  → generate a self-signed cert into /certs/{server.crt,server.key}
+#   provided     → verify operator-mounted cert files exist, then exit 0
+#
+set -euo pipefail
+
+GITEA_TLS_MODE="${GITEA_TLS_MODE:-disabled}"
+DOMAIN="${GITEA_DOMAIN:-localhost}"
+CERTS_DIR="/certs"
+OPERATOR_CERTS_DIR="/certs-operator"
+
+case "${GITEA_TLS_MODE}" in
+  disabled)
+    echo "[cert-gen] TLS disabled — skipping."
+    exit 0
+    ;;
+
+  self-signed)
+    echo "[cert-gen] Generating self-signed certificate for '${DOMAIN}' ..."
+    mkdir -p "${CERTS_DIR}"
+
+    # RFC 2818: TLS hostname check for IP connections uses iPAddress SANs only
+    # (not dNSName SANs). Use IP:${DOMAIN} when DOMAIN is an IPv4 address so
+    # that external clients connecting via the host IP pass hostname verification.
+    # Always include DNS:localhost, DNS:gitea (intra-stack service name) and
+    # IP:127.0.0.1 so provisioner curl calls via "gitea" hostname verify cleanly.
+    if [[ "${DOMAIN}" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+      SAN_ENTRIES="IP:${DOMAIN},DNS:localhost,DNS:gitea,IP:127.0.0.1"
+    else
+      SAN_ENTRIES="DNS:${DOMAIN},DNS:gitea,IP:127.0.0.1"
+    fi
+
+    # Use an explicit config file for SAN support (portable across OpenSSL versions)
+    CFG="$(mktemp /tmp/openssl-XXXXXX)"
+    cat > "${CFG}" <<EOF
+[req]
+default_bits       = 4096
+prompt             = no
+distinguished_name = dn
+x509_extensions    = san
+
+[dn]
+CN = ${DOMAIN}
+
+[san]
+subjectAltName = ${SAN_ENTRIES}
+EOF
+
+    openssl req -x509 -nodes -newkey rsa:4096 \
+      -keyout "${CERTS_DIR}/server.key" \
+      -out    "${CERTS_DIR}/server.crt" \
+      -days   3650 \
+      -config "${CFG}" \
+      2>/dev/null
+    # gitea runs as uid 1000 (git); key must be readable by that user
+    chown 0:1000 "${CERTS_DIR}/server.key"
+    chmod 640 "${CERTS_DIR}/server.key"
+    chmod 644 "${CERTS_DIR}/server.crt"
+    rm -f "${CFG}"
+    echo "[cert-gen] Self-signed certificate written to ${CERTS_DIR}/server.{crt,key} (valid 10 yr)."
+    ;;
+
+  provided)
+    # Operator slot: ./certs/ next to compose.yml is bind-mounted read-only at
+    # /certs-operator. Copy into the shared certs volume so gitea (uid 1000)
+    # can read the key without the operator having to fix host permissions.
+    if [[ -f "${OPERATOR_CERTS_DIR}/server.crt" && -f "${OPERATOR_CERTS_DIR}/server.key" ]]; then
+      echo "[cert-gen] Importing operator-provided certificate from ${OPERATOR_CERTS_DIR}/ ..."
+      mkdir -p "${CERTS_DIR}"
+      cp "${OPERATOR_CERTS_DIR}/server.crt" "${CERTS_DIR}/server.crt"
+      cp "${OPERATOR_CERTS_DIR}/server.key" "${CERTS_DIR}/server.key"
+      chown 0:1000 "${CERTS_DIR}/server.key"
+      chmod 640 "${CERTS_DIR}/server.key"
+      chmod 644 "${CERTS_DIR}/server.crt"
+    fi
+    if [[ ! -f "${CERTS_DIR}/server.crt" || ! -f "${CERTS_DIR}/server.key" ]]; then
+      echo "[fatal] GITEA_TLS_MODE=provided but no certificate found."
+      echo "        Drop server.crt and server.key into ./certs/ next to compose.yml"
+      echo "        (bind-mounted at ${OPERATOR_CERTS_DIR}) and re-run."
+      exit 1
+    fi
+    echo "[cert-gen] Operator-provided certificate ready in ${CERTS_DIR}/."
+    ;;
+
+  *)
+    echo "[fatal] Unknown GITEA_TLS_MODE='${GITEA_TLS_MODE}'. Valid values: disabled | self-signed | provided."
+    exit 1
+    ;;
+esac
+
+# Keep the client-distributable copy in sync with the active cert. The
+# provisioner also exports it at first boot, but only cert-gen re-runs when
+# the cert is regenerated (e.g. deploy flow re-issues it with the VM IP SAN) —
+# without this, docker clients trust a stale localhost-only cert and fail
+# TLS verification against the VM IP.
+if [[ -d /tokens && -f "${CERTS_DIR}/server.crt" ]]; then
+  cp "${CERTS_DIR}/server.crt" /tokens/registry-cert.pem
+  chown 1000:1000 /tokens/registry-cert.pem 2>/dev/null || true
+  echo "[cert-gen] Active certificate exported to /tokens/registry-cert.pem."
+fi

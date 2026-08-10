@@ -3,10 +3,12 @@
 #
 
 SERVICE       = gitea-registry
-PROVISIONER   = gitea-registry-provisioner
+# compose SERVICE name (docker compose run/restart/logs take service names,
+# not container names)
+PROVISIONER   = provisioner
 DEBUG_SERVICE = $(SERVICE)-debug
 
-.PHONY: help up down stop build rebuild build-up rebuild-up reprovision logs-provisioner tokens keys term term-debug-build clean print
+.PHONY: help up down stop build rebuild build-up rebuild-up reprovision logs-provisioner tokens push-images backup sbom scan term term-debug-build clean print
 
 help:
 	@echo ""
@@ -27,7 +29,11 @@ help:
 	@echo "  make logs-provisioner  - tail provisioner output"
 	@echo ""
 	@echo "  make tokens            - display generated registry tokens"
-	@echo "  make keys              - display full credentials JSON"
+	@echo ""
+	@echo "  make push-images       - build + push every admin/* stack image to this registry"
+	@echo "  make backup            - archive data volume + Postgres dump into ./backup/"
+	@echo "  make sbom              - generate CycloneDX SBOMs for pushed images (trivy)"
+	@echo "  make scan              - trivy vulnerability scan of pushed images"
 	@echo ""
 	@echo "  make term              - open shell in $(SERVICE) container"
 	@echo "  make term-debug-build  - build and open shell in $(DEBUG_SERVICE)"
@@ -68,8 +74,8 @@ rebuild-up:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 reprovision:
-	docker run --rm -v gitea-registry_gitea-registry-tokens:/tokens alpine rm -f /tokens/.provisioned
-	docker compose up $(PROVISIONER)
+	docker exec $(SERVICE) rm -f /data/gitea/.provisioned
+	docker compose restart $(PROVISIONER)
 
 logs-provisioner:
 	docker compose logs -f $(PROVISIONER)
@@ -77,10 +83,21 @@ logs-provisioner:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 tokens:
-	docker run --rm -v gitea-registry_gitea-registry-tokens:/tokens alpine cat /tokens/tokens.txt
+	docker compose run --rm --no-deps --entrypoint sh $(PROVISIONER) -c 'cat /tokens/tokens.txt'
 
-keys:
-	docker run --rm -v gitea-registry_gitea-registry-tokens:/tokens alpine cat /tokens/gitea-registry-credentials.json
+# # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
+
+push-images:
+	./scripts/push-images.sh
+
+backup:
+	./scripts/backup.sh
+
+sbom:
+	./scripts/sbom-scan.sh sbom
+
+scan:
+	./scripts/sbom-scan.sh scan
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 

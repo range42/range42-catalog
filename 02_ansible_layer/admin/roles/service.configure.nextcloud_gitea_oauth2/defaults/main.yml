@@ -1,0 +1,15 @@
+---
+nextcloud_container_name: "nextcloud"
+nextcloud_oidc_provider_name: "Gitea"
+nextcloud_http_port: "8443"
+
+# Public IP or hostname that clients use to reach Nextcloud.
+# Must be added to Nextcloud trusted_domains so the web browser's Host header
+# is accepted. Defaults to ansible_host but ansible_host may be an SSH alias
+# (e.g. r42.admin-all-services-lab) rather than the routable IP, so callers
+# should pass the actual VM IP here.
+nextcloud_public_ip: "{{ ansible_host }}"
+
+nextcloud_gitea_base_url: "http://localhost:3000"
+nextcloud_gitea_client_id: ""
+nextcloud_gitea_client_secret: ""

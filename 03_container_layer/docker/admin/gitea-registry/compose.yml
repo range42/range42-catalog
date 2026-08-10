@@ -20,6 +20,29 @@ services:
       retries: 5
     restart: unless-stopped
 
+  cert-gen:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gitea-registry-cert-gen
+    user: root
+    entrypoint: ["/bin/bash", "/cert-gen.sh"]
+    env_file: .env
+    environment:
+      GITEA_TLS_MODE: ${GITEA_TLS_MODE:-disabled}
+      GITEA_DOMAIN:   ${GITEA_DOMAIN:-localhost}
+    volumes:
+      - gitea-registry-certs:/certs
+      # Operator slot for a signed certificate (GITEA_TLS_MODE=provided):
+      # drop server.crt + server.key into ./certs/ next to this compose file.
+      - ./certs:/certs-operator:ro
+      # Tokens volume so every cert-gen run refreshes the exported
+      # registry-cert.pem — the provisioner only exports at first boot, which
+      # goes stale when the deploy flow regenerates the cert with the VM IP.
+      - gitea-registry-tokens:/tokens
+      - ./provisioning/cert-gen.sh:/cert-gen.sh:ro
+    restart: "no"
+
   gitea: &main
     image: gitea/gitea:latest
     container_name: gitea-registry
@@ -45,13 +68,53 @@ services:
       # port in clone URLs) is unchanged.
       GITEA__server__SSH_LISTEN_PORT: "2022"
       GITEA__server__SSH_PORT:        "${SSH_PORT:-2222}"
+      GITEA__server__PROTOCOL:        "${GITEA_PROTOCOL:-http}"
+      GITEA__server__CERT_FILE:       "/certs/server.crt"
+      GITEA__server__KEY_FILE:        "/certs/server.key"
       GITEA__packages__ENABLED:      "true"
       GITEA__service__DISABLE_REGISTRATION: "true"
+      # Unique cookie name prevents collision with the admin Gitea instance
+      # (port 3000, also HTTPS). Browsers scope cookies by domain, not by port,
+      # so both instances would share the same i_like_gitea cookie on the same
+      # IP, causing the Secure-flag downgrade rejection seen in ISSUE 142.
+      GITEA__session__COOKIE_NAME:    "i_like_gitea_registry"
       GITEA__security__INSTALL_LOCK:    "true"
       GITEA__security__SECRET_KEY:      ${GITEA_SECRET_KEY:-please-change-me-in-production}
       GITEA__security__INTERNAL_TOKEN:  ${GITEA_INTERNAL_TOKEN:-please-change-me-in-production}
+      # ── Webhooks: allow delivery to lab-internal HTTPS endpoints ──────────
+      # (Rocket.Chat runs self-signed on a private IP — same as admin/gitea)
+      GITEA__webhook__SKIP_TLS_VERIFY:   "true"
+      # [security].ALLOWED_HOST_LIST is the current key; the [webhook] variant
+      # is deprecated (removed in v28) and logs a warning at every boot.
+      GITEA__security__ALLOWED_HOST_LIST: "private"
+      # ── Package quotas (issue #172: per-image quota) ──────────────────────
+      # Humanized sizes accepted ("500 MB", "5 GiB"); -1 = unlimited.
+      GITEA__packages__LIMIT_SIZE_CONTAINER:   "${GITEA_PKG_LIMIT_SIZE_CONTAINER:--1}"
+      GITEA__packages__LIMIT_TOTAL_OWNER_SIZE: "${GITEA_PKG_LIMIT_TOTAL_OWNER_SIZE:--1}"
+      # ── Garbage collection (issue #172: weekly schedule) ──────────────────
+      # cleanup_packages deletes expired/unreferenced package blob data.
+      # _0X2E_ decodes to '.' → section [cron.cleanup_packages].
+      GITEA__cron_0X2E_cleanup_packages__ENABLED:      "true"
+      GITEA__cron_0X2E_cleanup_packages__RUN_AT_START: "false"
+      GITEA__cron_0X2E_cleanup_packages__SCHEDULE:     "${GITEA_PKG_GC_SCHEDULE:-@weekly}"
+      GITEA__cron_0X2E_cleanup_packages__OLDER_THAN:   "${GITEA_PKG_GC_OLDER_THAN:-24h}"
+      # ── Audit trail (issue #172: push/pull tracked + retention) ───────────
+      # Access log records every HTTP request incl. registry push/pull; routed
+      # to the console writer (container stdout), retention enforced by the
+      # logging block below. logger.access.MODE is the current key —
+      # ENABLE_ACCESS_LOG is deprecated. _0x2E_ decodes to '.' in the key.
+      GITEA__log__logger_0x2E_access_0x2E_MODE: "console"
+      # Purge old system notices so the admin panel does not grow unbounded.
+      GITEA__cron_0X2E_delete_old_system_notices__ENABLED:   "true"
+      GITEA__cron_0X2E_delete_old_system_notices__OLDER_THAN: "${GITEA_NOTICE_RETENTION:-2160h}"
+    logging:
+      driver: json-file
+      options:
+        max-size: "${GITEA_LOG_MAX_SIZE:-20m}"
+        max-file: "${GITEA_LOG_MAX_FILES:-7}"
     volumes:
       - gitea-registry-data:/data
+      - gitea-registry-certs:/certs:ro
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
     ports:
@@ -63,8 +126,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      cert-gen:
+        condition: service_completed_successfully
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/api/v1/version"]
+      test: ["CMD-SHELL", "curl -fk ${GITEA_PROTOCOL:-http}://localhost:3000/api/v1/version"]
       interval: 15s
       timeout: 10s
       retries: 10
@@ -85,22 +150,51 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: gitea-registry-provisioner
-    user: root
-    env_file: .env
     environment:
-      GITEA_URL: http://gitea:3000
+      GITEA_URL:        "${GITEA_PROTOCOL:-http}://gitea:3000"
+      GITEA_ADMIN_USER: ${GITEA_ADMIN_USER:-gitea-admin}
+      GITEA_ADMIN_PASS: ${GITEA_ADMIN_PASS:-Admin1234!}
+      USERS_FILE:       /provisioning/users.yml
+      # Optional chat notification on package push (issue #172).
+      # Leave empty to skip; wired post-deploy by admin_services_lab stage_02.
+      GITEA_WEBHOOK_URL:     "${GITEA_WEBHOOK_URL:-}"
+      GITEA_WEBHOOK_CHANNEL: "${GITEA_WEBHOOK_CHANNEL:-#general}"
+      # Per-image retention rule applied to every provisioned owner/org
+      # (keep last N container versions, purge older-than-D days).
+      GITEA_PKG_KEEP_COUNT:  "${GITEA_PKG_KEEP_COUNT:-10}"
+      GITEA_PKG_REMOVE_DAYS: "${GITEA_PKG_REMOVE_DAYS:-30}"
     volumes:
       - gitea-registry-data:/data
       - gitea-registry-tokens:/tokens
-      - ./provisioning/provision.sh:/provisioning/provision.sh:ro
-      - ./provisioning/provision-users.sh:/provisioning/provision-users.sh:ro
-      - ./provisioning/provision-tokens.sh:/provisioning/provision-tokens.sh:ro
+      - gitea-registry-certs:/certs:ro
     depends_on:
       gitea:
         condition: service_healthy
     restart: "no"
 
+  # ── Optional pull-through cache (issue #172) ────────────────────────────────
+  # Gitea CE has no registry pull-through/proxy support (go-gitea/gitea#26756),
+  # so hybrid online/offline fallback is provided by a stock registry:2 mirror.
+  # Opt-in: docker compose --profile proxy-cache up -d
+  # Lab VMs then set {"registry-mirrors": ["http://<vm-ip>:5001"]} in
+  # /etc/docker/daemon.json — Docker falls back to docker.io automatically
+  # when the mirror is unreachable, and the mirror serves cached layers when
+  # upstream is unreachable.
+  proxy-cache:
+    image: registry:2
+    container_name: gitea-registry-proxy-cache
+    profiles: ["proxy-cache"]
+    environment:
+      REGISTRY_PROXY_REMOTEURL: "${PROXY_CACHE_REMOTE:-https://registry-1.docker.io}"
+    ports:
+      - "${PROXY_CACHE_PORT:-5001}:5000"
+    volumes:
+      - gitea-registry-proxy-cache:/var/lib/registry
+    restart: unless-stopped
+
 volumes:
   gitea-registry-data:
   gitea-registry-db-data:
   gitea-registry-tokens:
+  gitea-registry-certs:
+  gitea-registry-proxy-cache:

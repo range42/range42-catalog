@@ -1,0 +1,12 @@
+---
+rocketchat_deploy_dir: "/home/alice/rocketchat"
+rocketchat_http_port: "3500"
+rocketchat_tls_mode: "self-signed"
+rocketchat_admin_user: "admin"
+rocketchat_admin_pass: "Admin1234!"
+rocketchat_admin_email: "admin@range42.local"
+rocketchat_oauth_name: "Gitea"
+
+rocketchat_gitea_base_url: "http://localhost:3000"
+rocketchat_gitea_client_id: ""
+rocketchat_gitea_client_secret: ""

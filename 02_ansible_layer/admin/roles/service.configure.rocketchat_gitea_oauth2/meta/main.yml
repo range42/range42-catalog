@@ -1,0 +1,6 @@
+---
+galaxy_info:
+  author: nc3lu
+  description: Write Rocket.Chat .env with custom OAuth (Gitea) OVERWRITE_SETTING vars
+  min_ansible_version: "2.15"
+dependencies: []

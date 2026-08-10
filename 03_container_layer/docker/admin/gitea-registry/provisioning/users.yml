@@ -1,0 +1,50 @@
+# Declarative user provisioning for the Gitea Docker registry instance.
+# Processed by provisioning/init.sh on first container start.
+#
+# !! CHANGE ALL PASSWORDS AND SSH KEYS BEFORE DEPLOYING !!
+# Passwords here are committed in plaintext. Use strong, unique values in production.
+#
+# This registry is NOT student-facing (issue #172). It is the internal image
+# cache for the lab infrastructure:
+#   - admins  → operator accounts; token scope read:package + write:package (push)
+#   - users   → lab VM accounts;   token scope read:package only (pull)
+#     Set registry_role: push on a regular user to grant it push scope too.
+#
+# SSH public keys must be real ed25519 / rsa / ecdsa keys.
+# Replace the placeholder key strings with actual public keys before deploying.
+#
+# To scale: add/remove entries under admins:, users: or orgs:
+# The provisioner is idempotent — re-running skips already-created accounts.
+
+admins:
+  - username: gitea-admin
+    email: admin@range42.local
+    password: "Admin1234!"
+    ssh_keys:
+      - "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleAdminKeyReplaceMeBeforeDeployment admin@range42"
+
+users:
+  # Read-only account used by lab VMs to pull images (docker login + pull).
+  - username: lab-pull
+    email: lab-pull@range42.local
+    password: "LabPull1234!"
+    registry_role: pull
+    ssh_keys: []
+  # Non-admin operator account with push rights (CI or shared build box).
+  - username: operator01
+    email: operator01@range42.local
+    password: "Operator1234!"
+    registry_role: push
+    ssh_keys: []
+
+# Org namespaces created at first boot. Images are pushed to
+#   DOMAIN:PORT/<org>/<image>:<tag>
+# range42-admin holds the pre-warmed admin/* image set (make push-images).
+# Per-team namespaces (issue #172): one org per team.
+orgs:
+  - name: range42-admin
+    description: "Pre-warmed admin service images (internal lab cache)"
+  - name: team-blue
+    description: "Team blue image namespace"
+  - name: team-red
+    description: "Team red image namespace"

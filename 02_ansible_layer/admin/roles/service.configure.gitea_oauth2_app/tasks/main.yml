@@ -1,0 +1,98 @@
+---
+##
+## ISSUE 171
+##
+## Register an OAuth2 application in Gitea via its REST API.
+## Runs on the target host (the Gitea VM); calls localhost:3000 internally.
+##
+## Required vars (see defaults/main.yml):
+##   gitea_oauth2_base_url, gitea_oauth2_admin_user, gitea_oauth2_admin_pass,
+##   gitea_oauth2_app_name, gitea_oauth2_redirect_uri
+##
+## Output facts (set when the app is created or already exists):
+##   gitea_oauth2_client_id      — OAuth2 client_id
+##   gitea_oauth2_client_secret  — OAuth2 client_secret (empty if app pre-existed)
+##
+
+- name: validate required inputs
+  ansible.builtin.assert:
+    that:
+      - gitea_oauth2_app_name | length > 0
+      - gitea_oauth2_redirect_uri | length > 0
+      - gitea_oauth2_admin_user | length > 0
+      - gitea_oauth2_admin_pass | length > 0
+    fail_msg: "gitea_oauth2_app_name, gitea_oauth2_redirect_uri, gitea_oauth2_admin_user and gitea_oauth2_admin_pass must all be set"
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: fetch existing OAuth2 apps from Gitea
+  ansible.builtin.uri:
+    url: "{{ gitea_oauth2_base_url }}/api/v1/user/applications/oauth2"
+    method: GET
+    url_username: "{{ gitea_oauth2_admin_user }}"
+    url_password: "{{ gitea_oauth2_admin_pass }}"
+    force_basic_auth: true
+    validate_certs: false
+    status_code: [200]
+  register: _gitea_existing_apps
+  no_log: true
+
+- name: find existing app id if already registered
+  ansible.builtin.set_fact:
+    _gitea_existing_app_id: >-
+      {{
+        (_gitea_existing_apps.json
+        | selectattr('name', 'equalto', gitea_oauth2_app_name)
+        | map(attribute='id') | list)[0] | default('') | string
+      }}
+
+- name: delete pre-existing app so creation always returns a fresh secret
+  ansible.builtin.uri:
+    url: "{{ gitea_oauth2_base_url }}/api/v1/user/applications/oauth2/{{ _gitea_existing_app_id }}"
+    method: DELETE
+    url_username: "{{ gitea_oauth2_admin_user }}"
+    url_password: "{{ gitea_oauth2_admin_pass }}"
+    force_basic_auth: true
+    validate_certs: false
+    status_code: [204]
+  when: _gitea_existing_app_id | length > 0
+  no_log: true
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: register OAuth2 app in Gitea
+  ansible.builtin.uri:
+    url: "{{ gitea_oauth2_base_url }}/api/v1/user/applications/oauth2"
+    method: POST
+    url_username: "{{ gitea_oauth2_admin_user }}"
+    url_password: "{{ gitea_oauth2_admin_pass }}"
+    force_basic_auth: true
+    validate_certs: false
+    body_format: json
+    body:
+      name: "{{ gitea_oauth2_app_name }}"
+      redirect_uris: ["{{ gitea_oauth2_redirect_uri }}"]
+      confidential_client: "{{ gitea_oauth2_confidential }}"
+    status_code: [200, 201]
+  register: _gitea_oauth2_created
+  no_log: true
+
+- name: store created app credentials as facts
+  ansible.builtin.set_fact:
+    gitea_oauth2_client_id: "{{ _gitea_oauth2_created.json.client_id }}"
+    gitea_oauth2_client_secret: "{{ _gitea_oauth2_created.json.client_secret }}"
+  no_log: true
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+- name: print OAuth2 app summary
+  ansible.builtin.debug:
+    msg:
+      - "OAuth2 app registered: {{ gitea_oauth2_app_name }}"
+      - "redirect_uri : {{ gitea_oauth2_redirect_uri }}"
+      - "authorize    : {{ gitea_oauth2_base_url }}/login/oauth/authorize"
+      - "token        : {{ gitea_oauth2_base_url }}/login/oauth/access_token"
+      - "userinfo     : {{ gitea_oauth2_base_url }}/login/oauth/userinfo"
+      - "discovery    : {{ gitea_oauth2_base_url }}/.well-known/openid-configuration"
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
