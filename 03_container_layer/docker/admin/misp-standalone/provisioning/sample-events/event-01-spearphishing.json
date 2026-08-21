@@ -9,7 +9,10 @@
     "Tag": [
       {"name": "tlp:amber"},
       {"name": "kill-chain:Delivery"},
-      {"name": "kill-chain:Exploitation"}
+      {"name": "kill-chain:Exploitation"},
+      {"name": "misp-galaxy:exercise-world=\"Asterin Union\""},
+      {"name": "misp-galaxy:exercise-world=\"NovaCore Systems\""},
+      {"name": "misp-galaxy:exercise-world=\"TA-700 Obsidian Jackal\""}
     ],
     "Attribute": [
       {

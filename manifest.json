@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "name": "range42-catalog",
   "version": "1.0.0",
-  "description": "A collection of reusable infrastructure bundles for cyber range deployments including Ansible roles, Docker/Docker Compose stacks, and gamification templates.",
+  "description": "Reusable infrastructure bundles and exercise-content assets including Ansible roles, Docker/Docker Compose stacks, gamification templates, and neutral narrative worlds.",
   "license": "GPL-3.0",
   "repository": {
     "type": "git",
@@ -90,6 +90,11 @@
           "description": "Network-themed challenges"
         }
       }
+    },
+    "world": {
+      "path": "05_world_layer",
+      "description": "Neutral, versioned narrative worlds for cyber exercises",
+      "manifest": "manifest.json"
     }
   },
   "conventions": {

@@ -69,7 +69,7 @@ Passwords are set via the corresponding `_PASSWORD` variables in `.env`.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MISP_VERSION` | MISP git tag to build from | `v2.5.37` |
+| `MISP_VERSION` | MISP git tag to build from | `v2.5.44` |
 | `MISP_PORT` | Host port for the MISP web UI | `8080` |
 | `MISP_BASEURL` | URL advertised in events/feeds/e-mails | `http://localhost:8080` |
 | `MISP_ORG` | Default organisation name | `Default Organisation` |
@@ -81,6 +81,11 @@ Passwords are set via the corresponding `_PASSWORD` variables in `.env`.
 | `MISP_DB_*` / `DB_*` | MariaDB connection settings | see `.env.example` |
 | `REDIS_HOST` / `REDIS_PORT` | Redis connection | `redis` / `6379` |
 
+The Docker build verifies the SHA-256 values of the bundled `exercise-world`
+galaxy and cluster against the pinned snapshots under
+`05_world_layer/sewf/nacre/`. A MISP version bump that changes either file
+fails the build until the world package is deliberately reviewed and updated.
+
 ---
 
 ## Build and push
@@ -89,13 +94,13 @@ Passwords are set via the corresponding `_PASSWORD` variables in `.env`.
 # Build and tag for a registry
 docker build \
   --target runtime \
-  --build-arg MISP_VERSION=v2.5.37 \
-  -t registry.example.com/range42/misp-standalone:v2.5.37 \
+  --build-arg MISP_VERSION=v2.5.44 \
+  -t registry.example.com/range42/misp-standalone:v2.5.44 \
   -t registry.example.com/range42/misp-standalone:latest \
   .
 
 # Push
-docker push registry.example.com/range42/misp-standalone:v2.5.37
+docker push registry.example.com/range42/misp-standalone:v2.5.44
 docker push registry.example.com/range42/misp-standalone:latest
 ```
 

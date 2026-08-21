@@ -6,7 +6,9 @@
 # ──────────────────────────────────────────────────────────────────────────────
 FROM ubuntu:24.04 AS builder
 
-ARG MISP_VERSION=v2.5.39
+ARG MISP_VERSION=v2.5.44
+ARG SEWF_CLUSTER_SHA256=55afe65a817c167a46dbd26850515aefb2bf72b9318f651d6adb172e498a44b4
+ARG SEWF_GALAXY_SHA256=f1fe9a26eae4148542e0d89126cdf4231c803b2c3fd255137b42e2c5f969807a
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -26,6 +28,16 @@ RUN git clone --depth 1 --branch "${MISP_VERSION}" --progress \
 # Pull submodules in a separate layer so a hang is immediately identifiable.
 # --progress keeps git reporting per-submodule transfer stats during the wait.
 RUN git -C misp submodule update --init --recursive --depth 1 --jobs 8 --progress
+
+# Keep the MISP-bundled Synthetic Exercise World byte-identical to the
+# independently vendored Range42 snapshot in 05_world_layer. UUID/count smoke
+# checks cannot detect metadata or entity substitutions that preserve counts.
+RUN printf '%s  %s\n' "${SEWF_CLUSTER_SHA256}" \
+        /build/misp/app/files/misp-galaxy/clusters/exercise-world.json \
+        | sha256sum -c - \
+    && printf '%s  %s\n' "${SEWF_GALAXY_SHA256}" \
+        /build/misp/app/files/misp-galaxy/galaxies/exercise-world.json \
+        | sha256sum -c -
 
 # PHP vendor dependencies — skip platform checks that require runtime extensions
 WORKDIR /build/misp/app
