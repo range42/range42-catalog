@@ -111,7 +111,7 @@ docker push registry.example.com/range42/misp-standalone:latest
 | Volume | Contents |
 |--------|----------|
 | `db-data` | MariaDB data files |
-| `misp-files` | MISP uploaded files |
+| `misp-files` | MISP file storage and bundled content definitions |
 | `misp-attachments` | Event attachments |
 | `misp-logs` | MISP application logs |
 | `keys` | Bootstrap auth-key and final `api-keys.txt` |
@@ -130,6 +130,13 @@ docker compose up --build -d
 The bootstrap sentinel `/var/www/MISP/.bootstrapped` prevents re-provisioning on container restart. The provisioner runs once (`restart: "no"`) and will not re-run unless the `keys` volume is removed.
 
 If the container is **recreated** (e.g. after `docker compose up --build`), the sentinel is gone but the DB volume persists — the bootstrap detects the existing schema, skips the seed, and proceeds safely.
+
+On every MISP container start, the image's bundled `misp-galaxy` snapshot is
+copied into `misp-files` before bootstrap or normal startup. This refreshes
+definitions when an existing named volume survives an image upgrade. The
+provisioner also reconciles the two managed sample-event UUIDs through the MISP
+edit API, so fixture changes such as new exercise-world tags reach existing lab
+databases.
 
 ---
 

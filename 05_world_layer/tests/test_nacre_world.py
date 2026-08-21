@@ -1,7 +1,9 @@
 import importlib.util
 import json
+import os
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -91,6 +93,51 @@ class NacrePackageTests(unittest.TestCase):
             version,
         )
 
+    def test_misp_startup_refreshes_bundled_galaxies_in_persisted_volume(self) -> None:
+        dockerfile = (MISP_STACK / "Dockerfile").read_text()
+        entrypoint = (MISP_STACK / "provisioning" / "entrypoint.sh").read_text()
+        refresher = MISP_STACK / "provisioning" / "refresh-galaxy-files.sh"
+
+        self.assertTrue(refresher.is_file(), "missing persisted-volume galaxy refresher")
+        self.assertIn("/opt/misp-galaxy", dockerfile)
+        self.assertIn("/provisioning/refresh-galaxy-files.sh", entrypoint)
+        self.assertLess(
+            entrypoint.index("/provisioning/refresh-galaxy-files.sh"),
+            entrypoint.index("First-boot bootstrap"),
+        )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            seed = root / "seed"
+            target = root / "target"
+            (seed / "clusters").mkdir(parents=True)
+            (seed / "galaxies").mkdir(parents=True)
+            (target / "clusters").mkdir(parents=True)
+            (seed / "clusters" / "exercise-world.json").write_text("new bundled data\n")
+            (target / "clusters" / "exercise-world.json").write_text("old persisted data\n")
+
+            env = os.environ.copy()
+            env.update(
+                {
+                    "MISP_GALAXY_SEED_DIR": str(seed),
+                    "MISP_GALAXY_TARGET_DIR": str(target),
+                    "MISP_GALAXY_OWNER": "",
+                }
+            )
+            result = subprocess.run(
+                ["bash", str(refresher)],
+                cwd=ROOT,
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            self.assertEqual(
+                "new bundled data\n",
+                (target / "clusters" / "exercise-world.json").read_text(),
+            )
+
     def test_sample_events_use_canonical_nacre_galaxy_tags(self) -> None:
         expected_by_file = {
             "event-01-spearphishing.json": {
@@ -111,6 +158,62 @@ class NacrePackageTests(unittest.TestCase):
                 event = json.load(handle)["Event"]
             actual = {tag["name"] for tag in event["Tag"]}
             self.assertTrue(expected <= actual, f"{filename} missing {sorted(expected - actual)}")
+
+    def test_existing_sample_event_is_updated_from_fixture(self) -> None:
+        provisioner = MISP_STACK / "provisioning" / "provision-sample-events.sh"
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            bin_dir = root / "bin"
+            events_dir = root / "events"
+            bin_dir.mkdir()
+            events_dir.mkdir()
+            key_file = root / "admin-authkey"
+            key_file.write_text("test-key\n")
+            event_uuid = "c0ffee01-cafe-4bab-b000-000000000001"
+            (events_dir / "fixture.json").write_text(
+                json.dumps({"Event": {"uuid": event_uuid, "info": "managed fixture"}})
+            )
+            curl_log = root / "curl.log"
+            fake_curl = bin_dir / "curl"
+            fake_curl.write_text(
+                "#!/usr/bin/env bash\n"
+                "printf '%s\\n' \"$*\" >> \"${CURL_LOG}\"\n"
+                "url=\"${!#}\"\n"
+                "case \"${url}\" in\n"
+                "  */events/view/*) printf '%s\\n' '{\"Event\":{\"uuid\":\""
+                + event_uuid
+                + "\"}}' ;;\n"
+                "  */events/edit/*) printf '%s\\n' '{\"Event\":{\"uuid\":\""
+                + event_uuid
+                + "\"}}' ;;\n"
+                "  *) printf '%s\\n' '{}' ;;\n"
+                "esac\n"
+            )
+            fake_curl.chmod(0o755)
+
+            env = os.environ.copy()
+            env.update(
+                {
+                    "PATH": f"{bin_dir}:{env['PATH']}",
+                    "CURL_LOG": str(curl_log),
+                    "MISP_ADMIN_KEY_FILE": str(key_file),
+                    "MISP_SAMPLE_EVENTS_DIR": str(events_dir),
+                }
+            )
+            result = subprocess.run(
+                ["bash", str(provisioner)],
+                cwd=ROOT,
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+            self.assertEqual(0, result.returncode, result.stdout + result.stderr)
+            requests = curl_log.read_text()
+            self.assertIn(f"/events/edit/{event_uuid}", requests)
+            self.assertNotIn("/events/add", requests)
+            self.assertIn("Updated", result.stderr)
 
     def test_provisioner_verifies_nacre_before_importing_events(self) -> None:
         provisioning = MISP_STACK / "provisioning"

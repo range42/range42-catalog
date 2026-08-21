@@ -92,6 +92,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder --chown=www-data:www-data /build/misp /var/www/MISP
 COPY --from=builder /opt/misp-venv /opt/misp-venv
 
+# Keep an immutable copy outside app/files. The named misp-files volume masks
+# app/files at runtime and may contain data copied from an older image, so the
+# entrypoint refreshes bundled galaxy definitions from this image-owned source.
+COPY --from=builder --chown=www-data:www-data \
+    /build/misp/app/files/misp-galaxy /opt/misp-galaxy
+
 # Permissions on the MISP tree are set immediately after the COPY so this
 # slow layer stays cached even when config or provisioning files change below.
 # chmod -R on the full submodule tree is unavoidable; no second chown pass.
@@ -130,11 +136,13 @@ COPY config/supervisord.conf /etc/supervisor/conf.d/misp.conf
 
 COPY provisioning/entrypoint.sh     /entrypoint.sh
 COPY provisioning/configure-misp.sh /provisioning/configure-misp.sh
+COPY provisioning/refresh-galaxy-files.sh /provisioning/refresh-galaxy-files.sh
 COPY provisioning/wait-for-tcp.sh   /provisioning/wait-for-tcp.sh
 
 RUN chmod +x \
         /entrypoint.sh \
         /provisioning/configure-misp.sh \
+        /provisioning/refresh-galaxy-files.sh \
         /provisioning/wait-for-tcp.sh
 
 EXPOSE 80 443
