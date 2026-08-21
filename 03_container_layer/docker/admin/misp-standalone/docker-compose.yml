@@ -59,8 +59,8 @@ services:
       context: .
       target: runtime
       args:
-        MISP_VERSION: ${MISP_VERSION:-v2.5.37}
-    image: misp-standalone:${MISP_VERSION:-v2.5.37}
+        MISP_VERSION: ${MISP_VERSION:-v2.5.44}
+    image: misp-standalone:${MISP_VERSION:-v2.5.44}
     restart: unless-stopped
     env_file:
       - path: .env
@@ -94,7 +94,7 @@ services:
       context: .
       target: runtime
       args:
-        MISP_VERSION: ${MISP_VERSION:-v2.5.37}
+        MISP_VERSION: ${MISP_VERSION:-v2.5.44}
     entrypoint: ["/provisioning/provision.sh"]
     env_file:
       - path: .env
@@ -106,6 +106,7 @@ services:
       - ./provisioning/provision-users.sh:/provisioning/provision-users.sh:ro
       - ./provisioning/provision-warninglists.sh:/provisioning/provision-warninglists.sh:ro
       - ./provisioning/provision-content.sh:/provisioning/provision-content.sh:ro
+      - ./provisioning/verify-exercise-world.py:/provisioning/verify-exercise-world.py:ro
       - ./provisioning/provision-sample-events.sh:/provisioning/provision-sample-events.sh:ro
       - ./provisioning/sample-events:/provisioning/sample-events:ro
     depends_on:

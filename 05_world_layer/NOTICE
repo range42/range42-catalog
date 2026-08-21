@@ -1,0 +1,13 @@
+Synthetic Exercise World — Nacre
+Copyright: MISP Project
+Project: https://github.com/MISP/Synthetic-Exercise-World-Format
+Canonical data: https://github.com/MISP/misp-galaxy
+License: Creative Commons Attribution 4.0 International (CC-BY-4.0)
+License URL: https://creativecommons.org/licenses/by/4.0/
+
+Range42 redistributes byte-identical galaxy and cluster JSON snapshots with provenance in
+`sewf/nacre/VERSION`. Generated indexes are identified separately under `derived/`.
+
+Suggested attribution from upstream:
+
+  Synthetic Exercise World — licensed under CC BY 4.0.

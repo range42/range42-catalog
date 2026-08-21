@@ -5,6 +5,8 @@ CLAUDE.md
 **/CLAUDE.md
 **/.env
 !**/.env.example
+__pycache__/
+*.py[cod]
 # operator-provided TLS certs (GITEA_TLS_MODE=provided) — never commit
 03_container_layer/docker/admin/gitea-registry/certs/*
 !03_container_layer/docker/admin/gitea-registry/certs/.gitkeep

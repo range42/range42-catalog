@@ -1,0 +1,206 @@
+{
+  "schema_version": "1.0",
+  "sectors": {
+    "Aerospace": [
+      {
+        "headquarters": "Neruva Federation",
+        "headquarters_uuid": "cfe1b22e-38b5-4077-bb90-b2bc5fedb965",
+        "uuid": "d688f826-d566-41c9-99af-16574aa05921",
+        "value": "SkyBridge Labs"
+      },
+      {
+        "headquarters": "Neruva Federation",
+        "headquarters_uuid": "cfe1b22e-38b5-4077-bb90-b2bc5fedb965",
+        "uuid": "a72d657f-b242-4b6b-ab31-1aa15bff4c4f",
+        "value": "SkyLattice Labs"
+      },
+      {
+        "headquarters": "Neruva Federation",
+        "headquarters_uuid": "cfe1b22e-38b5-4077-bb90-b2bc5fedb965",
+        "uuid": "de2e6bc9-64df-4b7b-8c10-698aed474d2c",
+        "value": "SkyPulse Labs"
+      }
+    ],
+    "Energy": [
+      {
+        "headquarters": "Asterin Union",
+        "headquarters_uuid": "cb97ba71-e477-4acb-9470-10f3e6c9e1a9",
+        "uuid": "e3d6ab68-ad7b-4deb-9c0d-c0250013d1bb",
+        "value": "NovaCore Systems"
+      },
+      {
+        "headquarters": "Asterin Union",
+        "headquarters_uuid": "cb97ba71-e477-4acb-9470-10f3e6c9e1a9",
+        "uuid": "ba6c4261-b74f-4e36-ba47-9af4ad63bfd4",
+        "value": "NovaMatrix Systems"
+      },
+      {
+        "headquarters": "Asterin Union",
+        "headquarters_uuid": "cb97ba71-e477-4acb-9470-10f3e6c9e1a9",
+        "uuid": "93130c22-9361-405b-a91e-de5bd1c2e718",
+        "value": "NovaNimbus Systems"
+      }
+    ],
+    "Finance": [
+      {
+        "headquarters": "Velkar Republic",
+        "headquarters_uuid": "e4cd09cc-7be7-46ef-8989-5b9a812b49fe",
+        "uuid": "df601e63-1a5f-4cec-a071-152f1c62f310",
+        "value": "HelixCore Group"
+      },
+      {
+        "headquarters": "Velkar Republic",
+        "headquarters_uuid": "e4cd09cc-7be7-46ef-8989-5b9a812b49fe",
+        "uuid": "28daddab-1f7e-4116-a8ce-285dd3bb2a8d",
+        "value": "HelixForge Group"
+      },
+      {
+        "headquarters": "Velkar Republic",
+        "headquarters_uuid": "e4cd09cc-7be7-46ef-8989-5b9a812b49fe",
+        "uuid": "8cccd3e0-3ade-48c8-83b9-b09523ddec00",
+        "value": "HelixMatrix Group"
+      }
+    ],
+    "Food": [
+      {
+        "headquarters": "Soreth Dominion",
+        "headquarters_uuid": "c4be7f53-6d08-4472-8480-49ccb7946e78",
+        "uuid": "a8685ecb-33cc-4f6a-850d-7b3e7ff21be6",
+        "value": "DeltaBeacon Networks"
+      },
+      {
+        "headquarters": "Soreth Dominion",
+        "headquarters_uuid": "c4be7f53-6d08-4472-8480-49ccb7946e78",
+        "uuid": "f68c4a8e-beff-4666-8c85-78deb549088e",
+        "value": "DeltaHarbor Networks"
+      },
+      {
+        "headquarters": "Soreth Dominion",
+        "headquarters_uuid": "c4be7f53-6d08-4472-8480-49ccb7946e78",
+        "uuid": "47a8428c-1427-4eb2-b7a6-6f4f40b69ed1",
+        "value": "DeltaNimbus Networks"
+      }
+    ],
+    "Healthcare": [
+      {
+        "headquarters": "Orinthia",
+        "headquarters_uuid": "74d2286a-1b87-4984-8dd1-c5bd466ecca5",
+        "uuid": "7477aeca-f4ba-4d9c-a261-7e5609033ad6",
+        "value": "IronCore Dynamics"
+      },
+      {
+        "headquarters": "Orinthia",
+        "headquarters_uuid": "74d2286a-1b87-4984-8dd1-c5bd466ecca5",
+        "uuid": "40e99f1c-44aa-4ae1-9b57-f3ee963d6a91",
+        "value": "IronForge Dynamics"
+      },
+      {
+        "headquarters": "Orinthia",
+        "headquarters_uuid": "74d2286a-1b87-4984-8dd1-c5bd466ecca5",
+        "uuid": "2da913d9-d380-4461-9acd-44f67178589a",
+        "value": "IronPulse Dynamics"
+      }
+    ],
+    "Logistics": [
+      {
+        "headquarters": "Thyros Commonwealth",
+        "headquarters_uuid": "970fd807-b09e-4379-9a44-bebc5d0b9869",
+        "uuid": "8d018f2a-03c2-4467-8b4e-14ee2ea33df8",
+        "value": "VertexBridge Systems"
+      },
+      {
+        "headquarters": "Thyros Commonwealth",
+        "headquarters_uuid": "970fd807-b09e-4379-9a44-bebc5d0b9869",
+        "uuid": "bbac3990-2ae8-4872-a24a-2d9bf3a44086",
+        "value": "VertexFoundry Systems"
+      },
+      {
+        "headquarters": "Thyros Commonwealth",
+        "headquarters_uuid": "970fd807-b09e-4379-9a44-bebc5d0b9869",
+        "uuid": "5b8a3c47-d6d4-470d-bca3-de2ef41391c9",
+        "value": "VertexLattice Systems"
+      }
+    ],
+    "Manufacturing": [
+      {
+        "headquarters": "Ilyndor",
+        "headquarters_uuid": "1e875520-fb3e-4d26-a982-44a5fb7f9375",
+        "uuid": "6c295716-28f9-485e-af6f-0619677d9e37",
+        "value": "CinderFoundry Group"
+      },
+      {
+        "headquarters": "Ilyndor",
+        "headquarters_uuid": "1e875520-fb3e-4d26-a982-44a5fb7f9375",
+        "uuid": "5196ad35-99b3-41fd-bb4a-286bf08adc4c",
+        "value": "CinderHarbor Group"
+      },
+      {
+        "headquarters": "Ilyndor",
+        "headquarters_uuid": "1e875520-fb3e-4d26-a982-44a5fb7f9375",
+        "uuid": "d7748db1-8949-456f-a3b3-1072c6baacc3",
+        "value": "CinderLattice Group"
+      }
+    ],
+    "Maritime": [
+      {
+        "headquarters": "Brinax Collective",
+        "headquarters_uuid": "91f273f8-66c0-446f-bdb2-4233fd0c55ef",
+        "uuid": "5621dc5a-ba38-45b7-93c6-40c19c9b0b4c",
+        "value": "AuroraBeacon Dynamics"
+      },
+      {
+        "headquarters": "Brinax Collective",
+        "headquarters_uuid": "91f273f8-66c0-446f-bdb2-4233fd0c55ef",
+        "uuid": "10ed09dc-bd53-466a-bfc5-c47c65c75141",
+        "value": "AuroraFoundry Dynamics"
+      },
+      {
+        "headquarters": "Brinax Collective",
+        "headquarters_uuid": "91f273f8-66c0-446f-bdb2-4233fd0c55ef",
+        "uuid": "d3631b81-e8b1-473c-bd9e-d2daf003a467",
+        "value": "AuroraHarbor Dynamics"
+      }
+    ],
+    "Media": [
+      {
+        "headquarters": "Quenari League",
+        "headquarters_uuid": "54670ad5-49fe-4d0c-8a81-84b06a8b5050",
+        "uuid": "f869e852-7648-4066-a0dc-ed743e11aa05",
+        "value": "QuantumBeacon Labs"
+      },
+      {
+        "headquarters": "Quenari League",
+        "headquarters_uuid": "54670ad5-49fe-4d0c-8a81-84b06a8b5050",
+        "uuid": "f0ca111f-53b1-491f-9c3e-f8ef6a83e974",
+        "value": "QuantumMatrix Labs"
+      },
+      {
+        "headquarters": "Quenari League",
+        "headquarters_uuid": "54670ad5-49fe-4d0c-8a81-84b06a8b5050",
+        "uuid": "412eadf8-d9ff-414f-8001-9635322d4bd9",
+        "value": "QuantumNimbus Labs"
+      }
+    ],
+    "Telecommunications": [
+      {
+        "headquarters": "Caelum Protectorate",
+        "headquarters_uuid": "4a600b9f-b843-446f-a234-415aded47e1b",
+        "uuid": "2531f94d-d514-4530-b4eb-35fce204aa36",
+        "value": "BlueBridge Networks"
+      },
+      {
+        "headquarters": "Caelum Protectorate",
+        "headquarters_uuid": "4a600b9f-b843-446f-a234-415aded47e1b",
+        "uuid": "fdc855e6-4827-4f80-84f6-eafd7687aed5",
+        "value": "BlueForge Networks"
+      },
+      {
+        "headquarters": "Caelum Protectorate",
+        "headquarters_uuid": "4a600b9f-b843-446f-a234-415aded47e1b",
+        "uuid": "0bbd45b1-a029-4497-8d93-9df82ca4b8c3",
+        "value": "BluePulse Networks"
+      }
+    ]
+  },
+  "world_uuid": "7d6d7f2f-b3d4-4bc5-9f27-43e12f7f4658"
+}

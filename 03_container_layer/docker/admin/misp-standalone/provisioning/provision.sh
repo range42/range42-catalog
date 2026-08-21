@@ -7,4 +7,5 @@ set -euo pipefail
 /provisioning/provision-users.sh
 /provisioning/provision-warninglists.sh
 /provisioning/provision-content.sh
+python3 /provisioning/verify-exercise-world.py
 /provisioning/provision-sample-events.sh

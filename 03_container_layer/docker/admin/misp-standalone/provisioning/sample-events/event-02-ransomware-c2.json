@@ -10,7 +10,10 @@
       {"name": "tlp:amber"},
       {"name": "kill-chain:Installation"},
       {"name": "kill-chain:Command and Control"},
-      {"name": "kill-chain:Actions on Objectives"}
+      {"name": "kill-chain:Actions on Objectives"},
+      {"name": "misp-galaxy:exercise-world=\"Velkar Republic\""},
+      {"name": "misp-galaxy:exercise-world=\"HelixCore Group\""},
+      {"name": "misp-galaxy:exercise-world=\"TA-701 Silver Mantis\""}
     ],
     "Attribute": [
       {

@@ -8,6 +8,11 @@ SENTINEL="/keys/.bootstrapped"
 
 log() { echo "[entrypoint] $*"; }
 
+# Refresh the image-bundled galaxy definitions before MISP imports them. This
+# also upgrades an existing misp-files volume that was initialized by an older
+# image and would otherwise mask the newly bundled files.
+/provisioning/refresh-galaxy-files.sh
+
 # ── Wait for MariaDB and Redis ────────────────────────────────────────────────
 
 log "Waiting for database (${DB_HOST:-db}:${DB_PORT:-3306}) …"

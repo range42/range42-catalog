@@ -8,7 +8,10 @@
 
 # Repository Content
 
-This repository is the **range42 catalog** — a collection of reusable infrastructure bundles that can be orchestrated by the backend API or executed directly via the [range42-deployer-ui](https://github.com/range42/range42-deployer-ui) or CLI through the playbooks repository.
+This repository is the **range42 catalog** — a collection of reusable infrastructure bundles
+and exercise-content assets. Infrastructure can be orchestrated by the backend API or
+executed directly via the [range42-deployer-ui](https://github.com/range42/range42-deployer-ui)
+or CLI through the playbooks repository.
 
 Bundles include Ansible roles, Dockerfiles, and Docker Compose definitions designed to configure misconfigured or vulnerable environments for cyber training scenarios.
 
@@ -51,6 +54,15 @@ Interface templates and challenge frameworks that gamify the deployed scenarios.
 - **`network/notes/`** — notes and resources for network challenges.
 - **`files/notes/`** — notes and resources for file-based challenges.
 
+## Layer 05 — Synthetic Exercise Worlds
+
+Path: `05_world_layer/`
+
+Versioned, politically neutral narrative reference data for exercises. The initial Nacre
+package uses MISP's Synthetic Exercise World Format and provides countries, companies,
+sectors, and threat actors for MISP events and scenario/application references. Vendored
+upstream data carries its own CC-BY-4.0 attribution and provenance in this layer.
+
 ---
 
 **Note:** The deep tree structure is still evolving and may change as the project grows.
@@ -63,3 +75,5 @@ We use centralized community health files in Range42 community health.
 ## License
 
 - GPL-3.0 license
+- Vendored assets under `05_world_layer/` retain the licenses and attribution documented
+  alongside each package; Nacre is CC-BY-4.0.

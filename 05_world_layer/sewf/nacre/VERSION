@@ -1,0 +1,13 @@
+world=Nacre
+format=misp-galaxy
+version=1
+retrieved_at=2026-08-21
+documentation_repository=https://github.com/MISP/Synthetic-Exercise-World-Format
+documentation_commit=2e32d4a5a9b241fb0f90e704e277c0cabf97729b
+data_repository=https://github.com/MISP/misp-galaxy
+cluster_commit=cc7792ad2406700bcdd0462927c9fd0f5ddee84a
+cluster_sha256=55afe65a817c167a46dbd26850515aefb2bf72b9318f651d6adb172e498a44b4
+galaxy_commit=0694f7600eb5e302f690cf909acb3c5f4086010d
+galaxy_sha256=f1fe9a26eae4148542e0d89126cdf4231c803b2c3fd255137b42e2c5f969807a
+misp_version=v2.5.44
+misp_galaxy_commit=041c6d0f3da384626c07b9220c1f6cef640ddf1a
