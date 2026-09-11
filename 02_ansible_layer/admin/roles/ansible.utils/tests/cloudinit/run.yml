@@ -1,0 +1,57 @@
+---
+# Run directly: ansible-playbook -i localhost, tests/cloudinit/run.yml
+# All observations use private fixture files/executables on localhost.
+- name: Exercise the real cloud-init wait and Ansible diagnostic tasks
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    role_source: "{{ playbook_dir }}/../.."
+    canary: CLOUD_INIT_DIAGNOSTIC_PRIVATE_CANARY
+    scenarios:
+      - {name: oneshot_worker, phase: dpkg, state: sleeping, status: running, stage: modules-final}
+      - {name: forwarding_wrapper, phase: unknown, state: unknown, status: running, stage: modules-final}
+      - {name: lost_connection, phase: unknown, state: unknown, status: unknown, stage: unknown, unavailable: true}
+      - {name: running_packages, phase: dpkg, state: sleeping, status: running, stage: modules-final}
+      - {name: degraded, phase: dpkg, state: sleeping, status: degraded running, stage: modules-final, status_rc: 2}
+      - {name: error_status, phase: dpkg, state: sleeping, status: error, stage: modules-final, status_rc: 1}
+      - {name: malformed_status, phase: unknown, state: unknown, status: unknown, stage: unknown, unavailable: true}
+      - {name: oversized_status, phase: unknown, state: unknown, status: unknown, stage: unknown, unavailable: true}
+      - {name: unavailable_cli, phase: unknown, state: unknown, status: unknown, stage: unknown, unavailable: true, status_rc: 127}
+      - {name: status_timeout, phase: unknown, state: unknown, status: unknown, stage: unknown, unavailable: true}
+      - {name: stale_facts, phase: unknown, state: unknown, status: unknown, stage: unknown, unavailable: true, status_rc: 127}
+      - {name: inactive_unit, phase: unknown, state: unknown, status: running, stage: modules-final}
+      - {name: child_cgroup, phase: unknown, state: unknown, status: running, stage: modules-final}
+      - {name: foreign_process, phase: unknown, state: unknown, status: running, stage: modules-final}
+      - {name: changed_membership, phase: unknown, state: unknown, status: running, stage: modules-final}
+      - {name: no_package, phase: none, state: none, status: running, stage: modules-final}
+      - {name: success, success: true}
+  tasks:
+    - name: Require the public wait policy and a native YAML diagnostic entrypoint
+      ansible.builtin.assert:
+        that:
+          - "'timeout: 500' in lookup('file', role_source ~ '/tasks/wait/cloudinit/is_boot_finished.yml')"
+          - "'delay: 10' in lookup('file', role_source ~ '/tasks/wait/cloudinit/is_boot_finished.yml')"
+          - "'diagnostic.yml' in lookup('file', role_source ~ '/tasks/wait/cloudinit/is_boot_finished.yml')"
+          - "'cloudinit_boot_diagnostic.py' not in lookup('file', role_source ~ '/tasks/wait/cloudinit/is_boot_finished.yml')"
+        fail_msg: Replace the custom collector with the tested native Ansible task entrypoint.
+
+    - name: Allocate private test data
+      ansible.builtin.tempfile:
+        state: directory
+        prefix: range42-cloudinit-yaml-
+      register: fixture_root
+
+    - name: Run isolated cases and remove only their private fixture directory
+      block:
+        - name: Execute each real playbook case
+          ansible.builtin.include_tasks: case.yml
+          loop: "{{ scenarios }}"
+          loop_control:
+            loop_var: scenario
+            label: "{{ scenario.name }}"
+      always:
+        - name: Remove temporary fixtures
+          ansible.builtin.file:
+            path: "{{ fixture_root.path }}"
+            state: absent
