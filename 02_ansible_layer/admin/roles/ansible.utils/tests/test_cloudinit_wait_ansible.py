@@ -178,6 +178,10 @@ def test_configuration_timeout_reports_safe_package_observation_and_stays_failed
     assert "CLOUD_INIT_BOOT_WAIT_FAILED" in result.stdout
     assert "packages=dpkg/not_observed" in result.stdout
     assert "package_state=sleeping" in result.stdout
+    assert (
+        "State and CPU activity describe the whole scoped package tree" in result.stdout
+    )
+    assert "do not prove that the named phase advanced" in result.stdout
     assert "MUST_NOT_CONTINUE" not in result.stdout
 
 

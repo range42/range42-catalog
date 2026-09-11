@@ -82,6 +82,33 @@ def test_real_failure_shape_reports_dpkg_configuration_without_claiming_stall(
     assert 80 <= result["package_sample_ms"] <= 1000
 
 
+def test_observation_interval_includes_time_spent_collecting_first_snapshot(
+    helper, tmp_path, monkeypatch
+):
+    tree(tmp_path)
+    clock = [100.0]
+    snapshot = helper.process_snapshot
+    scans = 0
+
+    def slow_first_snapshot(root, deadline):
+        nonlocal scans
+        rows = snapshot(root, deadline)
+        if scans == 0:
+            clock[0] += 0.25
+        scans += 1
+        return rows
+
+    def advance(seconds):
+        clock[0] += seconds
+
+    monkeypatch.setattr(helper, "process_snapshot", slow_first_snapshot)
+    monkeypatch.setattr(helper.time, "monotonic", lambda: clock[0])
+    monkeypatch.setattr(helper.time, "sleep", advance)
+    result = helper.package_progress(tmp_path, deadline=105)
+    assert result["package_phase"] == "dpkg"
+    assert result["package_sample_ms"] == pytest.approx(350, abs=1)
+
+
 @pytest.mark.parametrize(
     "program,phase", [("update-initramfs", "initramfs"), ("grub-mkconfig", "grub")]
 )

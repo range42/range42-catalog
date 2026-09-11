@@ -24,7 +24,9 @@ availability, plus these package observations:
 - `package_state`: `running`, `sleeping`, `blocked`, `stopped`, `zombie`,
   `mixed`, `none` or `unknown`.
 - `package_cpu_activity`: `observed`, `not_observed` or `unavailable`.
-- `package_sample_ms`: the bounded integer observation interval, or null.
+- `package_sample_ms`: the bounded integer observation interval from before
+  the first scan until after the second scan, or null. Individual process
+  reads occur within this interval; it is not an exact per-process duration.
 
 Package collection reads only Linux `/proc/<pid>/stat`, twice approximately
 100 ms apart. Fixed command-name classifications account for Linux's
@@ -34,6 +36,11 @@ counters without exposing their names. Unrelated package processes are
 excluded. A more specific observed phase takes precedence (`grub`, then
 `initramfs`, `dpkg`, `apt`); it is a process classification, not a cloud-init
 module or exact apt operation.
+
+State and CPU activity aggregate the entire scoped package tree, including
+unlabelled descendants. An `observed` result does not establish that the
+named phase itself advanced; another process in that tree may have consumed
+the CPU time. The public failure message states this distinction.
 
 The helper bounds enumeration to 4096 directory entries, each stat read to
 4096 bytes, and ancestry to 64 processes. Missing, malformed or inaccessible
@@ -106,3 +113,11 @@ subsequently authorized matching release, live acceptance of the new fields.
 The [Linux proc documentation](https://www.kernel.org/doc/html/v6.6/filesystems/proc.html)
 defines the `stat` parent PID, user/system CPU counters and process start-time
 fields used to scope and compare these observations.
+
+Independent review follow-up: a deterministic slow-first-scan regression
+reproduced an understated interval (99 ms instead of 350 ms), and the local
+Ansible regression required the whole-tree interpretation in public failure
+text. Both failed before the corrections. All 42 focused cases then passed
+in 16.78 seconds; scoped Ruff and diff checks passed. Evidence:
+`/tmp/r42-cloudinit-package-review-red.log` and
+`/tmp/r42-cloudinit-package-review-green.log`. No live checks were added.

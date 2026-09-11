@@ -126,11 +126,11 @@ def package_scope(rows, deadline):
 def package_progress(root=Path("/proc"), *, deadline):
     """A short CPU observation is neither a health check nor a stall diagnosis."""
     try:
-        if deadline - time.monotonic() < 0.1:
-            raise ValueError("unavailable")
-        before_roots, before = package_scope(process_snapshot(root, deadline), deadline)
         started = time.monotonic()
         if deadline - started < 0.1:
+            raise ValueError("unavailable")
+        before_roots, before = package_scope(process_snapshot(root, deadline), deadline)
+        if deadline - time.monotonic() < 0.1:
             raise ValueError("unavailable")
         time.sleep(0.1)
         after_roots, after = package_scope(process_snapshot(root, deadline), deadline)

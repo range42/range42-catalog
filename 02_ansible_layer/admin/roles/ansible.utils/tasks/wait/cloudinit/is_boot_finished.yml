@@ -79,5 +79,6 @@
           package_state={{ _r42_ci_diagnostic.package_state }};
           package_cpu_activity={{ _r42_ci_diagnostic.package_cpu_activity }};
           package_sample_ms={{ _r42_ci_diagnostic.package_sample_ms if _r42_ci_diagnostic.package_sample_ms is not none else 'unknown' }}.
-          CPU activity is a short observation, not a health or stall diagnosis.
+          Phase identifies a recognized program. State and CPU activity describe the whole scoped package tree
+          and do not prove that the named phase advanced. CPU activity is a short observation, not a health or stall diagnosis.
           Guest initialization may still be running. Inspect the guest before retrying.
