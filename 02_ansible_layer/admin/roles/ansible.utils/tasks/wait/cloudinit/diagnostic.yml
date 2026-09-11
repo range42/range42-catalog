@@ -1,0 +1,80 @@
+---
+- name: CLOUD INIT - Clear earlier private candidates and public observations
+  ansible.builtin.set_fact:
+    _r42_ci_candidate: null
+    _r42_ci_diagnostic:
+      diagnostic: unavailable
+      status: unknown
+      stage: unknown
+      errors: null
+      recoverable_errors: null
+      package_observation: unavailable
+      package_phase: unknown
+      package_state: unknown
+  no_log: true
+
+- name: CLOUD INIT - Read only bounded status and publish allowlisted fields
+  block:
+    # pipefail retains cloud-init rc 1/2; head limits bytes and timeout owns the
+    # cloud-init process group. This is transport, not a shell JSON parser.
+    - name: CLOUD INIT - Collect private bounded status JSON
+      ansible.builtin.command:
+        argv:
+          - bash
+          - -o
+          - pipefail
+          - -c
+          - timeout --kill-after=1s 5s cloud-init status --format=json 2>/dev/null | head -c 65537
+      register: _r42_ci_status
+      changed_when: false
+      failed_when: false
+      ignore_unreachable: true
+      timeout: 8
+      no_log: true
+
+    - name: CLOUD INIT - Require an available bounded status response
+      ansible.builtin.assert:
+        that:
+          - _r42_ci_status.rc | default(-1) in [0, 1, 2]
+          - _r42_ci_status.stdout | default('') | length <= 65536
+      no_log: true
+
+    - name: CLOUD INIT - Parse private status in Ansible
+      ansible.builtin.set_fact:
+        _r42_ci_candidate: "{{ _r42_ci_status.stdout | from_json }}"
+      no_log: true
+
+    - name: CLOUD INIT - Validate types before selecting public fields
+      ansible.builtin.assert:
+        that:
+          - _r42_ci_candidate is mapping
+          - _r42_ci_candidate.extended_status | default(_r42_ci_candidate.status | default('')) in ['not started', 'running', 'done', 'error', 'error - done', 'error - running', 'degraded done', 'degraded running', 'disabled']
+          - _r42_ci_candidate.stage | default('unknown') in [none, 'unknown', 'init-local', 'init', 'modules-config', 'modules-final']
+          - (_r42_ci_candidate.errors | default([]) | type_debug) == 'list'
+          - _r42_ci_candidate.recoverable_errors | default({}) is mapping
+          - _r42_ci_candidate.recoverable_errors | default({}) | dict2items | map(attribute='value') | map('type_debug') | difference(['list']) | length == 0
+          - _r42_ci_candidate.errors | default([]) | length <= 65536
+          - _r42_ci_candidate.recoverable_errors | default({}) | dict2items | map(attribute='value') | map('length') | sum <= 65536
+      no_log: true
+
+    - name: CLOUD INIT - Retain only fixed status values and error counts
+      ansible.builtin.set_fact:
+        _r42_ci_diagnostic: >-
+          {{ _r42_ci_diagnostic | combine({
+            'diagnostic': 'available',
+            'status': _r42_ci_candidate.extended_status | default(_r42_ci_candidate.status),
+            'stage': ('none' if _r42_ci_candidate.stage is defined and _r42_ci_candidate.stage is none else _r42_ci_candidate.stage | default('unknown')),
+            'errors': (_r42_ci_candidate.errors | length if _r42_ci_candidate.errors is defined else none),
+            'recoverable_errors': (_r42_ci_candidate.recoverable_errors | dict2items | map(attribute='value') | map('length') | sum if _r42_ci_candidate.recoverable_errors is defined else none)
+          }) }}
+      no_log: true
+  rescue:
+    - name: CLOUD INIT - Status observation unavailable
+      ansible.builtin.debug:
+        msg: Cloud-init status is unavailable; the original boot wait remains failed.
+
+- name: CLOUD INIT - Observe package programs only within a verified final-stage unit
+  ansible.builtin.include_tasks: "{{ role_path }}/tasks/wait/cloudinit/package_observation.yml"
+  when:
+    - _r42_ci_diagnostic.diagnostic == 'available'
+    - _r42_ci_diagnostic.stage == 'modules-final'

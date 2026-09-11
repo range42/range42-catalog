@@ -1,123 +1,124 @@
-# Cloud-init boot wait failure diagnostics
+# Cloud-init diagnostics as Ansible tasks
 
-This extension starts from catalog
-`0a9448d4f7daf8e9ba27e5c916237ffbe6ccf6f9`, which introduced the safe status
-summary. Shared attempt `505eb94ae7e14839` confirmed that summary works: the
-second guest reached package configuration but exceeded the existing boot
-wait. A later process probe lost its SSH channel after terminal cleanup.
-These observations do not establish the cause of the timeout.
+`tasks/wait/cloudinit/is_boot_finished.yml` retains the existing 10-second delay
+and 500-second `boot-finished` wait. A failed wait includes `diagnostic.yml`,
+prints an ordinary structured `ansible.builtin.debug` report, then fails with
+`CLOUD_INIT_BOOT_WAIT_FAILED`. The final task name retains sanitized status/stage
+for the existing backend/UI event bridge. Diagnostics never turn a failed boot
+wait into success, including when cloud-init finishes during observation.
 
-`tasks/wait/cloudinit/is_boot_finished.yml` keeps the existing 10-second delay
-and 500-second limit. On failure, its rescue runs the guest-side
-`files/cloudinit_boot_diagnostic.py` while the attempt's SSH connection and
-credentials still exist. The helper first invokes
-`cloud-init status --format=json` without `--wait`, preserving its full
-five-second collection budget and 64 KiB stdout limit. It samples package
-processes only if time remains within that same deadline. Existing bounded
-child cleanup can take another second; the Ansible action retains its
-15-second timeout. These are diagnostic bounds, not additional boot wait.
+The custom Python collector and its Python unit fixtures have been removed.
+Parsing, validation, classification, reporting and failure handling now live in
+readable YAML tasks using standard Ansible modules and filters. The only shell
+pipelines run a native command under `timeout` and cap its output with `head`;
+they contain no JSON parser, ancestry traversal or classification program.
 
-The helper returns only allowlisted status/stage, error counts and
-availability, plus these package observations:
+## Status report
 
-- `package_phase`: `apt`, `dpkg`, `initramfs`, `grub`, `none` or `unknown`.
-- `package_state`: `running`, `sleeping`, `blocked`, `stopped`, `zombie`,
-  `mixed`, `none` or `unknown`.
-- `package_cpu_activity`: `observed`, `not_observed` or `unavailable`.
-- `package_sample_ms`: the bounded integer observation interval from before
-  the first scan until after the second scan, or null. Individual process
-  reads occur within this interval; it is not an exact per-process duration.
+`cloud-init status --format=json` runs without `--wait`, under a five-second
+native deadline plus a one-second forced-stop grace. Its process group is
+bounded by GNU `timeout`; stdout is capped at 65,537 bytes, and responses above
+65,536 bytes are refused. The Ansible action also has an eight-second timeout.
+Exit codes 0, 1 and 2 can carry valid status JSON. Missing commands, malformed or
+oversized output, invalid field types, timeout and unreachable transports result
+in unavailable status.
 
-Package collection reads only Linux `/proc/<pid>/stat`, twice approximately
-100 ms apart. Fixed command-name classifications account for Linux's
-15-byte visible `comm` limit. Known package processes must descend from
-exactly one identifiable cloud-init worker; their children contribute CPU
-counters without exposing their names. Unrelated package processes are
-excluded. A more specific observed phase takes precedence (`grub`, then
-`initramfs`, `dpkg`, `apt`); it is a process classification, not a cloud-init
-module or exact apt operation.
+The collection, parsing and validation tasks use `no_log`. Only allowlisted
+status/stage values and bounded error counts reach the report. Error text,
+datasource details, stderr, user data and arbitrary JSON fields are excluded.
+Missing counts remain unknown; completed module records do not establish an
+active stage. A new invocation resets prior candidates and observations.
 
-State and CPU activity aggregate the entire scoped package tree, including
-unlabelled descendants. An `observed` result does not establish that the
-named phase itself advanced; another process in that tree may have consumed
-the CPU time. The public failure message states this distinction.
+## Package observation
 
-The helper bounds enumeration to 4096 directory entries, each stat read to
-4096 bytes, and ancestry to 64 processes. Missing, malformed or inaccessible
-records, ambiguous ancestry, changed membership, PID/start-time changes,
-changed parents, regressing counters or an exhausted deadline make package
-fields unavailable. Valid cloud-init status remains available independently.
-There is no persistent sampling service or progress history. CPU movement
-is an observation only; no movement in this short interval does not prove a
-stall, and movement does not prove successful progress or health. Process
-names can be changed by guest processes and are not an integrity guarantee.
+When valid status identifies `modules-final`, `package_observation.yml` inspects
+one executing `cloud-final.service` invocation on Linux with systemd/cgroup v2:
 
-Raw JSON, error strings, datasource details, stderr, logs, package names,
-user data, command lines and environment values are never returned to
-Ansible. The helper does not read argv, environment or package/log contents.
-The collection task also uses `no_log`; public fields are validated again
-before use in the final task name/message. Unknown data is never inferred
-from completed stage records or reported as zero.
+1. Require unit state `activating` (the executing oneshot case) or `active`, a
+   nonzero MainPID, InvocationID and the standard
+   `/system.slice/cloud-final.service` cgroup.
+2. Refuse child cgroups: direct `cgroup.procs` membership cannot prove their scope.
+3. Read at most 16 KiB/1,024 unique PIDs and require the main PID in that list.
+4. Use `ps` for only PID, program name (`comm`), state and cgroup fields. Require
+   every listed process, with no extra/missing/duplicate rows, in the exact unit
+   cgroup, and the main process program must be `cloud-init`. This does not read
+   command-line arguments or environment variables.
+5. Recheck membership, invocation/active state and child-cgroup absence before
+   publishing any observation.
 
-Valid status JSON from exit codes 0, 1 and 2 is accepted. Missing CLI,
-incompatible output, malformed/oversized data, command timeout or lost SSH
-produce an unavailable status. A fresh invocation clears all candidate
-facts. The final task always fails with `CLOUD_INIT_BOOT_WAIT_FAILED`;
-neither unavailable diagnostics nor newly completed cloud-init status
-converts the original wait failure to success.
+Each native unit/membership/process command has a three-second deadline plus
+one-second kill grace and a six-second Ansible action timeout. Process output is
+capped at 65,536 bytes. There are seven bounded commands on this path; diagnostics
+are additional observations after the unchanged failed boot wait, not a new
+package wait. Ordinary SSH/module scheduling overhead is not included in native
+command deadlines.
 
-The existing backend saves failed task names/results and drains its event
-watcher before terminal cleanup. The UI activity bridge uses `task_name`,
-which now includes the sanitized status/stage and package phase/CPU activity.
-No backend, UI, upgrade-policy or cleanup-policy change is required. A
-release must pin this catalog revision and regenerate its installed
-dependency profile; bundle resolutions must match that profile. This
-worktree does not activate a release.
+The result is explicitly **one-shot program observation**, not CPU progress,
+package health or a stall diagnosis. Recognized phases are apt, dpkg, initramfs
+and grub; the most specific recognized phase is shown. State describes the
+recognized package programs observed in that scope. `none` means no recognized
+package program in that complete direct cgroup snapshot. Unknown programs are
+never printed or relabelled as package progress. Child cgroups, unsupported
+systems, unreadable data and changing/ambiguous scope produce unavailable package
+fields without discarding valid cloud-init status. Newer installations whose
+`cloud-final.service` is a forwarding wrapper for another service do not meet
+this scope contract; they report unavailable package data instead of inferring
+activity from the wrapper.
 
-Limits: the unchanged success path still accepts an existing `boot-finished`
-file. Diagnostics cannot repair packages or establish a network/GPG cause.
-Python 3 and working SSH remain prerequisites; lost SSH preserves the
-original failure with unavailable observations. Live acceptance of this
-extension remains outstanding.
+The prior CPU-delta sampler and `package_cpu_activity`/`package_sample_ms` fields
+are removed. There is no inferred `observed` or `not_observed` CPU result. These
+reads are not an atomic kernel snapshot; transient changes conservatively refuse
+when detected, and no claim about sustained progress is made. Program names can
+be changed by guest processes and are not a guest integrity guarantee.
 
-Run the focused checks from the catalog root:
+## Direct YAML tests
+
+Run from the catalog root with `ansible-playbook` available on PATH:
 
 ```sh
-python3 -m pytest -q 02_ansible_layer/admin/roles/ansible.utils/tests/test_cloudinit_diagnostic.py 02_ansible_layer/admin/roles/ansible.utils/tests/test_cloudinit_package_progress.py 02_ansible_layer/admin/roles/ansible.utils/tests/test_cloudinit_wait_ansible.py
+ansible-playbook -i localhost, \
+  02_ansible_layer/admin/roles/ansible.utils/tests/cloudinit/run.yml
 ```
 
-Tests use private cloud-init executables, synthetic proc records and local
-Ansible transports; they never read host cloud-init data or contact guests.
-They cover status availability, error counts, redaction canaries, byte/time
-bounds, package configuration, truncated names, child CPU changes, stale or
-ambiguous process identity, enumeration limits, exhausted remaining budget,
-malformed public fields, lost SSH, stale facts and failure propagation.
+`tests/cloudinit/run.yml` and `case.yml` prepare private local fixtures and invoke
+a standalone inner playbook. They substitute only executable/file/wait transport
+boundaries in a temporary role copy, never host or guest cloud-init state. The
+production 500s/10s policy is asserted before fixture-only waits of zero seconds
+for failure cases and one second for the pre-existing success marker.
+The inner playbook fails normally; the outer test asserts its nonzero exit and
+that later tasks did not run. Callback stdout/stderr remain private and are
+checked for synthetic redaction canaries before reporting a named PASS result.
 
-Primary contracts: [cloud-init CLI status](https://docs.cloud-init.io/en/latest/reference/cli.html#status)
-documents JSON and exit status 2 for recoverable errors;
-[reported status](https://docs.cloud-init.io/en/24.1/howto/status.html)
-defines status/stage output;
-[exported errors](https://docs.cloud-init.io/en/24.1/explanation/exported_errors.html)
-describes completed-stage records, which are not an active-stage signal.
+The 17 fixture cases cover executing oneshot and active services, forwarding
+wrappers, lost SSH transport, normal/degraded/error JSON, malformed and oversized
+status, missing CLI, native timeout, stale prior facts, inactive units, child
+cgroups, foreign processes, changed membership, no recognized package program
+and a successful boot that skips diagnostics. Available status cases also assert
+bounded error counts; every failure case checks the normal report, sanitized
+failure task, nonzero inner exit, skipped continuation and redaction canary.
 
-Isolated checkpoint: worktree
-`/tmp/r42-cloudinit-package-diagnostics-next-wave`, branch
-`fix/cloudinit-package-progress-20260911`. All 41 focused tests passed in
-17.15 seconds (15 status, 19 package, seven real local Ansible cases), after
-red regressions for the new behavior. Scoped Ruff and `git diff --check`
-passed. Log: `/tmp/r42-cloudinit-package-final.log`. The existing pytest
-asyncio default-loop configuration warning remains. No broad suite or live
-checks were run. Remaining work is independent source review and, only in a
-subsequently authorized matching release, live acceptance of the new fields.
+For a private failing-fixture record, pass
+`-e cloudinit_test_output=/absolute/private/result.json`; the optional file is
+mode0600. This contains synthetic fixture data and should not be published as
+production evidence. Fixture directories are removed by `always` cleanup.
 
-The [Linux proc documentation](https://www.kernel.org/doc/html/v6.6/filesystems/proc.html)
-defines the `stat` parent PID, user/system CPU counters and process start-time
-fields used to scope and compare these observations.
+Validation on 2026-09-11 with ansible-core 2.19.1: all 17 YAML cases passed
+(actual `ansible-playbook` exit 0; outer recap `failed=0`). The 16 failure cases
+kept their inner nonzero exits; the success case skipped diagnostics. Evidence:
+`/tmp/r42-cloudinit-yaml-final.log` (session40457). The executing-oneshot and
+forwarding-wrapper regressions were reproduced before their fixes; their
+three-case rerun also passed (`/tmp/r42-cloudinit-yaml-review-green.log`).
 
-Independent review follow-up: a deterministic slow-first-scan regression
-reproduced an understated interval (99 ms instead of 350 ms), and the local
-Ansible regression required the whole-tree interpretation in public failure
-text. Both failed before the corrections. All 42 focused cases then passed
-in 16.78 seconds; scoped Ruff and diff checks passed. Evidence:
-`/tmp/r42-cloudinit-package-review-red.log` and
-`/tmp/r42-cloudinit-package-review-green.log`. No live checks were added.
+Source-only checkpoint: `/tmp/r42-cloudinit-ansible-next-wave`, based on catalog
+`0b170a7`. No live guest, deployment, provider or runtime profile was changed.
+The former Python collector's historical acceptance applies only to that former
+implementation. This YAML replacement needs review and a separately authorized
+matching catalog/runtime release before any live acceptance claim.
+
+## Primary contracts
+
+- [Ansible command module](https://docs.ansible.com/projects/ansible/latest/collections/ansible/builtin/command_module.html): argv and registered command results.
+- [Cloud-init status CLI](https://docs.cloud-init.io/en/latest/reference/cli.html#status): JSON status and recoverable-error exit code 2.
+- [Cloud-init 24.1 cloud-final unit](https://github.com/canonical/cloud-init/blob/24.1/systemd/cloud-final.service.tmpl): the classic executing oneshot service.
+- [Linux cgroup v2](https://www.kernel.org/doc/html/latest/admin-guide/cgroup-v2.html): direct process membership and nested group semantics.
+- [GNU timeout](https://www.gnu.org/software/coreutils/manual/html_node/timeout-invocation.html): command deadlines and forced termination.

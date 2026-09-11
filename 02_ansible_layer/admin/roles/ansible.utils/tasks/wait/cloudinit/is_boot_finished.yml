@@ -1,8 +1,4 @@
 ---
-##
-## ISSUE - 8
-##
-#
 - block:
     - name: CLOUD INIT - WAIT END OF SETUP
       ansible.builtin.wait_for:
@@ -11,63 +7,14 @@
         delay: 10
         timeout: 500
   rescue:
-    - name: CLOUD INIT - PREPARE UNAVAILABLE DIAGNOSTIC
-      ansible.builtin.set_fact:
-        _r42_ci_candidate: null
-        _r42_ci_diagnostic:
-          diagnostic: unavailable
-          status: unknown
-          stage: unknown
-          errors: null
-          recoverable_errors: null
-          package_phase: unknown
-          package_state: unknown
-          package_cpu_activity: unavailable
-          package_sample_ms: null
-      no_log: true
+    - name: CLOUD INIT - Observe current status with native Ansible tasks
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/wait/cloudinit/diagnostic.yml"
 
-    - block:
-        - name: CLOUD INIT - COLLECT BOUNDED PRIVATE STATUS
-          ansible.builtin.command:
-            argv: [python3, -c, "{{ lookup('file', role_path ~ '/files/cloudinit_boot_diagnostic.py') }}"]
-          register: _r42_ci_status
-          changed_when: false
-          failed_when: false
-          ignore_unreachable: true
-          timeout: 15
-          no_log: true
+    - name: "CLOUD INIT - STATUS REPORT - {{ _r42_ci_diagnostic.status }} / {{ _r42_ci_diagnostic.stage }}"
+      ansible.builtin.debug:
+        msg: "{{ _r42_ci_diagnostic }}"
 
-        - name: CLOUD INIT - READ THE PUBLIC SUMMARY
-          ansible.builtin.set_fact:
-            _r42_ci_candidate: "{{ _r42_ci_status.stdout | from_json }}"
-          when: (_r42_ci_status.rc | default(-1)) == 0
-          no_log: true
-
-        - name: CLOUD INIT - VALIDATE PUBLIC SUMMARY FIELDS
-          ansible.builtin.assert:
-            that:
-              - _r42_ci_candidate is defined and _r42_ci_candidate is mapping
-              - _r42_ci_candidate.diagnostic in ['available', 'unavailable']
-              - _r42_ci_candidate.status in ['unknown', 'not started', 'running', 'done', 'error', 'error - done', 'error - running', 'degraded done', 'degraded running', 'disabled']
-              - _r42_ci_candidate.stage in ['unknown', 'none', 'init-local', 'init', 'modules-config', 'modules-final']
-              - _r42_ci_candidate.errors is none or ((_r42_ci_candidate.errors | type_debug) == 'int' and 0 <= _r42_ci_candidate.errors <= 65536)
-              - _r42_ci_candidate.recoverable_errors is none or ((_r42_ci_candidate.recoverable_errors | type_debug) == 'int' and 0 <= _r42_ci_candidate.recoverable_errors <= 65536)
-              - _r42_ci_candidate.package_phase in ['unknown', 'none', 'apt', 'dpkg', 'initramfs', 'grub']
-              - _r42_ci_candidate.package_state in ['unknown', 'none', 'running', 'sleeping', 'blocked', 'stopped', 'zombie', 'mixed']
-              - _r42_ci_candidate.package_cpu_activity in ['unavailable', 'observed', 'not_observed']
-              - _r42_ci_candidate.package_sample_ms is none or ((_r42_ci_candidate.package_sample_ms | type_debug) == 'int' and 0 <= _r42_ci_candidate.package_sample_ms <= 5000)
-          no_log: true
-
-        - name: CLOUD INIT - RETAIN THE VALIDATED PUBLIC SUMMARY
-          ansible.builtin.set_fact:
-            _r42_ci_diagnostic: "{{ _r42_ci_candidate }}"
-          no_log: true
-      rescue:
-        - name: CLOUD INIT - STATUS UNAVAILABLE
-          ansible.builtin.debug:
-            msg: Cloud-init status could not be read; the original boot wait remains failed.
-
-    - name: "CLOUD INIT - BOOT WAIT FAILED - {{ _r42_ci_diagnostic.status }} / {{ _r42_ci_diagnostic.stage }} - packages={{ _r42_ci_diagnostic.package_phase }}/{{ _r42_ci_diagnostic.package_cpu_activity }}"
+    - name: "CLOUD INIT - BOOT WAIT FAILED - {{ _r42_ci_diagnostic.status }} / {{ _r42_ci_diagnostic.stage }} - packages={{ _r42_ci_diagnostic.package_phase }}/{{ _r42_ci_diagnostic.package_state }}"
       ansible.builtin.fail:
         msg: >-
           CLOUD_INIT_BOOT_WAIT_FAILED: boot-finished wait failed (configured limit 500s).
@@ -75,10 +22,9 @@
           status={{ _r42_ci_diagnostic.status }}; stage={{ _r42_ci_diagnostic.stage }};
           errors={{ _r42_ci_diagnostic.errors if _r42_ci_diagnostic.errors is not none else 'unknown' }};
           recoverable_errors={{ _r42_ci_diagnostic.recoverable_errors if _r42_ci_diagnostic.recoverable_errors is not none else 'unknown' }}.
+          package_observation={{ _r42_ci_diagnostic.package_observation }};
           package_phase={{ _r42_ci_diagnostic.package_phase }};
-          package_state={{ _r42_ci_diagnostic.package_state }};
-          package_cpu_activity={{ _r42_ci_diagnostic.package_cpu_activity }};
-          package_sample_ms={{ _r42_ci_diagnostic.package_sample_ms if _r42_ci_diagnostic.package_sample_ms is not none else 'unknown' }}.
-          Phase identifies a recognized program. State and CPU activity describe the whole scoped package tree
-          and do not prove that the named phase advanced. CPU activity is a short observation, not a health or stall diagnosis.
+          package_state={{ _r42_ci_diagnostic.package_state }}.
+          Package fields are a one-shot observation of recognized programs in the verified active
+          cloud-final cgroup, not progress, successful completion or a stall diagnosis.
           Guest initialization may still be running. Inspect the guest before retrying.
