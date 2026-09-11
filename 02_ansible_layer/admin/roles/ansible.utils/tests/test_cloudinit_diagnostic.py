@@ -49,7 +49,33 @@ def invoke(tmp_path, document=None, *, rc=0, raw=None, sleep=False, missing=Fals
     )
     assert result.returncode == 0 and result.stderr == ""
     assert SECRET not in result.stdout
-    return json.loads(result.stdout), time.monotonic() - before
+    document = json.loads(result.stdout)
+    assert document.pop("package_phase") in {
+        "unknown",
+        "none",
+        "apt",
+        "dpkg",
+        "initramfs",
+        "grub",
+    }
+    assert document.pop("package_state") in {
+        "unknown",
+        "none",
+        "running",
+        "sleeping",
+        "blocked",
+        "stopped",
+        "zombie",
+        "mixed",
+    }
+    assert document.pop("package_cpu_activity") in {
+        "unavailable",
+        "observed",
+        "not_observed",
+    }
+    interval = document.pop("package_sample_ms")
+    assert interval is None or type(interval) is int and 0 <= interval <= 5000
+    return document, time.monotonic() - before
 
 
 @pytest.mark.parametrize(

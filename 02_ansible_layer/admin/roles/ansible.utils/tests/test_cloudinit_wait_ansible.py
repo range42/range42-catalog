@@ -15,9 +15,32 @@ ROLE = Path(__file__).resolve().parents[1]
 SECRET = "private-userdata-token-do-not-export"
 
 
-def run_wait(tmp_path, *, failure=True, lost_ssh=False, malformed=False, stale=False):
+def run_wait(
+    tmp_path,
+    *,
+    failure=True,
+    lost_ssh=False,
+    malformed=False,
+    stale=False,
+    package=False,
+    unsafe_package=False,
+):
     role = tmp_path / "roles/ansible.utils"
     shutil.copytree(ROLE, role)
+    from test_cloudinit_package_progress import tree
+
+    proc = tmp_path / "proc"
+    proc.mkdir()
+    if package:
+        tree(proc)
+    helper = role / "files/cloudinit_boot_diagnostic.py"
+    source = helper.read_text().replace('Path("/proc")', f"Path({str(proc)!r})")
+    if unsafe_package:
+        source = source.replace(
+            "print(json.dumps(result, separators=",
+            f'result["package_phase"] = {SECRET!r}\n    print(json.dumps(result, separators=',
+        )
+    helper.write_text(source)
     taskfile = role / "tasks/wait/cloudinit/is_boot_finished.yml"
     original = yaml.safe_load(taskfile.read_text())
 
@@ -81,6 +104,10 @@ def run_wait(tmp_path, *, failure=True, lost_ssh=False, malformed=False, stale=F
                                     "stage": "none",
                                     "errors": 0,
                                     "recoverable_errors": 0,
+                                    "package_phase": "grub",
+                                    "package_state": "running",
+                                    "package_cpu_activity": "observed",
+                                    "package_sample_ms": 100,
                                 }
                             }
                             if stale
@@ -140,3 +167,22 @@ def test_lost_connection_never_reuses_a_previous_status_candidate(tmp_path):
     assert result.returncode != 0
     assert "diagnostic=unavailable" in result.stdout
     assert "unknown / unknown" in result.stdout
+    assert "packages=unknown/unavailable" in result.stdout
+
+
+def test_configuration_timeout_reports_safe_package_observation_and_stays_failed(
+    tmp_path,
+):
+    result = run_wait(tmp_path, package=True)
+    assert result.returncode != 0
+    assert "CLOUD_INIT_BOOT_WAIT_FAILED" in result.stdout
+    assert "packages=dpkg/not_observed" in result.stdout
+    assert "package_state=sleeping" in result.stdout
+    assert "MUST_NOT_CONTINUE" not in result.stdout
+
+
+def test_malformed_package_field_never_reaches_public_failure_task_name(tmp_path):
+    result = run_wait(tmp_path, unsafe_package=True)
+    assert result.returncode != 0
+    assert "packages=unknown/unavailable" in result.stdout
+    assert "MUST_NOT_CONTINUE" not in result.stdout
