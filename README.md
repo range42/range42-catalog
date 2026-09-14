@@ -57,7 +57,7 @@ Path: `05_topology_layer/box_templates/<category>.clone.<target>/v1.0.0/`
 
 The native `range42.yaml` blueprint can create a project or append a machine and its network link to an existing project in deployer-ui. `systems.clone.linux_cloudinit` is a portable starting point for attaching catalog roles, files, scripts and supported Compose workloads.
 
-Blueprints describe resources and operating-system requirements. Select an existing cloud-init template on the target Proxmox host, review its storage and SSH user, and assign SDN settings, VMIDs and guest addresses before deployment. The public blueprint has no installation-specific template VMID. Clones currently inherit template storage. Docker workloads additionally require Docker and Compose in the selected guest.
+Blueprints describe resources and operating-system requirements. Select an existing cloud-init template on the target Proxmox host, review its storage and SSH user, and assign SDN settings, VMIDs and guest addresses before deployment. The public blueprint has no installation-specific template VMID. Review the clone destination in Scenario: blank inherits template storage, while a selected pool receives new full clones after backend capacity and permission checks. This does not move disks of existing guests. Docker workloads additionally require Docker and Compose in the selected guest.
 
 This native manifest uses the versioned box-template layout introduced by `feat/topology-layer-templates`. It does not resolve the older `template.yml` symbolic references, build images or modify the SDN implementation. New machine drafts in the UI preview their files before publication to chosen Git destinations.
 
