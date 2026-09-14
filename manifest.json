@@ -9,6 +9,17 @@
     "url": "https://github.com/range42/range42-catalog"
   },
   "layers": {
+    "topology": {
+      "path": "05_topology_layer",
+      "description": "Versioned reusable topology blueprints",
+      "categories": {
+        "box_templates": {
+          "path": "box_templates",
+          "layout": "<category>.clone.<target>/v<MAJOR>.<MINOR>.<PATCH>/range42.yaml",
+          "description": "Native UI machine blueprints with resources and local template selection"
+        }
+      }
+    },
     "ansible": {
       "path": "02_ansible_layer",
       "description": "Ansible roles that configure systems for vulnerable or misconfigured environments",
