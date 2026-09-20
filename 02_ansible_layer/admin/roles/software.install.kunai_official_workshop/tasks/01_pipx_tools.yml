@@ -3,10 +3,16 @@
 # kunai-iocgen, misp-to-kunai, kunai-to-misp, kunai-graph. Installed as the
 # operator user so the tools land in ~<user>/.local/bin.
 
+# Driven by the pipx command, not by the community.general.pipx module : that
+# module refuses any pipx below 1.7.0, and the pipx that apt installs on
+# Ubuntu 24.04 is 1.4.3. The distribution pipx does the job. The `creates` guard
+# keeps the task idempotent with the semantics the module had with state=present :
+# install when absent, no reinstall on a version change. kunai-search is one of
+# the six console scripts the package ships.
 - name: kunai - install pykunai via pipx (as the operator user)
-  community.general.pipx:
-    name: "pykunai=={{ kunai_pykunai_version }}"
-    state: present
+  ansible.builtin.command:
+    cmd: "pipx install pykunai=={{ kunai_pykunai_version }}"
+    creates: "/home/{{ kunai_operator_user }}/.local/bin/kunai-search"
   become: true
   become_user: "{{ kunai_operator_user }}"
 
