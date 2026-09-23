@@ -1,0 +1,30 @@
+---
+# m2k-config.toml : persistent copy owned by the operator + a /tmp copy (the path
+# the workshop commands expect, referenced as $CONFIG). The public CIRCL OSINT
+# feed is always on ; the local [misp] block is enabled only when the local MISP tier is wired
+# (KUNAI_MISP_LOCAL_ENABLE with url + reader key).
+
+- name: kunai - ensure the operator kunai-project directory exists
+  ansible.builtin.file:
+    path: "/home/{{ kunai_operator_user }}/kunai-project"
+    state: directory
+    owner: "{{ kunai_operator_user }}"
+    group: "{{ kunai_operator_user }}"
+    mode: "0755"
+
+- name: kunai - deploy m2k-config.toml (persistent, operator-owned)
+  ansible.builtin.template:
+    src: m2k-config.toml.j2
+    dest: "/home/{{ kunai_operator_user }}/kunai-project/m2k-config.toml"
+    owner: "{{ kunai_operator_user }}"
+    group: "{{ kunai_operator_user }}"
+    mode: "0644"
+
+- name: kunai - seed the /tmp copy used by the exercises
+  ansible.builtin.copy:
+    src: "/home/{{ kunai_operator_user }}/kunai-project/m2k-config.toml"
+    dest: /tmp/m2k-config.toml
+    owner: "{{ kunai_operator_user }}"
+    group: "{{ kunai_operator_user }}"
+    mode: "0644"
+    remote_src: true

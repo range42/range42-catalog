@@ -1,0 +1,19 @@
+---
+galaxy_info:
+  role_name: systems_configure_os_auto_updates
+  namespace: range42
+  author: range42
+  description: Disable or enable the OS background auto-updater (apt-daily + unattended-upgrades on Debian/Ubuntu, dnf-automatic + PackageKit on Fedora) so it never holds the package lock during provisioning.
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - noble
+    - name: Debian
+      versions:
+        - all
+    - name: Fedora
+      versions:
+        - all
+dependencies: []

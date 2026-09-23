@@ -3,12 +3,24 @@
 #
 
 #
+# CERT-GEN — minimal Alpine with bash + openssl to generate self-signed certs.
+# Runs as a Docker init container; the rocketchat runtime image is not polluted.
+#
+FROM alpine:3 AS cert-gen
+
+RUN apk add --no-cache bash openssl
+
+COPY provisioning/cert-gen.sh /provisioning/cert-gen.sh
+RUN chmod +x /provisioning/cert-gen.sh
+
+ENTRYPOINT ["/provisioning/cert-gen.sh"]
+
+#
 # BUILDER — node:20-alpine (same base as official Rocket.Chat Dockerfile)
 #
 FROM node:20-alpine AS builder
 
-RUN apk add --no-cache jq && \
-    wget -q https://github.com/mikefarah/yq/releases/download/v4.44.1/yq_linux_amd64 \
+RUN wget -q https://github.com/mikefarah/yq/releases/download/v4.44.1/yq_linux_amd64 \
       -O /usr/bin/yq && chmod +x /usr/bin/yq
 
 COPY provisioning/ /provisioning/
@@ -21,8 +33,9 @@ FROM rocketchat/rocket.chat:latest AS runtime
 
 USER root
 
+RUN apk add --no-cache curl jq
+
 COPY --from=builder /usr/bin/yq    /usr/bin/yq
-COPY --from=builder /usr/bin/jq    /usr/bin/jq
 COPY --from=builder /provisioning/ /provisioning/
 
 ENTRYPOINT ["/provisioning/init.sh"]

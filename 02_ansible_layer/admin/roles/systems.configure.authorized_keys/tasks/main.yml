@@ -1,0 +1,17 @@
+---
+# systems.configure.authorized_keys
+# Manage one public key in ~<TARGET_USER>/.ssh/authorized_keys. Idempotent.
+
+- name: authorized_keys - assert required vars
+  ansible.builtin.assert:
+    that:
+      - TARGET_USER | length > 0
+      - AUTHORIZED_KEY | length > 0
+    fail_msg: "TARGET_USER and AUTHORIZED_KEY are required"
+
+- name: authorized_keys - manage the key
+  ansible.posix.authorized_key:
+    user: "{{ TARGET_USER }}"
+    key: "{{ AUTHORIZED_KEY }}"
+    state: "{{ AUTHORIZED_KEY_STATE | default('present') }}"
+    exclusive: "{{ AUTHORIZED_KEY_EXCLUSIVE | default(false) | bool }}"

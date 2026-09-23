@@ -1,0 +1,229 @@
+---
+# SECURITY: allow_local_remote_servers=true disables NC's SSRF guard globally (LocalServerException).
+# This is intentional for Range42: Gitea lives on an RFC1918 address and NC has no per-host allowlist.
+# Acceptable here because NC is a training tool with no untrusted user-submitted URLs (no link previews,
+# no external calendar subs). Do NOT copy this setting to a production NC instance.
+- name: allow Nextcloud to reach local/private IP addresses (required for Gitea OIDC on RFC1918 IP)
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - config:system:set
+      - allow_local_remote_servers
+      - "--value=true"
+      - "--type=boolean"
+  become: true
+  changed_when: true
+
+- name: add ansible_host to Nextcloud trusted_domains
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - config:system:set
+      - trusted_domains
+      - "1"
+      - "--value={{ nextcloud_public_ip }}:{{ nextcloud_http_port }}"
+  become: true
+  changed_when: true
+
+- name: set Nextcloud overwriteprotocol to https
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - config:system:set
+      - overwriteprotocol
+      - "--value=https"
+  become: true
+  changed_when: true
+
+# trusted_proxies must contain ONLY the Docker bridge range (nginx's network).
+# Adding 192.168.0.0/16 (browser clients) causes getRemoteAddress() to walk the X-Forwarded-For
+# chain past the browser IP — which is also "trusted" — and fall back to nginx's Docker IP
+# (172.22.x.x). overwritecondaddr then sees a Docker IP for BOTH browser and Collabora requests,
+# making it unable to distinguish them → overwriteprotocol=https suppressed for browsers →
+# OIDC isSecure() check fails with "You must access Nextcloud with HTTPS to use OpenID Connect."
+- name: reset Nextcloud trusted_proxies to Docker bridge only
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - config:system:delete
+      - trusted_proxies
+  become: true
+  changed_when: true
+
+- name: set Nextcloud trusted_proxies — Docker bridge only (nginx at 172.16.0.0/12)
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - config:system:set
+      - trusted_proxies
+      - "0"
+      - "--value=172.16.0.0/12"
+  become: true
+  changed_when: true
+
+# overwritecondaddr limits when overwriteprotocol=https applies. Without it, Nextcloud generates
+# https:// URLs for ALL requests — including Collabora's internal Docker HTTP calls — making preset
+# template URLs (https://nextcloud/...) unreachable because the nextcloud container has no TLS
+# listener on port 443. With trusted_proxies narrowed to 172.16.0.0/12, getRemoteAddress()
+# correctly returns the browser's lab IP (192.168.x.x) for requests via nginx, and Collabora's
+# Docker IP for internal WOPI calls — so the regex can distinguish the two.
+# Regex: matches IPs that do NOT start with 172.16–31.x (Docker bridge range).
+# Browser via nginx: getRemoteAddress() → 192.168.x.x → matches → overwriteprotocol=https ✓
+# Collabora internal: getRemoteAddress() → 172.22.x.x → no match → http:// URLs generated ✓
+- name: set Nextcloud overwritecondaddr (restrict protocol override to non-Docker clients)
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - config:system:set
+      - overwritecondaddr
+      - "--value=^(?!172\\.(1[6-9]|2[0-9]|3[0-1])\\.)"
+  become: true
+  changed_when: true
+
+- name: enable Nextcloud user_oidc app
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - "app:enable"
+      - user_oidc
+  become: true
+  register: _occ_enable
+  changed_when: "'already enabled' not in _occ_enable.stdout | lower"
+
+- name: fetch Gitea self-signed TLS certificate from host
+  ansible.builtin.shell:
+    cmd: >-
+      openssl s_client -connect {{ ansible_default_ipv4.address }}:3000 -showcerts
+      </dev/null 2>/dev/null | openssl x509 -outform PEM
+  register: _gitea_cert
+  changed_when: false
+
+- name: write Gitea cert to temp file on host
+  ansible.builtin.copy:
+    content: "{{ _gitea_cert.stdout }}"
+    dest: /tmp/gitea-cert.pem
+    mode: '0644'
+
+- name: copy Gitea cert into Nextcloud container
+  ansible.builtin.command:
+    cmd: docker cp /tmp/gitea-cert.pem {{ nextcloud_container_name }}:/tmp/gitea-cert.pem
+  become: true
+  changed_when: true
+
+- name: import Gitea cert into Nextcloud trusted certificates
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - security:certificates:import
+      - /tmp/gitea-cert.pem
+  become: true
+  changed_when: true
+
+- name: install Gitea cert into Nextcloud OS trust store
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - root
+      - "{{ nextcloud_container_name }}"
+      - bash
+      - -c
+      - "cp /tmp/gitea-cert.pem /usr/local/share/ca-certificates/gitea.crt && update-ca-certificates"
+  become: true
+  changed_when: true
+
+- name: register Gitea as OIDC provider in Nextcloud
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - "user_oidc:provider"
+      - "{{ nextcloud_oidc_provider_name }}"
+      - "--clientid={{ nextcloud_gitea_client_id }}"
+      - "--clientsecret={{ nextcloud_gitea_client_secret }}"
+      - "--discoveryuri={{ nextcloud_gitea_base_url }}/.well-known/openid-configuration"
+      - "--mapping-uid=preferred_username"
+  become: true
+  changed_when: true
+  no_log: true
+
+- name: verify Gitea OIDC provider was registered in Nextcloud
+  ansible.builtin.command:
+    argv:
+      - docker
+      - exec
+      - --user
+      - www-data
+      - "{{ nextcloud_container_name }}"
+      - php
+      - occ
+      - --no-warnings
+      - user_oidc:provider
+      - "{{ nextcloud_oidc_provider_name }}"
+  become: true
+  register: _occ_provider_check
+  changed_when: false
+  failed_when: _occ_provider_check.rc != 0

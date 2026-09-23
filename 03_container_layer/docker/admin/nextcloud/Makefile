@@ -6,7 +6,7 @@ SERVICE       = nextcloud
 PROVISIONER   = nextcloud-provisioner
 DEBUG_SERVICE = $(SERVICE)-debug
 
-.PHONY: help up down stop build rebuild build-up rebuild-up reprovision logs-provisioner tokens term term-debug-build clean print
+.PHONY: help up down stop build rebuild build-up rebuild-up reprovision logs-provisioner tokens keys term term-debug-build clean print
 
 help:
 	@echo ""
@@ -26,6 +26,7 @@ help:
 	@echo "  make reprovision       - remove the provisioning stamp and restart provisioner"
 	@echo "  make logs-provisioner  - tail provisioner output"
 	@echo "  make tokens            - print generated app passwords"
+	@echo "  make keys              - print full credentials JSON (usernames + passwords)"
 	@echo ""
 	@echo "  make term              - open shell in $(SERVICE) container"
 	@echo "  make term-debug-build  - build and open shell in $(DEBUG_SERVICE)"
@@ -74,6 +75,9 @@ logs-provisioner:
 
 tokens:
 	docker run --rm -v nextcloud_nextcloud-tokens:/tokens alpine cat /tokens/tokens.txt
+
+keys:
+	docker run --rm -v nextcloud_nextcloud-tokens:/tokens alpine cat /tokens/nc-credentials.json
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 

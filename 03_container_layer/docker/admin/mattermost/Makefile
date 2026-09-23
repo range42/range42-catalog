@@ -6,7 +6,7 @@ SERVICE       = mattermost
 PROVISIONER   = mattermost-provisioner
 DEBUG_SERVICE = $(SERVICE)-debug
 
-.PHONY: help up down stop build rebuild build-up rebuild-up reprovision logs-provisioner tokens term term-debug-build clean print
+.PHONY: help up down stop build rebuild build-up rebuild-up reprovision logs-provisioner tokens keys term term-debug-build clean print
 
 help:
 	@echo ""
@@ -26,6 +26,7 @@ help:
 	@echo "  make reprovision       - remove the provisioning stamp and restart provisioner"
 	@echo "  make logs-provisioner  - tail provisioner output"
 	@echo "  make tokens            - print generated personal access tokens"
+	@echo "  make keys              - print full credentials JSON (usernames + passwords)"
 	@echo ""
 	@echo "  make term              - open shell in $(SERVICE) container"
 	@echo "  make term-debug-build  - build and open shell in $(DEBUG_SERVICE)"
@@ -66,14 +67,17 @@ rebuild-up:
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 
 reprovision:
-	docker run --rm -v mattermost-tokens:/tokens alpine rm -f /tokens/.provisioned
+	docker run --rm -v mattermost_mattermost-tokens:/tokens alpine rm -f /tokens/.provisioned
 	docker compose up $(PROVISIONER)
 
 logs-provisioner:
 	docker compose logs -f $(PROVISIONER)
 
 tokens:
-	docker run --rm -v mattermost-tokens:/tokens alpine cat /tokens/tokens.txt
+	docker run --rm -v mattermost_mattermost-tokens:/tokens alpine cat /tokens/tokens.txt
+
+keys:
+	docker run --rm -v mattermost_mattermost-tokens:/tokens alpine cat /tokens/mm-credentials.json
 
 # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
 

@@ -1,0 +1,36 @@
+---
+# systems.configure.ssh_keypair
+# Deploy a keypair into ~<TARGET_USER>/.ssh/ (private 0600, public 0644). Idempotent.
+
+- name: ssh_keypair - assert required vars
+  ansible.builtin.assert:
+    that:
+      - TARGET_USER | length > 0
+      - SSH_KEYPAIR_PRIVATE_SRC | length > 0
+    fail_msg: "TARGET_USER and SSH_KEYPAIR_PRIVATE_SRC are required"
+
+- name: ssh_keypair - ensure ~/.ssh exists
+  ansible.builtin.file:
+    path: "/home/{{ TARGET_USER }}/.ssh"
+    state: directory
+    owner: "{{ TARGET_USER }}"
+    group: "{{ TARGET_USER }}"
+    mode: "0700"
+
+- name: ssh_keypair - deploy private key
+  ansible.builtin.copy:
+    src: "{{ SSH_KEYPAIR_PRIVATE_SRC }}"
+    dest: "/home/{{ TARGET_USER }}/.ssh/{{ SSH_KEYPAIR_NAME }}"
+    owner: "{{ TARGET_USER }}"
+    group: "{{ TARGET_USER }}"
+    mode: "0600"
+  no_log: true
+
+- name: ssh_keypair - deploy public key
+  ansible.builtin.copy:
+    src: "{{ SSH_KEYPAIR_PUBLIC_SRC }}"
+    dest: "/home/{{ TARGET_USER }}/.ssh/{{ SSH_KEYPAIR_NAME }}.pub"
+    owner: "{{ TARGET_USER }}"
+    group: "{{ TARGET_USER }}"
+    mode: "0644"
+  when: SSH_KEYPAIR_PUBLIC_SRC | length > 0
