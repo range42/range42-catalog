@@ -1,71 +1,60 @@
-# ---
-#
-
-- name: configure - firewalld - is installed ?
-
+---
+- name: Install firewalld
   ansible.builtin.package:
     name: firewalld
     state: present
 
-#
-- name: configure - firewall - reload with reset rules
-  ansible.builtin.command:
-    cmd: "firewall-cmd --complete-reload"
-  become: yes
-
-#
-- name: configure - firewalld - enable
-  ansible.builtin.service:
-    name: firewalld
-    state: started
-    enabled: yes
-
-#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
-
-- name: configure - firewalld - set default input to drop
-  ansible.builtin.firewalld:
-    state: enabled
-    permanent: true
-    # immediate: yes
-    zone: public
-    target: DROP
-
-#
-- name: configure - firewalld - allow SSH
-  ansible.builtin.firewalld:
-    state: enabled
-    permanent: true
-    immediate: yes
+# Support both a running daemon and first activation without a window in which
+# its public zone rejects the management connection.
+- name: Preserve SSH before starting or restricting firewalld
+  ansible.posix.firewalld:
     service: ssh
     zone: public
+    state: enabled
+    permanent: true
+    immediate: true
+    offline: true
+  register: firewall_ssh
 
-#
-- name: configure - firewalld - all rules from playbook
-  ansible.builtin.firewalld:
+- name: Install the requested guest access rules
+  ansible.posix.firewalld:
+    zone: public
     permanent: true
     state: enabled
-    immediate: yes
-    rich_rule: >
-      {{
-        'rule family=ipv4 source address=' + item.ip + ' port port=' + (item.port | string) +
-        ' protocol=tcp accept' if item.ip != 'all' else
-        'rule family=ipv4 port port=' + (item.port | string) + ' protocol=tcp accept'
-      }}
-  with_items: "{{ firewall_rules }}"
+    immediate: true
+    offline: true
+    rich_rule: >-
+      rule family=ipv4{% if item.ip != 'all' %} source address={{ item.ip }}{% endif %}
+      port port={{ item.port }} protocol={{ item.protocol }} accept
+  loop: "{{ firewall_rules }}"
+  register: firewall_access
 
-#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+- name: Deny incoming traffic without an access rule
+  ansible.posix.firewalld:
+    zone: public
+    target: DROP
+    state: present
+    permanent: true
+    offline: true
+  register: firewall_policy
 
-- name: configure - firewalld - reload
-  ansible.builtin.command:
-    cmd: "firewall-cmd --reload"
-
-- name: configure - firewalld - enable again
+- name: Start firewalld with the completed permanent policy
   ansible.builtin.service:
     name: firewalld
     state: started
-    enabled: yes
+    enabled: true
 
-- name: configure - firewalld - show active rules
-  shell: "firewall-cmd --list-all --permanent"
+- name: Reload firewalld after a policy change
+  ansible.builtin.command:
+    cmd: firewall-cmd --reload
+  when: firewall_ssh.changed or firewall_access.changed or firewall_policy.changed
+
+- name: Read the active guest firewall rules
+  ansible.builtin.command:
+    cmd: firewall-cmd --list-all
+  changed_when: false
   register: out
-- debug: var=out.stdout_lines
+
+- name: Show the active guest firewall rules
+  ansible.builtin.debug:
+    var: out.stdout_lines

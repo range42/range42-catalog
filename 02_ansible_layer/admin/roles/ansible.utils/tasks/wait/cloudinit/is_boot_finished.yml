@@ -1,11 +1,30 @@
 ---
-##
-## ISSUE - 8
-##
-#
-- name: CLOUD INIT - WAIT END OF SETUP
-  wait_for:
-    path: /var/lib/cloud/instance/boot-finished
-    state: present
-    delay: 10 # WAIT FOR 10seconds
-    timeout: 500 # MAX 5 min
+- block:
+    - name: CLOUD INIT - WAIT END OF SETUP
+      ansible.builtin.wait_for:
+        path: /var/lib/cloud/instance/boot-finished
+        state: present
+        delay: 10
+        timeout: 500
+  rescue:
+    - name: CLOUD INIT - Observe current status with native Ansible tasks
+      ansible.builtin.include_tasks: "{{ role_path }}/tasks/wait/cloudinit/diagnostic.yml"
+
+    - name: "CLOUD INIT - STATUS REPORT - {{ _r42_ci_diagnostic.status }} / {{ _r42_ci_diagnostic.stage }}"
+      ansible.builtin.debug:
+        msg: "{{ _r42_ci_diagnostic }}"
+
+    - name: "CLOUD INIT - BOOT WAIT FAILED - {{ _r42_ci_diagnostic.status }} / {{ _r42_ci_diagnostic.stage }} - packages={{ _r42_ci_diagnostic.package_phase }}/{{ _r42_ci_diagnostic.package_state }}"
+      ansible.builtin.fail:
+        msg: >-
+          CLOUD_INIT_BOOT_WAIT_FAILED: boot-finished wait failed (configured limit 500s).
+          diagnostic={{ _r42_ci_diagnostic.diagnostic }};
+          status={{ _r42_ci_diagnostic.status }}; stage={{ _r42_ci_diagnostic.stage }};
+          errors={{ _r42_ci_diagnostic.errors if _r42_ci_diagnostic.errors is not none else 'unknown' }};
+          recoverable_errors={{ _r42_ci_diagnostic.recoverable_errors if _r42_ci_diagnostic.recoverable_errors is not none else 'unknown' }}.
+          package_observation={{ _r42_ci_diagnostic.package_observation }};
+          package_phase={{ _r42_ci_diagnostic.package_phase }};
+          package_state={{ _r42_ci_diagnostic.package_state }}.
+          Package fields are a one-shot observation of recognized programs in the verified active
+          cloud-final cgroup, not progress, successful completion or a stall diagnosis.
+          Guest initialization may still be running. Inspect the guest before retrying.

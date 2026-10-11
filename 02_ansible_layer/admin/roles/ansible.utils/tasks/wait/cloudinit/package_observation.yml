@@ -1,0 +1,169 @@
+---
+# Linux/systemd cgroup v2 only. No ancestry sampler or arbitrary command lines.
+# Any child cgroup, changed scope, inaccessible/oversized/malformed response or
+# unsupported system makes this observation unavailable without losing status.
+- name: CLOUD INIT - Inspect one bounded cloud-final process scope
+  block:
+    - name: CLOUD INIT - Read active unit identity privately
+      ansible.builtin.command:
+        argv: [timeout, --kill-after=1s, 3s, systemctl, show, cloud-final.service, --property=ActiveState, --property=MainPID, --property=ControlGroup, --property=InvocationID]
+      register: _r42_ci_unit
+      changed_when: false
+      failed_when: false
+      ignore_unreachable: true
+      timeout: 6
+      no_log: true
+
+    - name: CLOUD INIT - Require one executing standard cloud-final invocation
+      ansible.builtin.assert:
+        that:
+          - _r42_ci_unit.rc | default(-1) == 0
+          - _r42_ci_unit.stdout | default('') | length <= 4096
+          - _r42_ci_unit.stdout_lines | length == 4
+          - "_r42_ci_unit.stdout_lines | select('match', '^ActiveState=(active|activating)$') | length == 1"
+          - "_r42_ci_unit.stdout_lines | select('equalto', 'ControlGroup=/system.slice/cloud-final.service') | length == 1"
+          - "_r42_ci_unit.stdout_lines | select('match', '^MainPID=[1-9][0-9]{0,8}$') | length == 1"
+          - "_r42_ci_unit.stdout_lines | select('match', '^InvocationID=[0-9a-f]{32}$') | length == 1"
+      no_log: true
+
+    - name: CLOUD INIT - Retain the validated main process identity privately
+      ansible.builtin.set_fact:
+        _r42_ci_main_pid: "{{ _r42_ci_unit.stdout_lines | select('match', '^MainPID=') | first | regex_replace('^MainPID=', '') }}"
+      no_log: true
+
+    - name: CLOUD INIT - Require no omitted child cgroups
+      ansible.builtin.command:
+        argv: [timeout, --kill-after=1s, 3s, find, /sys/fs/cgroup/system.slice/cloud-final.service, -mindepth, '1', -type, d, -print, -quit]
+      register: _r42_ci_children
+      changed_when: false
+      failed_when: false
+      ignore_unreachable: true
+      timeout: 6
+      no_log: true
+
+    - name: CLOUD INIT - Read bounded cgroup membership
+      ansible.builtin.command:
+        argv: [timeout, --kill-after=1s, 3s, head, -c, '16385', /sys/fs/cgroup/system.slice/cloud-final.service/cgroup.procs]
+      register: _r42_ci_members
+      changed_when: false
+      failed_when: false
+      ignore_unreachable: true
+      timeout: 6
+      no_log: true
+
+    - name: CLOUD INIT - Validate complete direct membership before inspecting processes
+      ansible.builtin.assert:
+        that:
+          - _r42_ci_children.rc | default(-1) == 0
+          - _r42_ci_children.stdout | default('unknown') == ''
+          - _r42_ci_members.rc | default(-1) == 0
+          - _r42_ci_members.stdout | default('') | length <= 16384
+          - _r42_ci_members.stdout_lines | length > 0
+          - _r42_ci_members.stdout_lines | length <= 1024
+          - "_r42_ci_members.stdout_lines | reject('match', '^[1-9][0-9]{0,8}$') | length == 0"
+          - _r42_ci_members.stdout_lines | unique | length == _r42_ci_members.stdout_lines | length
+          - _r42_ci_main_pid in _r42_ci_members.stdout_lines
+      no_log: true
+
+    - name: CLOUD INIT - Read bounded PID program state and cgroup fields only
+      ansible.builtin.command:
+        argv:
+          - bash
+          - -o
+          - pipefail
+          - -c
+          - 'timeout --kill-after=1s 3s ps -ww -q "$1" -o pid= -o comm= -o state= -o cgroup= | head -c 65537'
+          - range42-cloud-final-observation
+          - "{{ _r42_ci_members.stdout_lines | join(',') }}"
+      environment:
+        LC_ALL: C
+      register: _r42_ci_processes
+      changed_when: false
+      failed_when: false
+      ignore_unreachable: true
+      timeout: 6
+      no_log: true
+
+    - name: CLOUD INIT - Parse only processes proven to remain in the selected cgroup
+      ansible.builtin.set_fact:
+        _r42_ci_rows: "{{ _r42_ci_processes.stdout | default('') | regex_findall('(?m)^[ \\t]*([1-9][0-9]{0,8})[ \\t]+(.{1,15}?)[ \\t]+([RSDTtZWXxKPI])[ \\t]+0::/system.slice/cloud-final.service[ \\t]*$') }}"
+      no_log: true
+
+    - name: CLOUD INIT - Require complete and unambiguous process observations
+      ansible.builtin.assert:
+        that:
+          - _r42_ci_processes.rc | default(-1) == 0
+          - _r42_ci_processes.stdout | default('') | length <= 65536
+          - _r42_ci_rows | length == _r42_ci_members.stdout_lines | length
+          - _r42_ci_processes.stdout_lines | length == _r42_ci_rows | length
+          - _r42_ci_rows | map('first') | sort == _r42_ci_members.stdout_lines | sort
+          - "_r42_ci_rows | selectattr('0', 'equalto', _r42_ci_main_pid) | map(attribute='1') | list == ['cloud-init']"
+      no_log: true
+
+    - name: CLOUD INIT - Recheck direct membership
+      ansible.builtin.command:
+        argv: [timeout, --kill-after=1s, 3s, head, -c, '16385', /sys/fs/cgroup/system.slice/cloud-final.service/cgroup.procs]
+      register: _r42_ci_members_after
+      changed_when: false
+      failed_when: false
+      ignore_unreachable: true
+      timeout: 6
+      no_log: true
+
+    - name: CLOUD INIT - Recheck invocation and active state
+      ansible.builtin.command:
+        argv: [timeout, --kill-after=1s, 3s, systemctl, show, cloud-final.service, --property=ActiveState, --property=MainPID, --property=ControlGroup, --property=InvocationID]
+      register: _r42_ci_unit_after
+      changed_when: false
+      failed_when: false
+      ignore_unreachable: true
+      timeout: 6
+      no_log: true
+
+    - name: CLOUD INIT - Recheck child cgroup absence
+      ansible.builtin.command:
+        argv: [timeout, --kill-after=1s, 3s, find, /sys/fs/cgroup/system.slice/cloud-final.service, -mindepth, '1', -type, d, -print, -quit]
+      register: _r42_ci_children_after
+      changed_when: false
+      failed_when: false
+      ignore_unreachable: true
+      timeout: 6
+      no_log: true
+
+    - name: CLOUD INIT - Refuse changed or incomplete scope
+      ansible.builtin.assert:
+        that:
+          - _r42_ci_members_after.rc | default(-1) == 0
+          - _r42_ci_members_after.stdout_lines | sort == _r42_ci_members.stdout_lines | sort
+          - _r42_ci_unit_after.rc | default(-1) == 0
+          - _r42_ci_unit_after.stdout_lines | sort == _r42_ci_unit.stdout_lines | sort
+          - _r42_ci_children_after.rc | default(-1) == 0
+          - _r42_ci_children_after.stdout == ''
+      no_log: true
+
+    - name: CLOUD INIT - Select only recognized package program names
+      ansible.builtin.set_fact:
+        _r42_ci_package_rows: "{{ _r42_ci_rows | selectattr('1', 'in', ['apt', 'apt-get', 'dpkg', 'dpkg-deb', 'dpkg-trigger', 'update-initramfs', 'mkinitramfs', 'update-grub', 'update-grub2', 'grub-mkconfig', 'grub-install']) | list }}"
+      no_log: true
+
+    - name: CLOUD INIT - Classify this one-shot package observation in Ansible
+      ansible.builtin.set_fact:
+        _r42_ci_diagnostic: >-
+          {{ _r42_ci_diagnostic | combine({
+            'package_observation': 'available',
+            'package_phase': (
+              'grub' if _r42_ci_package_rows | map(attribute='1') | intersect(['update-grub', 'update-grub2', 'grub-mkconfig', 'grub-install']) | length > 0 else
+              'initramfs' if _r42_ci_package_rows | map(attribute='1') | intersect(['update-initramfs', 'mkinitramfs']) | length > 0 else
+              'dpkg' if _r42_ci_package_rows | map(attribute='1') | intersect(['dpkg', 'dpkg-deb', 'dpkg-trigger']) | length > 0 else
+              'apt' if _r42_ci_package_rows | length > 0 else 'none'),
+            'package_state': (
+              'none' if _r42_ci_package_rows | length == 0 else
+              'running' if 'R' in (_r42_ci_package_rows | map(attribute='2') | list) else
+              'mixed' if _r42_ci_package_rows | map(attribute='2') | unique | length > 1 else
+              {'S': 'sleeping', 'D': 'blocked', 'T': 'stopped', 't': 'stopped', 'Z': 'zombie'}.get(_r42_ci_package_rows[0][2], 'unknown'))
+          }) }}
+      no_log: true
+  rescue:
+    - name: CLOUD INIT - Package observation unavailable
+      ansible.builtin.debug:
+        msg: Cloud-final package scope is unavailable or changed; no package activity is inferred.

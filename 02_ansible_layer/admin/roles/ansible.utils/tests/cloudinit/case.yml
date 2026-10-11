@@ -1,0 +1,205 @@
+---
+- name: Allocate this case's fixture paths
+  ansible.builtin.set_fact:
+    case_root: "{{ fixture_root.path }}/{{ scenario.name }}"
+
+- name: Copy only the tested role into the isolated case
+  ansible.builtin.copy:
+    src: "{{ role_source }}/"
+    dest: "{{ case_root }}/roles/ansible.utils/"
+    mode: preserve
+
+- name: Create private command and cgroup fixtures
+  ansible.builtin.file:
+    path: "{{ case_root }}/{{ item }}"
+    state: directory
+    mode: '0700'
+  loop: [bin, cgroup]
+
+- name: Use local paths and short waits only in the copied test transport
+  ansible.builtin.replace:
+    path: "{{ case_root }}/roles/ansible.utils/tasks/wait/cloudinit/is_boot_finished.yml"
+    regexp: "{{ item.pattern }}"
+    replace: "{{ item.value }}"
+  loop:
+    - {pattern: '/var/lib/cloud/instance/boot-finished', value: "{{ case_root }}/boot-finished"}
+    - {pattern: 'delay: 10', value: 'delay: 0'}
+    - {pattern: 'timeout: 500', value: "timeout: {{ 1 if scenario.success | default(false) else 0 }}"}
+
+- name: Substitute an unreachable transport only for the diagnostic command
+  ansible.builtin.replace:
+    path: "{{ case_root }}/roles/ansible.utils/tasks/wait/cloudinit/diagnostic.yml"
+    regexp: '^([ ]*)register: _r42_ci_status$'
+    replace: '\1delegate_to: unreachable-fixture\n\1register: _r42_ci_status'
+  when: scenario.name == 'lost_connection'
+
+- name: Bind native cgroup reads only to synthetic files
+  ansible.builtin.replace:
+    path: "{{ case_root }}/roles/ansible.utils/tasks/wait/cloudinit/package_observation.yml"
+    regexp: '/sys/fs/cgroup/system.slice/cloud-final.service'
+    replace: "{{ case_root }}/cgroup"
+
+- name: Create a synthetic completed boot only for the success case
+  ansible.builtin.copy:
+    dest: "{{ case_root }}/boot-finished"
+    content: "fixture complete\n"
+    mode: '0600'
+  when: scenario.success | default(false)
+
+- name: Create a child cgroup only for the incomplete scope case
+  ansible.builtin.file:
+    path: "{{ case_root }}/cgroup/child"
+    state: directory
+    mode: '0700'
+  when: scenario.name == 'child_cgroup'
+
+- name: Write the complete synthetic cgroup PID list
+  ansible.builtin.copy:
+    dest: "{{ case_root }}/cgroup/cgroup.procs"
+    content: "{{ '10\n' if scenario.name == 'no_package' else '10\n20\n30\n' }}"
+    mode: '0600'
+
+- name: Write private status response with a redaction canary
+  ansible.builtin.copy:
+    dest: "{{ case_root }}/status.json"
+    content: "{{ {'status': 'running', 'extended_status': scenario.status | default('running'), 'stage': 'modules-final', 'errors': [canary], 'recoverable_errors': {'WARN': [canary, canary]}, 'datasource': canary} | to_json }}"
+    mode: '0600'
+  no_log: true
+
+- name: Create deterministic native command fixtures
+  ansible.builtin.copy:
+    dest: "{{ case_root }}/bin/{{ item.name }}"
+    content: "{{ item.body }}"
+    mode: '0700'
+  loop:
+    - name: cloud-init
+      body: |
+        #!/bin/sh
+        set -eu
+        printf called > "$CI_FIXTURE/diagnosed"
+        case "$CI_CASE" in
+          malformed_status) printf '%s' "$CI_CANARY"; exit 0;;
+          oversized_status) head -c 70000 /dev/zero | tr '\000' x; exit 0;;
+          status_timeout) sleep 30; exit 0;;
+        esac
+        cat "$CI_FIXTURE/status.json"
+        printf '%s' "$CI_CANARY" >&2
+        exit "$CI_RC"
+    - name: systemctl
+      body: |
+        #!/bin/sh
+        set -eu
+        printf 'MainPID=10\nControlGroup=/system.slice/cloud-final.service\nInvocationID=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n'
+        case "$CI_CASE" in
+          inactive_unit) printf 'ActiveState=inactive\n';;
+          oneshot_worker) printf 'ActiveState=activating\n';;
+          *) printf 'ActiveState=active\n';;
+        esac
+    - name: ps
+      body: |
+        #!/bin/sh
+        set -eu
+        if [ "$CI_CASE" = forwarding_wrapper ]; then
+          printf '10 sh S 0::/system.slice/cloud-final.service\n'
+        else
+          printf '10 cloud-init S 0::/system.slice/cloud-final.service\n'
+        fi
+        if [ "$CI_CASE" != no_package ]; then
+          printf '20 apt-get S 0::/system.slice/cloud-final.service\n'
+          if [ "$CI_CASE" = foreign_process ]; then
+            printf '30 update-grub R 0::/system.slice/unrelated.service\n'
+          else
+            printf '30 dpkg S 0::/system.slice/cloud-final.service\n'
+          fi
+        fi
+        if [ "$CI_CASE" = changed_membership ]; then printf '10\n20\n' > "$CI_FIXTURE/cgroup/cgroup.procs"; fi
+  no_log: true
+
+- name: Write a standalone inner playbook whose failure must propagate
+  ansible.builtin.copy:
+    dest: "{{ case_root }}/play.yml"
+    mode: '0600'
+    content: |
+      ---
+      - hosts: localhost
+        connection: local
+        gather_facts: false
+        environment:
+          PATH: "{{ case_root }}/bin:{{ lookup('env', 'PATH') }}"
+          CI_FIXTURE: "{{ case_root }}"
+          CI_CASE: "{{ scenario.name }}"
+          CI_CANARY: "{{ canary }}"
+          CI_RC: "{{ scenario.status_rc | default(0) }}"
+        vars:
+          _r42_ci_candidate: {status: done, stage: none}
+          _r42_ci_diagnostic: {status: done, stage: none, package_phase: grub}
+        tasks:
+          - ansible.builtin.add_host:
+              name: unreachable-fixture
+              ansible_connection: ssh
+              ansible_host: 127.0.0.1
+              ansible_port: 9
+              ansible_user: nobody
+              ansible_ssh_common_args: '-o BatchMode=yes -o ConnectTimeout=1 -o ConnectionAttempts=1'
+            no_log: true
+          - ansible.builtin.include_role:
+              name: ansible.utils
+              tasks_from: wait/cloudinit/is_boot_finished.yml
+          - ansible.builtin.debug:
+              msg: CLOUD_INIT_TEST_SHOULD_NOT_CONTINUE
+  no_log: true
+
+- name: Run the real Ansible playbook and capture its full callback output privately
+  ansible.builtin.command:
+    argv: [ansible-playbook, -i, 'localhost,', "{{ case_root }}/play.yml"]
+  environment:
+    ANSIBLE_ROLES_PATH: "{{ case_root }}/roles"
+    ANSIBLE_NOCOLOR: '1'
+  register: case_result
+  failed_when: false
+  changed_when: false
+  no_log: true
+  timeout: 60
+
+- name: Retain private fixture output only when requested for diagnosis
+  ansible.builtin.copy:
+    dest: "{{ cloudinit_test_output }}"
+    content: "{{ case_result | to_json }}"
+    mode: '0600'
+  when: cloudinit_test_output is defined
+  no_log: true
+
+- name: Assert end-to-end failure propagation and redaction
+  ansible.builtin.assert:
+    that:
+      - canary not in case_result.stdout + case_result.stderr
+      - scenario.success | default(false) or case_result.rc != 0
+      - not (scenario.success | default(false)) or case_result.rc == 0
+      - scenario.success | default(false) or 'CLOUD_INIT_BOOT_WAIT_FAILED' in case_result.stdout
+      - scenario.success | default(false) or 'CLOUD INIT - STATUS REPORT' in case_result.stdout
+      - scenario.success | default(false) or 'CLOUD_INIT_TEST_SHOULD_NOT_CONTINUE' not in case_result.stdout
+      - scenario.success | default(false) or (scenario.status ~ ' / ' ~ scenario.stage) in case_result.stdout
+      - scenario.success | default(false) or ('package_phase=' ~ scenario.phase) in case_result.stdout
+      - scenario.success | default(false) or ('package_state=' ~ scenario.state) in case_result.stdout
+      - not (scenario.unavailable | default(false)) or 'diagnostic=unavailable' in case_result.stdout
+      - scenario.success | default(false) or scenario.unavailable | default(false) or 'errors=1;' in case_result.stdout
+      - scenario.success | default(false) or scenario.unavailable | default(false) or 'recoverable_errors=2.' in case_result.stdout
+      - scenario.success | default(false) or 'package_cpu_activity=observed' not in case_result.stdout
+      - scenario.success | default(false) or 'package_cpu_activity=not_observed' not in case_result.stdout
+    fail_msg: "Cloud-init YAML fixture {{ scenario.name }} failed its expected result; raw output remains private."
+  no_log: true
+
+- name: Inspect whether the success path invoked diagnostics
+  ansible.builtin.stat:
+    path: "{{ case_root }}/diagnosed"
+  register: diagnosed
+  when: scenario.success | default(false)
+
+- name: Assert successful boot skips diagnostics
+  ansible.builtin.assert:
+    that: not diagnosed.stat.exists
+  when: scenario.success | default(false)
+
+- name: Report the passing named fixture
+  ansible.builtin.debug:
+    msg: "PASS {{ scenario.name }}: real task flow, propagation and redaction"

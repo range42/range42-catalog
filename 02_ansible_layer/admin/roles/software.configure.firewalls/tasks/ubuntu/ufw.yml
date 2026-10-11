@@ -1,60 +1,38 @@
 ---
-#
-
-- name: configure - ufw - is installed ?
+- name: Install UFW
   ansible.builtin.package:
     name: ufw
     state: present
 
-#
-- name: configure - ufw - reset previous rules
-  ansible.builtin.ufw:
+# This role replaces the guest baseline. Reset disables UFW, so stage the
+# requested access rules before either restricting the policy or enabling it.
+- name: Reset the previous guest firewall rules
+  community.general.ufw:
     state: reset
 
-#
-- name: configure - ufw - enable
-  ansible.builtin.ufw:
-    state: enabled
-
-#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
-
-- name: configure - ufw - set default input to drop
-  ansible.builtin.ufw:
-    default: deny
-    direction: incoming
-
-# - name: configure - ufw - allow SSH
-#   ansible.builtin.ufw:
-#     rule: allow
-#     port: 22
-#     proto: tcp
-
-#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
-
-- name: configure - ufw - all rules from playbook
-  ansible.builtin.ufw:
-    rule: "{{ 'allow' }}"
+- name: Install the requested guest access rules
+  community.general.ufw:
+    rule: allow
     port: "{{ item.port }}"
     proto: "{{ item.protocol }}"
-    # proto: tcp
     from_ip: "{{ item.ip if item.ip != 'all' else 'any' }}"
   loop: "{{ firewall_rules }}"
 
-#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+- name: Deny incoming traffic without an access rule
+  community.general.ufw:
+    default: deny
+    direction: incoming
 
-#
-- name: configure - ufw - reload
-  ansible.builtin.ufw:
-    state: reloaded
-
-#
-- name: configure - ufw - enable - again
-  ansible.builtin.ufw:
+- name: Enable the completed guest firewall policy
+  community.general.ufw:
     state: enabled
 
-#
-- name: configure - ufw - show active rules
+- name: Read the active guest firewall rules
   ansible.builtin.command:
-    cmd: "ufw status verbose"
+    cmd: ufw status verbose
+  changed_when: false
   register: out
-- debug: var=out.stdout_lines
+
+- name: Show the active guest firewall rules
+  ansible.builtin.debug:
+    var: out.stdout_lines
