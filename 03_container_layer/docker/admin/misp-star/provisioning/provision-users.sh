@@ -180,6 +180,15 @@ append_cred "${MISP_WRITER_EMAIL:-writer@misp.local}" "publisher" "${MISP_ORG:-R
 USERS_PER_TEAM="${MISP_USERS_PER_TEAM:-2}"
 USER_DOMAIN="${MISP_USER_DOMAIN:-range42.local}"
 INSTRUCTOR_COUNT="${MISP_INSTRUCTOR_COUNT:-1}"
+STAR_MODE="${MISP_STAR_MODE:-hub}"
+
+# Team users publish by default (role 4 — Publisher); MISP_TEAM_USERS_CAN_PUBLISH=false
+# demotes them to role 3 (User), which cannot publish. The lead keeps role 2 (feat-1).
+if [ "${MISP_TEAM_USERS_CAN_PUBLISH:-true}" = "false" ]; then
+    TEAM_USER_ROLE_ID=3  TEAM_USER_ROLE_NAME="User"       TEAM_USER_ROLE_LABEL="user"
+else
+    TEAM_USER_ROLE_ID=4  TEAM_USER_ROLE_NAME="Publisher"  TEAM_USER_ROLE_LABEL="publisher"
+fi
 
 TEAM_LINES=""
 
@@ -193,7 +202,9 @@ else
     INSTR_ORG_VAR="MISP_ORG_ID_$(echo "${INSTRUCTOR_ORG}" | tr '[:lower:]-' '[:upper:]_')"
     INSTR_ORG_ID="${!INSTR_ORG_VAR:-}"
 
-    if [ -n "${INSTR_ORG_ID}" ]; then
+    if [ "${STAR_MODE}" = "spoke" ]; then
+        log "Spoke mode — no instructor accounts."
+    elif [ -n "${INSTR_ORG_ID}" ]; then
         TEAM_LINES+=$'\n# ── Instructors ──────────────────────────────────────────────────────\n'
         for i in $(seq 1 "${INSTRUCTOR_COUNT}"); do
             suffix=$( [ "${INSTRUCTOR_COUNT}" -eq 1 ] && echo "" || echo "${i}" )
@@ -211,7 +222,12 @@ else
         log "WARNING: no org ID for '${INSTRUCTOR_ORG}' — skipping instructor accounts."
     fi
 
-    IFS=',' read -ra TEAM_LIST <<< "${MISP_TEAMS:-team-blue,team-red}"
+    if [ "${STAR_MODE}" = "spoke" ]; then
+        # Spoke (feat-1): the single team org is org 1 (host org); MISP_TEAMS is ignored.
+        TEAM_LIST=("${MISP_ORG:-Default Organisation}")
+    else
+        IFS=',' read -ra TEAM_LIST <<< "${MISP_TEAMS:-team-blue,team-red}"
+    fi
     for raw_team in "${TEAM_LIST[@]}"; do
         team=$(echo "${raw_team}" | tr -d '[:space:]')
         [ -z "${team}" ] && continue
@@ -238,14 +254,14 @@ else
         TEAM_LINES+="MISP_${TEAM_UP}_LEAD_PASSWORD=${lead_pass}"$'\n'
         TEAM_LINES+="MISP_${TEAM_UP}_LEAD_KEY=${lead_key}"$'\n'
 
-        # Regular users (role_id=3)
+        # Regular users (role from MISP_TEAM_USERS_CAN_PUBLISH, feat-1)
         for i in $(seq 1 "${USERS_PER_TEAM}"); do
             user_email="${team}-user${i}@${USER_DOMAIN}"
             user_pass=$(gen_password)
-            user_key=$(create_user "${user_email}" "${user_pass}" 3 "${TEAM_ORG_ID}")
-            log "Created ${team} user${i}: ${user_email}"
-            append_cred "${user_email}" "user" "${team}" "${user_key}"
-            TEAM_LINES+="# ${team} user${i} — role: User"$'\n'
+            user_key=$(create_user "${user_email}" "${user_pass}" "${TEAM_USER_ROLE_ID}" "${TEAM_ORG_ID}")
+            log "Created ${team} user${i}: ${user_email} (role ${TEAM_USER_ROLE_ID})"
+            append_cred "${user_email}" "${TEAM_USER_ROLE_LABEL}" "${team}" "${user_key}"
+            TEAM_LINES+="# ${team} user${i} — role: ${TEAM_USER_ROLE_NAME}"$'\n'
             TEAM_LINES+="MISP_${TEAM_UP}_USER${i}_EMAIL=${user_email}"$'\n'
             TEAM_LINES+="MISP_${TEAM_UP}_USER${i}_PASSWORD=${user_pass}"$'\n'
             TEAM_LINES+="MISP_${TEAM_UP}_USER${i}_KEY=${user_key}"$'\n'

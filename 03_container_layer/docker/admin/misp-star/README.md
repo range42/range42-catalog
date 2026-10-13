@@ -18,7 +18,22 @@ This copy carries the five `misp-standalone` fixes reported as range42-catalog #
 
 Image tags are renamed to `misp-star:${MISP_VERSION}` and `misp-star-modules:local` so the two elements do not collide on a shared Docker host.
 
-Not yet done (sub-issue 1 of the MISP star feature, beyond the carried fixes): env-driven host-org name and UUID, deterministic org UUIDs, spoke-mode org handling, configurable default event distribution, and the team-user publish role. See the feature design doc `feat-1-element-misp-star.md`.
+Beyond the carried fixes, this element adds the star identity settings (feat-1, sub-issue 1 of the MISP star feature):
+
+| Setting | Effect |
+|---|---|
+| `MISP_STAR_MODE` | `hub` (default): instructor org + one local org per team, as `misp-standalone`. `spoke`: org 1 is the team org; no instructor org, no extra team orgs. |
+| `MISP_HOST_ORG_UUID` | Fixed UUID for the host organisation (org 1), applied right after `cake userInit`. |
+| `MISP_ORG_UUID_NAMESPACE` | UUIDv5 namespace: every provisioned org (org 1 included, when `MISP_HOST_ORG_UUID` is blank) gets `uuid5(namespace, org name)`. Sync matches orgs by UUID — without a shared UUID the receiving MISP duplicates the org as `<name>_<random>`. |
+| `MISP_DEFAULT_DISTRIBUTION` | Sets `MISP.default_event_distribution` (0–4). Attribute, object and event-report defaults are set to `event` (inherit) instead of `misp-standalone`'s `0` — MISP never pushes distribution 0, so pinning them would strip their data on push. Galaxy and analyst-data defaults stay `0` (they accept only 0–3 and do not gate event push). |
+| `MISP_TEAM_USERS_CAN_PUBLISH` | `true` (default): team users are Publisher (role 4). `false`: User (role 3), which cannot publish. The team lead keeps Org Admin (role 2) either way. |
+
+## Hub and spoke modes
+
+- **Hub** (`MISP_STAR_MODE=hub`, default): behaves like `misp-standalone` — org 1 is `MISP_ORG`, the provisioner creates the instructor org and one local org per entry in `MISP_TEAMS`, plus their users.
+- **Spoke** (`MISP_STAR_MODE=spoke`): set `MISP_ORG` to the team name. Org 1 **is** the team org; the team lead and team users are created in org 1. `MISP_TEAMS` is ignored and no instructor org exists. Team names must not contain spaces.
+
+The hub/spoke pairing (sync users, server entries, sharing groups, certificate exchange) is done by the Ansible role of sub-issue 2, not by this element.
 
 ---
 
@@ -76,6 +91,9 @@ docker compose cp misp:/keys/api-keys.txt ./api-keys.txt
 | Admin   | `MISP_ADMIN_EMAIL` | Site Admin | 1 |
 | Reader  | `MISP_READER_EMAIL` | Read Only | 6 |
 | Writer  | `MISP_WRITER_EMAIL` | Publisher | 4 |
+| Team lead | `<team>-lead@<domain>` | Org Admin | 2 |
+| Team user | `<team>-user<i>@<domain>` | Publisher, or User when `MISP_TEAM_USERS_CAN_PUBLISH=false` | 4 / 3 |
+| Instructor (hub only) | `instructor<i>@<domain>` | Org Admin | 2 |
 
 Passwords are set via the corresponding `_PASSWORD` variables in `.env`.
 **Passwords must be at least 12 characters** (MISP default policy enforced at user creation time).
@@ -87,9 +105,18 @@ Passwords are set via the corresponding `_PASSWORD` variables in `.env`.
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `MISP_VERSION` | MISP git tag to build from | `v2.5.37` |
-| `MISP_PORT` | Host port for the MISP web UI | `8080` |
-| `MISP_BASEURL` | URL advertised in events/feeds/e-mails | `http://localhost:8080` |
-| `MISP_ORG` | Default organisation name | `Default Organisation` |
+| `MISP_HTTP_PORT` / `MISP_HTTPS_PORT` | Host ports for the MISP web UI | `80` / `443` |
+| `MISP_HOSTNAME` | Host or IP in the TLS cert SAN (`IP:` SAN when it is an IP) | `localhost` |
+| `MISP_BASEURL` | Sets `MISP.baseurl` **and** `MISP.external_baseurl` — must be the address the other star instances use, not `https://localhost` | `https://localhost` |
+| `MISP_ORG` | Host organisation (org 1) name; in spoke mode, the team name | `Default Organisation` |
+| `MISP_STAR_MODE` | `hub` or `spoke` — see "Hub and spoke modes" | `hub` |
+| `MISP_HOST_ORG_UUID` | Fixed UUID for org 1 (blank: derive or keep random) | — |
+| `MISP_ORG_UUID_NAMESPACE` | UUIDv5 namespace for deterministic org UUIDs | — |
+| `MISP_DEFAULT_DISTRIBUTION` | Default event distribution (0–4); MISP never pushes `0` | `0` |
+| `MISP_TEAM_USERS_CAN_PUBLISH` | `true`: team users get role 4 (Publisher); `false`: role 3 (User) | `true` |
+| `MISP_TEAMS` | Comma-separated team names (one local org each; hub mode only) | `team-blue,team-red` |
+| `MISP_INSTRUCTOR_ORG` / `MISP_INSTRUCTOR_COUNT` | Instructor org name / number of accounts (hub mode only) | `instructors` / `1` |
+| `MISP_USERS_PER_TEAM` / `MISP_USER_DOMAIN` | Regular users per team / e-mail domain | `2` / `range42.local` |
 | `MISP_SALT` | Security salt — generate with `openssl rand -hex 32` | — |
 | `MISP_ADMIN_EMAIL` / `MISP_ADMIN_PASSWORD` | Primary admin credentials | see `.env.example` |
 | `MISP_ADMIN2_EMAIL` / `MISP_ADMIN2_PASSWORD` | Optional second admin (leave blank to skip) | — |

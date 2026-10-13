@@ -4,8 +4,10 @@
 # Idempotent: skips organisations that already exist by name.
 #
 # Reads:
-#   MISP_TEAMS          — comma-separated team names (default: team-blue,team-red)
-#   MISP_INSTRUCTOR_ORG — instructor org name        (default: instructors)
+#   MISP_STAR_MODE          — hub (default) or spoke (feat-1)
+#   MISP_TEAMS              — comma-separated team names (default: team-blue,team-red)
+#   MISP_INSTRUCTOR_ORG     — instructor org name        (default: instructors)
+#   MISP_ORG_UUID_NAMESPACE — optional UUIDv5 namespace for deterministic org UUIDs
 #
 # Writes:
 #   /keys/org-ids.env   — env-style mapping, e.g. MISP_ORG_ID_TEAM_BLUE=3
@@ -17,6 +19,27 @@ ORG_IDS_FILE="/keys/org-ids.env"
 
 log()  { echo "[provision-orgs] $*" >&2; }
 fail() { echo "[provision-orgs] ERROR: $*" >&2; exit 1; }
+
+# Fail fast on a typo: a spoke silently running as hub would only surface at
+# pairing time. provision.sh runs this script first, so one guard covers the
+# whole provisioner pipeline.
+case "${MISP_STAR_MODE:-hub}" in
+    hub|spoke) ;;
+    *) fail "MISP_STAR_MODE must be 'hub' or 'spoke', got: '${MISP_STAR_MODE}'" ;;
+esac
+
+# ── Spoke mode (feat-1) ───────────────────────────────────────────────────────
+# On a spoke, org 1 IS the team org: configure-misp.sh already created it with
+# the configured name (MISP_ORG) and UUID. No instructor org, no extra orgs —
+# only the org-ids mapping is written so provision-users.sh targets org 1.
+if [ "${MISP_STAR_MODE:-hub}" = "spoke" ]; then
+    team_name=$(echo "${MISP_ORG:-Default Organisation}" | tr -d '[:space:]')
+    env_key="MISP_ORG_ID_$(echo "${team_name}" | tr '[:lower:]-' '[:upper:]_')"
+    echo "${env_key}=1" > "${ORG_IDS_FILE}"
+    chmod 600 "${ORG_IDS_FILE}"
+    log "Spoke mode: org 1 = '${team_name}' — wrote ${ORG_IDS_FILE}, no orgs created."
+    exit 0
+fi
 
 # ── Wait for admin auth-key ───────────────────────────────────────────────────
 
@@ -65,11 +88,22 @@ for entry in data:
 }
 
 # Creates an org and returns its new ID.
+# When MISP_ORG_UUID_NAMESPACE is set, the org gets uuid5(namespace, name) —
+# the same name yields the same UUID on every instance of the star, so sync
+# matches the org by UUID instead of duplicating it as '<name>_<random>' (feat-1).
 create_org() {
     local name="$1"
-    local resp
+    local resp uuid_line=""
+    if [ -n "${MISP_ORG_UUID_NAMESPACE:-}" ]; then
+        local org_uuid
+        org_uuid=$(python3 -c 'import uuid,sys; print(uuid.uuid5(uuid.UUID(sys.argv[1]), sys.argv[2]))' \
+            "${MISP_ORG_UUID_NAMESPACE}" "${name}") \
+            || fail "MISP_ORG_UUID_NAMESPACE is not a valid UUID: ${MISP_ORG_UUID_NAMESPACE}"
+        uuid_line="\"uuid\": \"${org_uuid}\","
+    fi
     resp=$(misp_post "/admin/organisations/add" "$(cat <<JSON
 {
+  ${uuid_line}
   "name":        "${name}",
   "nationality": "International",
   "local":       true,

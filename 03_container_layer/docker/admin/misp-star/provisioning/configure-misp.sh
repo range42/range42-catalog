@@ -95,6 +95,30 @@ log "Creating initial admin via userInit …"
 _INIT_OUT=$(${CAKE} userInit 2>&1 || true)
 log "userInit output: ${_INIT_OUT}"
 
+# ── 5a. Host org UUID (feat-1) ────────────────────────────────────────────────
+# userInit gives org 1 a random UUID. Sync links orgs by UUID: without a fixed
+# value the receiving instance duplicates the org as '<name>_<random>'.
+# MISP_HOST_ORG_UUID wins; otherwise derive uuid5(MISP_ORG_UUID_NAMESPACE, MISP.org).
+# python3 validates and normalises the UUID (lowercase canonical form), so the
+# value interpolated into SQL is hex-and-dashes only. Fails hard: a wrong org
+# UUID silently breaks the whole star.
+_HOST_ORG_UUID=""
+if [ -n "${MISP_HOST_ORG_UUID:-}" ]; then
+    _HOST_ORG_UUID=$(python3 -c 'import uuid,sys; print(uuid.UUID(sys.argv[1]))' "${MISP_HOST_ORG_UUID}") \
+        || { log "ERROR: MISP_HOST_ORG_UUID is not a valid UUID: ${MISP_HOST_ORG_UUID}"; exit 1; }
+elif [ -n "${MISP_ORG_UUID_NAMESPACE:-}" ]; then
+    _HOST_ORG_UUID=$(python3 -c 'import uuid,sys; print(uuid.uuid5(uuid.UUID(sys.argv[1]), sys.argv[2]))' \
+        "${MISP_ORG_UUID_NAMESPACE}" "${MISP_ORG:-Default Organisation}") \
+        || { log "ERROR: MISP_ORG_UUID_NAMESPACE is not a valid UUID: ${MISP_ORG_UUID_NAMESPACE}"; exit 1; }
+fi
+if [ -n "${_HOST_ORG_UUID}" ]; then
+    log "Setting host org (id 1) UUID to ${_HOST_ORG_UUID} …"
+    mysql -h "${DB_HOST:-db}" -P "${DB_PORT:-3306}" \
+        -u "${MISP_DB_USER:-misp}" -p"${MISP_DB_PASSWORD}" \
+        "${MISP_DB_NAME:-misp}" \
+        -e "UPDATE organisations SET uuid='${_HOST_ORG_UUID}' WHERE id=1;"
+fi
+
 # ── 5b. Remove initial-install news thread ────────────────────────────────────
 # userInit (and the bundled MYSQL.sql schema) create a "Initial Install" thread
 # that appears as a news item on the MISP home page after every login.
@@ -173,12 +197,18 @@ ${CAKE} Admin setSetting "SimpleBackgroundJobs.supervisor_user"     "${SUPERVISO
 ${CAKE} Admin setSetting "SimpleBackgroundJobs.supervisor_password" "${SUPERVISOR_PASSWORD:-}" >/dev/null 2>&1 || true
 
 # ── Default distributions ─────────────────────────────────────────────────────
-${CAKE} Admin setSetting "MISP.default_event_distribution"          "0" || true
-${CAKE} Admin setSetting "MISP.default_attribute_distribution"      "0" || true
-${CAKE} Admin setSetting "MISP.default_object_distribution"         "0" || true
-${CAKE} Admin setSetting "MISP.default_galaxy_distribution"         "0" || true
-${CAKE} Admin setSetting "MISP.default_eventreport_distribution"    "0" || true
-${CAKE} Admin setSetting "MISP.default_analyst_data_distribution"   "0" || true
+# Event distribution comes from env (0-4; 4 = sharing group). MISP never pushes
+# distribution 0, so a star deployment must raise MISP_DEFAULT_DISTRIBUTION.
+# Attribute/object/event-report are set to 'event' (inherit) so the event-level
+# value is the only knob — pinning them to 0 would strip their data on push.
+# Galaxy and analyst-data accept only 0-3 (Server.php v2.5.37:5977-6002); they
+# do not gate event push and stay org-only.
+${CAKE} Admin setSetting "MISP.default_event_distribution"          "${MISP_DEFAULT_DISTRIBUTION:-0}" || true
+${CAKE} Admin setSetting "MISP.default_attribute_distribution"      "event" || true
+${CAKE} Admin setSetting "MISP.default_object_distribution"         "event" || true
+${CAKE} Admin setSetting "MISP.default_galaxy_distribution"         "0"     || true
+${CAKE} Admin setSetting "MISP.default_eventreport_distribution"    "event" || true
+${CAKE} Admin setSetting "MISP.default_analyst_data_distribution"   "0"     || true
 
 # ── Plugins — misp-modules sidecar ───────────────────────────────────────────
 # MISP's Module model builds the final URL as "$url:$port", so the URL must NOT
