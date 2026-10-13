@@ -201,7 +201,7 @@ ${CAKE} Admin setSetting "SimpleBackgroundJobs.supervisor_password" "${SUPERVISO
 # distribution 0, so a star deployment must raise MISP_DEFAULT_DISTRIBUTION.
 # Attribute/object/event-report are set to 'event' (inherit) so the event-level
 # value is the only knob — pinning them to 0 would strip their data on push.
-# Galaxy and analyst-data accept only 0-3 (Server.php v2.5.37:5977-6002); they
+# Galaxy and analyst-data accept only 0-3 (Server.php v2.5.50:6442-6468); they
 # do not gate event push and stay org-only.
 ${CAKE} Admin setSetting "MISP.default_event_distribution"          "${MISP_DEFAULT_DISTRIBUTION:-0}" || true
 ${CAKE} Admin setSetting "MISP.default_attribute_distribution"      "event" || true

@@ -104,7 +104,7 @@ Passwords are set via the corresponding `_PASSWORD` variables in `.env`.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MISP_VERSION` | MISP git tag to build from | `v2.5.37` |
+| `MISP_VERSION` | MISP git tag to build from | `v2.5.50` |
 | `MISP_HTTP_PORT` / `MISP_HTTPS_PORT` | Host ports for the MISP web UI | `80` / `443` |
 | `MISP_HOSTNAME` | Host or IP in the TLS cert SAN (`IP:` SAN when it is an IP) | `localhost` |
 | `MISP_BASEURL` | Sets `MISP.baseurl` **and** `MISP.external_baseurl` — must be the address the other star instances use, not `https://localhost` | `https://localhost` |
@@ -133,13 +133,13 @@ Passwords are set via the corresponding `_PASSWORD` variables in `.env`.
 # Build and tag for a registry
 docker build \
   --target runtime \
-  --build-arg MISP_VERSION=v2.5.37 \
-  -t registry.example.com/range42/misp-star:v2.5.37 \
+  --build-arg MISP_VERSION=v2.5.50 \
+  -t registry.example.com/range42/misp-star:v2.5.50 \
   -t registry.example.com/range42/misp-star:latest \
   .
 
 # Push
-docker push registry.example.com/range42/misp-star:v2.5.37
+docker push registry.example.com/range42/misp-star:v2.5.50
 docker push registry.example.com/range42/misp-star:latest
 ```
 

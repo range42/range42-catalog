@@ -59,8 +59,8 @@ services:
       context: .
       target: runtime
       args:
-        MISP_VERSION: ${MISP_VERSION:-v2.5.37}
-    image: misp-star:${MISP_VERSION:-v2.5.37}
+        MISP_VERSION: ${MISP_VERSION:-v2.5.50}
+    image: misp-star:${MISP_VERSION:-v2.5.50}
     restart: unless-stopped
     env_file:
       - path: .env
@@ -94,7 +94,7 @@ services:
       context: .
       target: runtime
       args:
-        MISP_VERSION: ${MISP_VERSION:-v2.5.37}
+        MISP_VERSION: ${MISP_VERSION:-v2.5.50}
     entrypoint: ["/provisioning/provision.sh"]
     env_file:
       - path: .env
