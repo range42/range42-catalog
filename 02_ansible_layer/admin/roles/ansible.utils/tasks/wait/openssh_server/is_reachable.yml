@@ -13,6 +13,13 @@
 #
 
 #
+- name: Optionally enroll an unknown guest public key through its PVE agent
+  ansible.builtin.include_tasks: pve_agent_hostkey.yml
+  when:
+    - not ansible_check_mode
+    - ansible_connection | default('ssh') != 'local'
+    - range42_guest_hostkey_from_pve_agent | default(false) | bool
+
 - name: WAIT FOR LOCAL INVENTORY CONNECTION
   ansible.builtin.wait_for_connection:
     timeout: 30
