@@ -13,6 +13,12 @@
 #
 
 #
+- name: WAIT FOR LOCAL INVENTORY CONNECTION
+  ansible.builtin.wait_for_connection:
+    timeout: 30
+    sleep: 1
+  when: ansible_connection | default('ssh') == 'local'
+
 - name: WAIT FOR SSH - VIA ProxyJump
   shell: >
     ssh
@@ -28,6 +34,7 @@
   until: ssh_check.rc == 0
   ignore_errors: true
   delegate_to: localhost
+  when: ansible_connection | default('ssh') != 'local'
 #########
 #########
 #########
