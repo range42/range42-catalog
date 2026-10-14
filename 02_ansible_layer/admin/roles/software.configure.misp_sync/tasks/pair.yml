@@ -1,0 +1,88 @@
+---
+## Pair this spoke: on the hub, revoke every key of the team sync user, mint a
+## bootstrap key, run createSync as the sync user (it mints the sync key),
+## delete the bootstrap key. On the spoke, replace the server entry by import.
+## Result: exactly one valid key per sync user.
+
+- name: pair - list auth keys on the hub
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_h.api }}/auth_keys/index"
+    headers: "{{ _misp_sync_hub_headers }}"
+  delegate_to: "{{ _misp_sync_hub }}"
+  register: _misp_sync_hub_keys
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: pair - revoke every key of the team sync user
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_h.api }}/auth_keys/delete/{{ item.id }}"
+    method: POST
+    headers: "{{ _misp_sync_hub_headers }}"
+  loop: "{{ _misp_sync_hub_keys.json | map(attribute='AuthKey') | selectattr('user_id', 'in', [_uid | string, _uid | int]) | list }}"
+  delegate_to: "{{ _misp_sync_hub }}"
+  changed_when: true
+  no_log: "{{ misp_sync_no_log }}"
+  vars:
+    _uid: "{{ _misp_sync_h.sync_user_ids[misp_star_team] }}"
+
+## The bootstrap key is deleted even when createSync fails.
+- name: pair - createSync with a bootstrap key
+  block:
+    - name: pair - mint a bootstrap key for the team sync user
+      ansible.builtin.uri:
+        url: "{{ _misp_sync_h.api }}/auth_keys/add/{{ _misp_sync_h.sync_user_ids[misp_star_team] }}"
+        method: POST
+        headers: "{{ _misp_sync_hub_headers }}"
+        body:
+          comment: misp-star bootstrap, deleted after createSync
+      delegate_to: "{{ _misp_sync_hub }}"
+      register: _misp_sync_boot
+      changed_when: true
+      no_log: "{{ misp_sync_no_log }}"
+
+    - name: pair - createSync as the team sync user
+      ansible.builtin.uri:
+        url: "{{ _misp_sync_h.api }}/servers/createSync"
+        method: POST
+        headers: "{{ _misp_sync_hub_headers | combine({'Authorization': _misp_sync_boot.json.AuthKey.authkey_raw}) }}"
+      delegate_to: "{{ _misp_sync_hub }}"
+      register: _misp_sync_cfg
+      changed_when: true
+      no_log: "{{ misp_sync_no_log }}"
+  always:
+    - name: pair - delete the bootstrap key
+      ansible.builtin.uri:
+        url: "{{ _misp_sync_h.api }}/auth_keys/delete/{{ _misp_sync_boot.json.AuthKey.id }}"
+        method: POST
+        headers: "{{ _misp_sync_hub_headers }}"
+      delegate_to: "{{ _misp_sync_hub }}"
+      when: _misp_sync_boot.json.AuthKey.id is defined
+      changed_when: true
+      no_log: "{{ misp_sync_no_log }}"
+
+- name: pair - delete the broken server entry on the spoke
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/servers/delete/{{ _misp_sync_entry[0].id }}"
+    method: POST
+  when: _misp_sync_entry | length == 1
+  changed_when: true
+  no_log: "{{ misp_sync_no_log }}"
+
+## import sets the entry org from the importing user: org 1 = the team, so
+## pulled injects are owned by the team (ServersController import, Event _add).
+- name: pair - import the sync config on the spoke
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/servers/import"
+    method: POST
+    body:
+      Server: "{{ _misp_sync_cfg.json.Server | combine({'name': misp_sync_server_name}) }}"
+  register: _misp_sync_import
+  changed_when: true
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: pair - check the import
+  ansible.builtin.assert:
+    that:
+      - _misp_sync_cfg.json.Server.url == _misp_sync_h.url
+      - _misp_sync_import.json.Server.id is defined
+    fail_msg: "misp_sync: createSync/import failed or returned another URL than {{ _misp_sync_h.url }}"
+    quiet: true

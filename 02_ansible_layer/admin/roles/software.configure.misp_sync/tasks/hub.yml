@@ -1,0 +1,287 @@
+---
+## Hub: orgs check, sightings policy, M2 sync role, team sharing groups (M1)
+## stored local (L1), one sync user per team. Order matters: L1 is applied
+## before any sync user exists.
+
+- name: hub - read the hub certificate (pinned by the spokes)
+  ansible.builtin.command:
+    cmd: docker compose exec -T misp cat /certs/misp.crt
+    chdir: "{{ misp_sync_project_dir }}"
+  register: _misp_sync_cert
+  changed_when: false
+
+- name: hub - read instance settings
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/servers/getSetting/{{ item }}"
+  loop: [MISP.host_org_id, MISP.external_baseurl, Plugin.Sightings_policy]
+  register: _misp_sync_settings
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: hub - list organisations
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/organisations/index/scope:all"
+  register: _misp_sync_orgs_out
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: hub - index organisations by name
+  ansible.builtin.set_fact:
+    _misp_sync_orgs: "{{ dict(_org_list | map(attribute='name') | zip(_org_list)) }}"
+    _misp_sync_url: "{{ _misp_sync_settings.results[1].json.value | default('') }}"
+  vars:
+    _org_list: "{{ _misp_sync_orgs_out.json | map(attribute='Organisation') | list }}"
+
+- name: hub - check host org, team orgs and base URL
+  ansible.builtin.assert:
+    that:
+      - _misp_sync_orgs[misp_sync_white_cell_org] is defined
+      - _misp_sync_orgs[misp_sync_white_cell_org].id | string == _misp_sync_settings.results[0].json.value | string
+      - _misp_sync_url is match('^https://')
+      - _bad | length == 0
+    fail_msg: >-
+      misp_sync: the hub host org must be '{{ misp_sync_white_cell_org }}' (MISP_ORG == MISP_INSTRUCTOR_ORG),
+      MISP.external_baseurl must be https, and each team org must exist with uuid5(namespace, name).
+      Missing or wrong UUID: {{ _bad }}
+  vars:
+    _bad: >-
+      {%- set d = [] -%}
+      {%- for o in _misp_sync_team_orgs if (_misp_sync_orgs.get(o.name) or {}).get('uuid') != o.uuid -%}
+      {%- set _ = d.append(o.name) -%}
+      {%- endfor -%}
+      {{ d }}
+
+- name: hub - set Plugin.Sightings_policy ({{ misp_star_sightings_sync }})
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/servers/serverSettingsEdit/Plugin.Sightings_policy"
+    method: POST
+    body: "{{ {'value': _misp_sync_sightings_policy | int} }}"
+  when: _misp_sync_settings.results[2].json.value | string != _misp_sync_sightings_policy | string
+  changed_when: true
+  no_log: "{{ misp_sync_no_log }}"
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+## M2: sync users get a copy of role 5 (Sync user) with perm_sharing_group = 0.
+
+- name: hub - list roles
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/roles/index"
+  register: _misp_sync_roles
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: hub - read role 5 (Sync user)
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/roles/view/5"
+  register: _misp_sync_role5
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: hub - create the star sync role (M2)
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/admin/roles/add"
+    method: POST
+    body:
+      Role: >-
+        {{ _misp_sync_role5.json.Role | dict2items
+           | rejectattr('key', 'in', ['id', 'created', 'modified', 'permission_description', 'default'])
+           | items2dict
+           | combine({'name': misp_sync_role_name, 'perm_sharing_group': false, 'default_role': false}) }}
+  when: _misp_sync_roles.json | map(attribute='Role') | selectattr('name', '==', misp_sync_role_name) | list | length == 0
+  changed_when: true
+  register: _misp_sync_role_add
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: hub - read the star sync role
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/roles/view/{{ _role_id }}"
+  register: _misp_sync_role
+  no_log: "{{ misp_sync_no_log }}"
+  vars:
+    _role_id: >-
+      {{ _misp_sync_role_add.json.Role.id if _misp_sync_role_add is not skipped else
+         (_misp_sync_roles.json | map(attribute='Role') | selectattr('name', '==', misp_sync_role_name) | first).id }}
+
+- name: hub - check the star sync role differs from role 5 only by perm_sharing_group (M2)
+  ansible.builtin.assert:
+    that:
+      - _base.perm_sync | bool
+      - _diff == ['perm_sharing_group']
+    fail_msg: "misp_sync: role '{{ misp_sync_role_name }}' perm_* differ from role 5 by {{ _diff }}"
+  vars:
+    _base: "{{ _misp_sync_role5.json.Role }}"
+    _new: "{{ _misp_sync_role.json.Role }}"
+    _diff: >-
+      {%- set d = [] -%}
+      {%- for k in _base | sort if k.startswith('perm_') and (_base[k] | string) != (_new[k] | default('') | string) -%}
+      {%- set _ = d.append(k) -%}
+      {%- endfor -%}
+      {{ d }}
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+## M1: one sharing group per team = {team, white cell}; 'all teams' only on opt-in.
+## L1 runs right after the creation, before any check that can fail.
+
+- name: hub - look up the star sharing groups
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/sharing_groups/view/{{ item.uuid }}"
+    method: HEAD
+    status_code: [200, 404]
+  loop: "{{ _misp_sync_sgs }}"
+  register: _misp_sync_sg_head
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: hub - create missing star sharing groups (M1)
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/sharing_groups/add"
+    method: POST
+    body:
+      uuid: "{{ item.item.uuid }}"
+      name: "{{ item.item.name }}"
+      releasability: misp-star
+      description: managed by software.configure.misp_sync
+      roaming: 1
+      active: 1
+      SharingGroupOrg: "{{ [_misp_sync_wc_member] + item.item.members }}"
+  loop: "{{ _misp_sync_sg_head.results }}"
+  when: item.status == 404
+  changed_when: true
+  no_log: "{{ misp_sync_no_log }}"
+  vars:
+    _misp_sync_wc_member:
+      extend: 1
+      Organisation:
+        name: "{{ _misp_sync_orgs[misp_sync_white_cell_org].name }}"
+        uuid: "{{ _misp_sync_orgs[misp_sync_white_cell_org].uuid }}"
+
+## L1: REST cannot set local=1 (SharingGroup.php captureSGNew/captureSGExisting),
+## so set it in the DB. Applies to every hub group: a local=0 group can be
+## extended by any sync user (T9d, T10).
+- name: hub - store every sharing group as local (L1)
+  ansible.builtin.command:
+    cmd: >-
+      docker compose exec -T db sh -c
+      'MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mariadb -uroot -N "$MYSQL_DATABASE" -e
+      "UPDATE sharing_groups SET local = 1 WHERE local = 0; SELECT ROW_COUNT();
+      SELECT COUNT(*) FROM sharing_groups WHERE local = 0;"'
+    chdir: "{{ misp_sync_project_dir }}"
+  register: _misp_sync_l1
+  changed_when: _misp_sync_l1.rc == 0 and (_misp_sync_l1.stdout_lines | first | default('0') | int) > 0
+  failed_when: >-
+    _misp_sync_l1.rc != 0 or _misp_sync_l1.stdout_lines | length != 2
+    or _misp_sync_l1.stdout_lines[1] | int != 0
+
+- name: hub - read the star sharing groups
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/sharing_groups/view/{{ item.uuid }}"
+  loop: "{{ _misp_sync_sgs }}"
+  register: _misp_sync_sg_view
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: hub - check the members of each star sharing group (M1)
+  ansible.builtin.assert:
+    that: _have == _want
+    fail_msg: >-
+      misp_sync: sharing group '{{ item.item.name }}' lists {{ _have }}, expected {{ _want }}.
+      An org was added outside this role (possible leak): investigate and fix by hand.
+  loop: "{{ _misp_sync_sg_view.results }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  vars:
+    _have: "{{ item.json.SharingGroupOrg | map(attribute='Organisation.uuid') | sort }}"
+    _want: "{{ ([_misp_sync_orgs[misp_sync_white_cell_org].uuid] + item.item.members | map(attribute='Organisation.uuid') | list) | sort }}"
+
+## Every active hub group, not only the star ones: at most one team org and no
+## all_orgs server entry. Only the opted-in 'all teams' group is exempt.
+- name: hub - list all sharing groups
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/sharing_groups/index/limit:9999"
+  register: _misp_sync_sg_index
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: hub - check no sharing group spans two teams (M1)
+  ansible.builtin.assert:
+    that: _bad | length == 0
+    fail_msg: >-
+      misp_sync: sharing groups {{ _bad }} reach more than one team (two team orgs or all_orgs).
+      Possible leak: investigate and fix by hand.
+  vars:
+    _team_uuids: "{{ _misp_sync_team_orgs | map(attribute='uuid') | list }}"
+    _exempt: "{{ [(_misp_sync_sgs | last).uuid] if misp_star_inter_team_sharing else [] }}"
+    _bad: >-
+      {%- set d = [] -%}
+      {%- for g in _misp_sync_sg_index.json.response if g.SharingGroup.uuid not in _exempt -%}
+      {%- if (g.SharingGroupOrg | default([]) | map(attribute='Organisation.uuid') | select('in', _team_uuids) | list | length > 1)
+            or (g.SharingGroupServer | default([]) | selectattr('all_orgs', 'in', [true, 1, '1']) | list | length > 0) -%}
+      {%- set _ = d.append(g.SharingGroup.name) -%}
+      {%- endif -%}
+      {%- endfor -%}
+      {{ d }}
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+## Sync users: one per team, in the team org, on the star sync role.
+
+- name: hub - list users
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/admin/users/index"
+  register: _misp_sync_users_out
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: hub - create missing team sync users
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/admin/users/add"
+    method: POST
+    body:
+      email: "{{ _email }}"
+      org_id: "{{ _misp_sync_orgs[item].id }}"
+      role_id: "{{ _misp_sync_role.json.Role.id }}"
+      change_pw: 0
+      termsaccepted: 1
+  loop: "{{ _misp_sync_teams }}"
+  when: _email not in _misp_sync_users_out.json | map(attribute='User.email') | list
+  changed_when: true
+  no_log: "{{ misp_sync_no_log }}"
+  vars:
+    _email: "{{ ('sync-' ~ item ~ '@' ~ misp_sync_user_domain) | lower }}"
+
+- name: hub - keep existing sync users on the star sync role and their team org (M2)
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/admin/users/edit/{{ _user.id }}"
+    method: POST
+    body:
+      org_id: "{{ _misp_sync_orgs[item].id }}"
+      role_id: "{{ _misp_sync_role.json.Role.id }}"
+  loop: "{{ _misp_sync_teams }}"
+  when:
+    - _user | length > 0
+    - _user.role_id | string != _misp_sync_role.json.Role.id | string
+      or _user.org_id | string != _misp_sync_orgs[item].id | string
+  changed_when: true
+  no_log: "{{ misp_sync_no_log }}"
+  vars:
+    _user: >-
+      {{ _misp_sync_users_out.json | map(attribute='User')
+         | selectattr('email', '==', ('sync-' ~ item ~ '@' ~ misp_sync_user_domain) | lower) | first | default({}) }}
+
+- name: hub - list users again
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/admin/users/index"
+  register: _misp_sync_users_out
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: hub - publish pairing facts for the spokes
+  ansible.builtin.set_fact:
+    misp_sync_hub:
+      api: "{{ _misp_sync_api }}"
+      key: "{{ _misp_sync_key }}"
+      url: "{{ _misp_sync_url }}"
+      cert_b64: "{{ (_misp_sync_cert.stdout ~ '\n') | b64encode }}"
+      white_cell:
+        name: "{{ _misp_sync_orgs[misp_sync_white_cell_org].name }}"
+        uuid: "{{ _misp_sync_orgs[misp_sync_white_cell_org].uuid }}"
+      sync_user_ids: >-
+        {%- set d = {} -%}
+        {%- for t in _misp_sync_teams -%}
+        {%- set _ = d.update({t: _by_email[('sync-' ~ t ~ '@' ~ misp_sync_user_domain) | lower].id}) -%}
+        {%- endfor -%}
+        {{ d }}
+  no_log: "{{ misp_sync_no_log }}"
+  vars:
+    _users: "{{ _misp_sync_users_out.json | map(attribute='User') | list }}"
+    _by_email: "{{ dict(_users | map(attribute='email') | zip(_users)) }}"

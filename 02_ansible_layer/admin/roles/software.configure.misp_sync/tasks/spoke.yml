@@ -1,0 +1,143 @@
+---
+## Spoke: check org 1 is the team org, pair with the hub when the server entry
+## is missing or broken, set the sync fields and the pinned hub certificate,
+## ensure the team sharing group(s), then require testConnection status 1.
+
+- name: spoke - check the hub tasks ran in this play
+  ansible.builtin.assert:
+    that: hostvars[_misp_sync_hub].misp_sync_hub is defined
+    fail_msg: >-
+      misp_sync: no pairing facts from hub {{ _misp_sync_hub }}. The hub failed earlier in this play,
+      or it is not in the same batch (no serial, no strategy free, no --limit without the hub).
+    quiet: true
+
+- name: spoke - read the hub pairing facts
+  ansible.builtin.set_fact:
+    _misp_sync_h: "{{ hostvars[_misp_sync_hub].misp_sync_hub }}"
+    _misp_sync_hub_headers:
+      Authorization: "{{ hostvars[_misp_sync_hub].misp_sync_hub.key }}"
+      Accept: application/json
+      Content-Type: application/json
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: spoke - read the host org id
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/servers/getSetting/MISP.host_org_id"
+  register: _misp_sync_host_org_id
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: spoke - read the host org
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/organisations/view/{{ _misp_sync_host_org_id.json.value }}"
+  register: _misp_sync_host_org
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: spoke - check the host org is the team org
+  ansible.builtin.assert:
+    that:
+      - _misp_sync_host_org.json.Organisation.name == misp_star_team
+      - _misp_sync_host_org.json.Organisation.uuid == misp_star_team | to_uuid(namespace=misp_star_org_uuid_namespace)
+    fail_msg: >-
+      misp_sync: the spoke host org must be '{{ misp_star_team }}' with uuid5(namespace, name)
+      (element MISP_STAR_MODE=spoke, MISP_ORG={{ misp_star_team }}, same MISP_ORG_UUID_NAMESPACE as the hub).
+
+- name: spoke - list server entries
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/servers"
+  register: _misp_sync_servers
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: spoke - find the hub server entry
+  ansible.builtin.set_fact:
+    _misp_sync_entry: "{{ _misp_sync_servers.json | map(attribute='Server') | selectattr('url', '==', _misp_sync_h.url) | list }}"
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: spoke - check there is at most one hub server entry
+  ansible.builtin.assert:
+    that: _misp_sync_entry | length <= 1
+    fail_msg: "misp_sync: several server entries point to {{ _misp_sync_h.url }}; delete the extra ones by hand"
+
+- name: spoke - test the connection to the hub
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/servers/testConnection/{{ _misp_sync_entry[0].id }}"
+  when: _misp_sync_entry | length == 1
+  register: _misp_sync_test
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: spoke - decide whether to pair
+  ansible.builtin.set_fact:
+    _misp_sync_pair: "{{ _misp_sync_entry | length == 0 or (_misp_sync_test.json.status | default(0) | int) != 1 }}"
+
+- name: spoke - pair with the hub
+  ansible.builtin.include_tasks: pair.yml
+  when: _misp_sync_pair | bool
+
+- name: spoke - list server entries again
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/servers"
+  register: _misp_sync_servers
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: spoke - keep the hub server entry
+  ansible.builtin.set_fact:
+    _misp_sync_entry: "{{ _misp_sync_servers.json | map(attribute='Server') | selectattr('url', '==', _misp_sync_h.url) | first }}"
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: spoke - set the sync fields and pin the hub certificate
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/servers/edit/{{ _misp_sync_entry.id }}"
+    method: POST
+    body: "{{ _misp_sync_server_fields | combine({'submitted_cert': _misp_sync_h.cert_b64} if _pin | bool else {}) }}"
+  when: _pin | bool or _drift | length > 0
+  changed_when: true
+  no_log: "{{ misp_sync_no_log }}"
+  vars:
+    _pin: "{{ _misp_sync_pair | bool or not (_misp_sync_entry.cert_file | default('', true)) }}"
+    _drift: >-
+      {%- set d = [] -%}
+      {%- for k, v in _misp_sync_server_fields.items() if (_misp_sync_entry[k] | default(false) | bool) != (v | bool) -%}
+      {%- set _ = d.append(k) -%}
+      {%- endfor -%}
+      {{ d }}
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+## Same sharing group UUIDs as the hub, so team users can select them.
+
+- name: spoke - look up the team sharing groups
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/sharing_groups/view/{{ item.uuid }}"
+    method: HEAD
+    status_code: [200, 404]
+  loop: "{{ _misp_sync_sgs | selectattr('team', 'in', [misp_star_team, '']) | list }}"
+  register: _misp_sync_sg_head
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: spoke - create missing team sharing groups
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/sharing_groups/add"
+    method: POST
+    body:
+      uuid: "{{ item.item.uuid }}"
+      name: "{{ item.item.name }}"
+      releasability: misp-star
+      description: managed by software.configure.misp_sync
+      roaming: 1
+      active: 1
+      SharingGroupOrg: "{{ [{'extend': 1, 'Organisation': _misp_sync_h.white_cell}] + item.item.members }}"
+  loop: "{{ _misp_sync_sg_head.results }}"
+  when: item.status == 404
+  changed_when: true
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: spoke - test the connection to the hub
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/servers/testConnection/{{ _misp_sync_entry.id }}"
+  register: _misp_sync_test
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: spoke - require testConnection status 1
+  ansible.builtin.assert:
+    that: (_misp_sync_test.json.status | default(0) | int) == 1
+    fail_msg: >-
+      misp_sync: testConnection to {{ _misp_sync_h.url }} returned status
+      {{ _misp_sync_test.json.status | default('none') }} (4 = sync user disabled or key revoked).

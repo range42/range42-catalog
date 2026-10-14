@@ -1,0 +1,67 @@
+---
+##
+## Pair a misp-star hub with its team spokes through the MISP REST API.
+## One play over the hub and every spoke: hub tasks run first, then spokes.
+## All API calls go to 127.0.0.1 on each VM (validate_certs off on loopback
+## only); the spokes pin the hub certificate for spoke -> hub sync.
+##
+
+- name: misp_sync - validate inputs
+  ansible.builtin.assert:
+    that:
+      - misp_star_role | default('') in ['hub', 'spoke']
+      - _misp_sync_hubs | length == 1
+      - _misp_sync_teams | length > 0
+      - _misp_sync_teams | select('match', '^[A-Za-z0-9_-]+\Z') | list | length == _misp_sync_teams | length
+      - _misp_sync_teams | map('lower') | unique | length == _misp_sync_teams | length
+      - misp_sync_white_cell_org | lower not in _misp_sync_teams | map('lower') | list
+      - misp_star_org_uuid_namespace is match('^[0-9a-fA-F]{8}-([0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}\Z')
+      - misp_star_inter_team_sharing is boolean
+      - misp_sync_no_log is boolean
+      - misp_star_sightings_sync in ['push', 'both']
+      - misp_star_galaxy_clusters_sync in ['push', 'both']
+    fail_msg: >-
+      misp_sync: the play needs exactly one host with misp_star_role=hub and at least one
+      spoke, each with a unique misp_star_team ([A-Za-z0-9_-], case-insensitive, not the
+      white cell org); misp_star_org_uuid_namespace must be a UUID; misp_star_inter_team_sharing
+      and misp_sync_no_log booleans; misp_star_sightings_sync and misp_star_galaxy_clusters_sync
+      'push' or 'both'.
+
+- name: misp_sync - read the local site admin key from the element
+  ansible.builtin.command:
+    cmd: docker compose exec -T misp sed -n 's/^MISP_ADMIN_KEY=//p' /keys/api-keys.txt
+    chdir: "{{ misp_sync_project_dir }}"
+  register: _misp_sync_key_out
+  changed_when: false
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: misp_sync - keep the site admin key
+  ansible.builtin.set_fact:
+    _misp_sync_key: "{{ _misp_sync_key_out.stdout | trim }}"
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: misp_sync - check the site admin key
+  ansible.builtin.assert:
+    that: _misp_sync_key | length == 40
+    fail_msg: "misp_sync: no MISP_ADMIN_KEY in /keys/api-keys.txt (provisioner not finished?)"
+    quiet: true
+
+- name: misp_sync - configure
+  module_defaults:
+    ansible.builtin.uri:
+      validate_certs: false
+      body_format: json
+      return_content: true
+      timeout: 120
+      headers:
+        Authorization: "{{ _misp_sync_key }}"
+        Accept: application/json
+        Content-Type: application/json
+  block:
+    - name: misp_sync - hub
+      ansible.builtin.import_tasks: hub.yml
+      when: misp_star_role == 'hub'
+
+    - name: misp_sync - spokes
+      ansible.builtin.import_tasks: spoke.yml
+      when: misp_star_role == 'spoke'
