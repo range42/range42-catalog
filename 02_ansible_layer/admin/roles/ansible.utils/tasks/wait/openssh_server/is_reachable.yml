@@ -20,19 +20,25 @@
   when: ansible_connection | default('ssh') == 'local'
 
 - name: WAIT FOR SSH - VIA ProxyJump
-  shell: >
-    ssh
-    -o BatchMode=yes
-    -o ConnectTimeout=5
-    -o StrictHostKeyChecking=accept-new
-    -o UserKnownHostsFile={{ deployer_cli_user_ssh_known_hosts }} 
-    {{ ARG_vm_ssh_name }} true
+  ansible.builtin.command:
+    # command parses quoted arguments into argv without invoking a shell.
+    # Put trust requirements first: OpenSSH uses the first option supplied.
+    cmd: >-
+      ssh
+      -o BatchMode=yes
+      -o ConnectTimeout=5
+      -o StrictHostKeyChecking=yes
+      -o {{ ('UserKnownHostsFile=' ~ (deployer_cli_user_ssh_known_hosts | to_json)) | quote }}
+      {{ ansible_ssh_common_args | default('') }}
+      {{ ansible_ssh_extra_args | default('') }}
+      {{ ARG_vm_ssh_name | quote }} true
+    expand_argument_vars: false
 
   register: ssh_check
   retries: 60
   delay: 5
   until: ssh_check.rc == 0
-  ignore_errors: true
+  changed_when: false
   delegate_to: localhost
   when: ansible_connection | default('ssh') != 'local'
 #########
