@@ -66,7 +66,9 @@
 
 - name: spoke - decide whether to pair
   ansible.builtin.set_fact:
-    _misp_sync_pair: "{{ _misp_sync_entry | length == 0 or (_misp_sync_test.json.status | default(0) | int) != 1 }}"
+    _misp_sync_pair: >-
+      {{ _misp_sync_entry | length == 0 or (_misp_sync_test.json.status | default(0) | int) != 1
+         or (_misp_sync_h.sync_key_counts[misp_star_team] | int) != 1 }}
 
 - name: spoke - pair with the hub
   ansible.builtin.include_tasks: pair.yml

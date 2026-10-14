@@ -36,12 +36,12 @@ Hub:
 Spoke:
 
 1. Checks that org 1 is the team org.
-2. Pairs with the hub when the server entry is missing or `testConnection` is not `1`.
+2. Pairs with the hub when the server entry is missing, `testConnection` is not `1`, or the team sync user does not have exactly one key on the hub.
 3. Sets `push`, `pull`, `push_sightings`, `push_galaxy_clusters`, `pull_galaxy_clusters`. Pins the hub certificate after a pairing, or when the entry has no `cert_file`.
 4. Creates the same sharing groups locally.
 5. Requires `testConnection` status `1`.
 
-Pairing (`tasks/pair.yml`) revokes **every** key of the team sync user and mints a bootstrap key. It runs `createSync` as the sync user, deletes the bootstrap key (also when `createSync` fails), and then replaces the spoke entry with `servers/import`. Result: one valid key per sync user. A failure at any step is repaired by the next run, because the entry is then missing or `testConnection` is not `1`.
+Pairing (`tasks/pair.yml`) revokes **every** key of the team sync user and mints a bootstrap key. It runs `createSync` as the sync user, deletes the bootstrap key (also when `createSync` fails), and then replaces the spoke entry with `servers/import`. Result: one valid key per sync user. A failure at any step is repaired by the next run, because the entry is then missing, `testConnection` is not `1`, or the key count is not `1`.
 
 ## Hardening (all three are required)
 
@@ -57,7 +57,7 @@ The sync role has `perm_sharing_group = 1`, and `captureSGExisting` skips author
 
 - The controls hold at run time only. A hub group created later through REST is `local = 0` until the next run, and an instructor can still create a group with two team orgs. Sync users cannot create groups (M2, lab test T9c), so only a hub admin can open such a gap.
 - The role manages only the users `sync-<team>@<misp_sync_user_domain>`. It does not check other hub users that have `perm_sync`.
-- M2 copies every other `perm_*` from role 5, including `perm_auth`. A team can read its sync key on its own spoke. Not verified: whether that key can then mint more keys for the sync user. A re-pair revokes all of them, and disabling the user (T7) blocks all of them.
+- M2 keeps `perm_auth` from role 5, because v2.5.50 refuses any API key login without it (`AppController.php:1542`). A team can read its sync key on its own spoke and use it to mint more keys for the sync user (`auth_keys/add`). These keys have the same rights as the sync key. They work until the next run of the role, which re-pairs that spoke and so revokes every key of the user (lab-tested). Disabling the user (T7) blocks all of them at once.
 - A spoke → hub network failure makes `testConnection` fail. Each run then re-pairs (key rotation) and fails at the final check, until the network works again.
 
 ## Behaviour to know
@@ -65,14 +65,22 @@ The sync role has `perm_sharing_group = 1`, and `captureSGExisting` skips author
 - A disabled team sync user (revocation, T7) makes `testConnection` return `4`. The next run then tries to re-pair and fails on that spoke. This is intended, so re-enable the user or remove the spoke from the play.
 - A rebuilt hub certificate breaks `testConnection`. The next run re-pairs and pins the new certificate.
 - `misp_sync_no_log: false` shows the API results for debugging. Those results contain keys.
+- `misp_star_inter_team_sharing` and `misp_sync_no_log` must be real booleans. `-e misp_star_inter_team_sharing=true` passes the string `"true"` and the role fails. Use YAML, JSON or `-e @file.yml`.
+- `--check` is refused at the first task: the role reads its inputs with `command`, and the API calls cannot be simulated.
+- Turning `all teams` off after use: the next run fails on that group (M1). MISP refuses to delete a sharing group that an event, attribute, object or report still uses (`SharingGroup.php` `beforeDelete`). On the hub, delete or re-assign those events first, then delete the group. The spoke copies of the group and of the events stay. A later push of such an event reaches the hub without the group (M2, T9c).
 
 ## Tested
 
-Lab on 2026-10-13/14 with MISP v2.5.50, one hub and two spokes: first run, two idempotent re-runs (`changed=0`), sync and isolation tests T1, T2, T3, T7, the per-team inject, the hub sighting not reaching a spoke, the negative tests T9c, T9d, T10a, T10b, no key in `-v` output, and a repair after the sync key was deleted.
+Lab on 2026-10-13/14 with MISP v2.5.50, one hub and two spokes:
+
+- First run, and idempotent re-runs (`changed=0`).
+- Sync and isolation tests T1, T2, T3, T7, the per-team inject, the hub sighting not reaching a spoke.
+- Negative tests T9c, T9d, T10a, T10b. No key in `-v` output.
+- Repair after: the sync key was deleted; an extra key was minted for a sync user; the spoke server entry was deleted by hand. Only the affected spoke changes, and each sync user ends with one key.
+- `createSync` failing after the bootstrap key was minted: the bootstrap key is deleted, and the spoke entry is not touched.
+- M1 scan: a hub group with two team orgs, with an `all_orgs` server entry, or inactive with two team orgs, makes the run fail.
+- `misp_star_inter_team_sharing: true`: `all teams` is created on the hub (`local = 1`) and on both spokes (the spokes create the missing team orgs by UUID), a team-01 event in it reaches spoke-02, re-run `changed=0`. Turning it off with the procedure above.
 
 ## Not verified
 
-- `misp_star_inter_team_sharing: true` (`all teams`) on the hub and on the spokes. On a spoke, the group references team orgs that do not exist there, and `sharing_groups/add` is expected to create them by UUID.
-- The failure paths inside `pair.yml` (for example `createSync` failing). They were reviewed, not run.
-- Whether `sharing_groups/index` also lists inactive groups for a REST call. The M1 scan may skip them.
-- `--check` mode: not supported, because the role reads its inputs with `command`.
+- More than two spokes.

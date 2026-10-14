@@ -200,7 +200,8 @@
     that: _bad | length == 0
     fail_msg: >-
       misp_sync: sharing groups {{ _bad }} reach more than one team (two team orgs or all_orgs).
-      Possible leak: investigate and fix by hand.
+      Possible leak: investigate and fix by hand. For 'all teams' with misp_star_inter_team_sharing
+      false: delete or re-assign the events using it on the hub, then delete the group (see README).
   vars:
     _team_uuids: "{{ _misp_sync_team_orgs | map(attribute='uuid') | list }}"
     _exempt: "{{ [(_misp_sync_sgs | last).uuid] if misp_star_inter_team_sharing else [] }}"
@@ -265,6 +266,15 @@
   register: _misp_sync_users_out
   no_log: "{{ misp_sync_no_log }}"
 
+## A sync user has perm_auth (needed for any API key login), so a team holding
+## its sync key can mint more keys for it. A count != 1 makes the spoke re-pair,
+## which revokes every key of that user.
+- name: hub - list auth keys
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/auth_keys/index"
+  register: _misp_sync_keys
+  no_log: "{{ misp_sync_no_log }}"
+
 - name: hub - publish pairing facts for the spokes
   ansible.builtin.set_fact:
     misp_sync_hub:
@@ -281,7 +291,15 @@
         {%- set _ = d.update({t: _by_email[('sync-' ~ t ~ '@' ~ misp_sync_user_domain) | lower].id}) -%}
         {%- endfor -%}
         {{ d }}
+      sync_key_counts: >-
+        {%- set d = {} -%}
+        {%- for t in _misp_sync_teams -%}
+        {%- set uid = _by_email[('sync-' ~ t ~ '@' ~ misp_sync_user_domain) | lower].id | string -%}
+        {%- set _ = d.update({t: _key_owners | select('==', uid) | list | length}) -%}
+        {%- endfor -%}
+        {{ d }}
   no_log: "{{ misp_sync_no_log }}"
   vars:
     _users: "{{ _misp_sync_users_out.json | map(attribute='User') | list }}"
     _by_email: "{{ dict(_users | map(attribute='email') | zip(_users)) }}"
+    _key_owners: "{{ _misp_sync_keys.json | map(attribute='AuthKey.user_id') | map('string') | list }}"

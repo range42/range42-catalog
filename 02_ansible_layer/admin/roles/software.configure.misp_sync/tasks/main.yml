@@ -6,6 +6,12 @@
 ## only); the spokes pin the hub certificate for spoke -> hub sync.
 ##
 
+- name: misp_sync - refuse check mode
+  ansible.builtin.assert:
+    that: not ansible_check_mode
+    fail_msg: "misp_sync: --check is not supported (inputs are read with command, API calls are not simulated)."
+    quiet: true
+
 - name: misp_sync - validate inputs
   ansible.builtin.assert:
     that:
@@ -24,7 +30,7 @@
       misp_sync: the play needs exactly one host with misp_star_role=hub and at least one
       spoke, each with a unique misp_star_team ([A-Za-z0-9_-], case-insensitive, not the
       white cell org); misp_star_org_uuid_namespace must be a UUID; misp_star_inter_team_sharing
-      and misp_sync_no_log booleans; misp_star_sightings_sync and misp_star_galaxy_clusters_sync
+      and misp_sync_no_log real booleans (not the string 'true': use YAML or JSON extra vars); misp_star_sightings_sync and misp_star_galaxy_clusters_sync
       'push' or 'both'.
 
 - name: misp_sync - read the local site admin key from the element
