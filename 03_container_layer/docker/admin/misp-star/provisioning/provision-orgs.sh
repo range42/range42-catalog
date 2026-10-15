@@ -4,7 +4,7 @@
 # Idempotent: skips organisations that already exist by name.
 #
 # Reads:
-#   MISP_STAR_MODE          — hub (default) or spoke (feat-1)
+#   MISP_STAR_MODE          — hub (default) or spoke
 #   MISP_TEAMS              — comma-separated team names (default: team-blue,team-red)
 #   MISP_INSTRUCTOR_ORG     — instructor org name        (default: instructors)
 #   MISP_ORG_UUID_NAMESPACE — optional UUIDv5 namespace for deterministic org UUIDs
@@ -28,7 +28,7 @@ case "${MISP_STAR_MODE:-hub}" in
     *) fail "MISP_STAR_MODE must be 'hub' or 'spoke', got: '${MISP_STAR_MODE}'" ;;
 esac
 
-# ── Spoke mode (feat-1) ───────────────────────────────────────────────────────
+# ── Spoke mode ───────────────────────────────────────────────────────
 # On a spoke, org 1 IS the team org: configure-misp.sh already created it with
 # the configured name (MISP_ORG) and UUID. No instructor org, no extra orgs —
 # only the org-ids mapping is written so provision-users.sh targets org 1.
@@ -90,7 +90,7 @@ for entry in data:
 # Creates an org and returns its new ID.
 # When MISP_ORG_UUID_NAMESPACE is set, the org gets uuid5(namespace, name) —
 # the same name yields the same UUID on every instance of the star, so sync
-# matches the org by UUID instead of duplicating it as '<name>_<random>' (feat-1).
+# matches the org by UUID instead of duplicating it as '<name>_<random>'.
 create_org() {
     local name="$1"
     local resp uuid_line=""

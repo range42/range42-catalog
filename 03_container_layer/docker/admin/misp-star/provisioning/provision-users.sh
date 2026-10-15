@@ -183,7 +183,7 @@ INSTRUCTOR_COUNT="${MISP_INSTRUCTOR_COUNT:-1}"
 STAR_MODE="${MISP_STAR_MODE:-hub}"
 
 # Team users publish by default (role 4 — Publisher); MISP_TEAM_USERS_CAN_PUBLISH=false
-# demotes them to role 3 (User), which cannot publish. The lead keeps role 2 (feat-1).
+# demotes them to role 3 (User), which cannot publish. The lead keeps role 2.
 if [ "${MISP_TEAM_USERS_CAN_PUBLISH:-true}" = "false" ]; then
     TEAM_USER_ROLE_ID=3  TEAM_USER_ROLE_NAME="User"       TEAM_USER_ROLE_LABEL="user"
 else
@@ -223,7 +223,7 @@ else
     fi
 
     if [ "${STAR_MODE}" = "spoke" ]; then
-        # Spoke (feat-1): the single team org is org 1 (host org); MISP_TEAMS is ignored.
+        # Spoke: the single team org is org 1 (host org); MISP_TEAMS is ignored.
         TEAM_LIST=("${MISP_ORG:-Default Organisation}")
     else
         IFS=',' read -ra TEAM_LIST <<< "${MISP_TEAMS:-team-blue,team-red}"
@@ -254,7 +254,7 @@ else
         TEAM_LINES+="MISP_${TEAM_UP}_LEAD_PASSWORD=${lead_pass}"$'\n'
         TEAM_LINES+="MISP_${TEAM_UP}_LEAD_KEY=${lead_key}"$'\n'
 
-        # Regular users (role from MISP_TEAM_USERS_CAN_PUBLISH, feat-1)
+        # Regular users (role from MISP_TEAM_USERS_CAN_PUBLISH)
         for i in $(seq 1 "${USERS_PER_TEAM}"); do
             user_email="${team}-user${i}@${USER_DOMAIN}"
             user_pass=$(gen_password)

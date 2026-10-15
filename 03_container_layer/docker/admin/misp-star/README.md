@@ -18,7 +18,7 @@ This copy carries the five `misp-standalone` fixes reported as range42-catalog #
 
 Image tags are renamed to `misp-star:${MISP_VERSION}` and `misp-star-modules:local` so the two elements do not collide on a shared Docker host.
 
-Beyond the carried fixes, this element adds the star identity settings (feat-1, sub-issue 1 of the MISP star feature):
+Beyond the carried fixes, this element adds the star identity settings:
 
 | Setting | Effect |
 |---|---|
@@ -33,7 +33,7 @@ Beyond the carried fixes, this element adds the star identity settings (feat-1, 
 - **Hub** (`MISP_STAR_MODE=hub`, default): behaves like `misp-standalone` — org 1 is `MISP_ORG`, the provisioner creates the instructor org and one local org per entry in `MISP_TEAMS`, plus their users.
 - **Spoke** (`MISP_STAR_MODE=spoke`): set `MISP_ORG` to the team name. Org 1 **is** the team org; the team lead and team users are created in org 1. `MISP_TEAMS` is ignored and no instructor org exists. Team names must not contain spaces.
 
-The hub/spoke pairing (sync users, server entries, sharing groups, certificate exchange) is done by the Ansible role of sub-issue 2, not by this element.
+The hub/spoke pairing (sync users, server entries, sharing groups, certificate exchange) is done by the `software.configure.misp_sync` Ansible role, not by this element.
 
 Sample events: the hub imports `provisioning/sample-events/*.json` as they are (org-only, local to the hub). A spoke imports a **team copy** of each fixture: every `uuid` in the event becomes `uuid5(<fixture uuid>, MISP_ORG)` and the event info gets a `[<team>]` prefix. Without this, the hub and every spoke hold events and attributes with the same UUIDs, and a pushed team event collides with the hub copy. The copies are created org-only and unpublished, because the team sharing group exists only after pairing. `software.configure.misp_sync` binds them to the team sharing group and publishes them.
 

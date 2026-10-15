@@ -95,7 +95,7 @@ log "Creating initial admin via userInit …"
 _INIT_OUT=$(${CAKE} userInit 2>&1 || true)
 log "userInit output: ${_INIT_OUT}"
 
-# ── 5a. Host org UUID (feat-1) ────────────────────────────────────────────────
+# ── 5a. Host org UUID ────────────────────────────────────────────────
 # userInit gives org 1 a random UUID. Sync links orgs by UUID: without a fixed
 # value the receiving instance duplicates the org as '<name>_<random>'.
 # MISP_HOST_ORG_UUID wins; otherwise derive uuid5(MISP_ORG_UUID_NAMESPACE, MISP.org).
