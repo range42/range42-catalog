@@ -6,7 +6,7 @@
 # ──────────────────────────────────────────────────────────────────────────────
 FROM ubuntu:24.04 AS builder
 
-ARG MISP_VERSION=v2.5.39
+ARG MISP_VERSION=v2.5.50
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
