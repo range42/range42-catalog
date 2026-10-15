@@ -40,22 +40,43 @@ if [ ${#fixtures[@]} -eq 0 ]; then
     exit 0
 fi
 
-for fixture in "${fixtures[@]}"; do
-    event_uuid=$(python3 -c "
-import json, sys
-with open(sys.argv[1]) as f:
-    data = json.load(f)
-ev = data.get('Event', data)
-print(ev.get('uuid', ''))
-" "${fixture}" 2>/dev/null || true)
+# Spoke mode: each team gets its own copy of every fixture. Every uuid in the
+# event becomes uuid5(<fixture uuid>, MISP_ORG) and the info gets a "[team]"
+# prefix, so the team copies do not collide with each other or with the hub
+# copy once synced. software.configure.misp_sync derives the same UUIDs to
+# bind the copies to the team sharing group and publish them.
+TEAM=""
+[ "${MISP_STAR_MODE:-hub}" = "spoke" ] && TEAM="${MISP_ORG:?MISP_ORG is required in spoke mode}"
+payload=$(mktemp)
+trap 'rm -f "${payload}"' EXIT
 
-    event_info=$(python3 -c "
-import json, sys
-with open(sys.argv[1]) as f:
+for fixture in "${fixtures[@]}"; do
+    # Writes the payload to send and prints "<event uuid>\t<info>".
+    meta=$(python3 -c "
+import json, sys, uuid
+src, dst, team = sys.argv[1:4]
+with open(src) as f:
     data = json.load(f)
 ev = data.get('Event', data)
-print(ev.get('info', sys.argv[1]))
-" "${fixture}" 2>/dev/null || echo "${fixture}")
+def rekey(node):
+    if isinstance(node, dict):
+        if team and isinstance(node.get('uuid'), str):
+            node['uuid'] = str(uuid.uuid5(uuid.UUID(node['uuid']), team))
+        for v in node.values():
+            rekey(v)
+    elif isinstance(node, list):
+        for v in node:
+            rekey(v)
+if ev.get('uuid'):
+    rekey(ev)
+    if team:
+        ev['info'] = '[%s] %s' % (team, ev.get('info', ''))
+with open(dst, 'w') as f:
+    json.dump(data, f)
+print('%s\t%s' % (ev.get('uuid', ''), ev.get('info', src)))
+" "${fixture}" "${payload}" "${TEAM}" 2>/dev/null || true)
+    event_uuid="${meta%%$'\t'*}"
+    event_info="${meta#*$'\t'}"
 
     if [ -z "${event_uuid}" ]; then
         log "  WARNING: no uuid in ${fixture} — skipping"
@@ -67,7 +88,7 @@ print(ev.get('info', sys.argv[1]))
         continue
     fi
 
-    resp=$(misp_post_file "${fixture}" "/events/add")
+    resp=$(misp_post_file "${payload}" "/events/add")
     created_uuid=$(echo "${resp}" | python3 -c "
 import json, sys
 d = json.load(sys.stdin)

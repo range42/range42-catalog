@@ -35,6 +35,8 @@ Beyond the carried fixes, this element adds the star identity settings (feat-1, 
 
 The hub/spoke pairing (sync users, server entries, sharing groups, certificate exchange) is done by the Ansible role of sub-issue 2, not by this element.
 
+Sample events: the hub imports `provisioning/sample-events/*.json` as they are (org-only, local to the hub). A spoke imports a **team copy** of each fixture: every `uuid` in the event becomes `uuid5(<fixture uuid>, MISP_ORG)` and the event info gets a `[<team>]` prefix. Without this, the hub and every spoke hold events and attributes with the same UUIDs, and a pushed team event collides with the hub copy. The copies are created org-only and unpublished, because the team sharing group exists only after pairing. `software.configure.misp_sync` binds them to the team sharing group and publishes them.
+
 ---
 
 ## Prerequisites
@@ -169,6 +171,22 @@ docker compose up --build -d
 The bootstrap sentinel `/var/www/MISP/.bootstrapped` prevents re-provisioning on container restart. The provisioner runs once (`restart: "no"`) and will not re-run unless the `keys` volume is removed.
 
 If the container is **recreated** (e.g. after `docker compose up --build`), the sentinel is gone but the DB volume persists — the bootstrap detects the existing schema, skips the seed, and proceeds safely.
+
+---
+
+## Instance health
+
+After deploy, **Administration > Server Settings & Maintenance** (`/servers/serverSettings`) shows a red banner with exactly two CRITICAL entries. Both are deliberate for a lab without DNS and without SMTP:
+
+| Setting | Diagnostic | Why it stays |
+|---|---|---|
+| `MISP.baseurl` | `Invalid baseurl, it has to be in the "https://FQDN" format.` | The lab has no DNS. The base URL is the instance IP, and the certificate carries an `IP:` SAN for it (#220). Sync uses this URL. |
+| `MISP.disable_emailing` | `E-mailing is blocked.` | The lab has no SMTP server. The provisioner sets it to `true` on purpose. |
+
+Any other CRITICAL entry is a real problem. The provisioner sets the two values that are CRITICAL only when they are unset:
+
+- `Security.check_sec_fetch_site_header` = `true`. MISP refuses a POST, PUT or AJAX request whose `Sec-Fetch-Site` header is present and is not `same-origin`. Browsers send that header; the sync and API clients (curl) do not, so sync is not affected.
+- `Plugin.AI_services_enable` = `false`. No AI connector runs in this element.
 
 ---
 

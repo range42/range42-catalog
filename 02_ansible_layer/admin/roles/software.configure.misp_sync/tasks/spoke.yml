@@ -143,3 +143,69 @@
     fail_msg: >-
       misp_sync: testConnection to {{ _misp_sync_h.url }} returned status
       {{ _misp_sync_test.json.status | default('none') }} (4 = sync user disabled or key revoked).
+
+#### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+## Demo events: the element creates a team copy of each sample event with
+## uuid uuid5(<fixture uuid>, team), org-only. Bind each copy to the team
+## sharing group and publish it, so it reaches the hub and no other spoke.
+## A copy already bound and published is left alone (no re-publish).
+
+- name: spoke - list the element sample events
+  ansible.builtin.find:
+    paths: "{{ misp_sync_project_dir }}/provisioning/sample-events"
+    patterns: "*.json"
+  register: _misp_sync_fixtures
+
+- name: spoke - read the sample events
+  ansible.builtin.slurp:
+    src: "{{ item.path }}"
+  loop: "{{ _misp_sync_fixtures.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+  register: _misp_sync_fixture_files
+
+- name: spoke - read the team sharing group
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/sharing_groups/view/{{ (_misp_sync_sgs | selectattr('team', '==', misp_star_team) | first).uuid }}"
+  register: _misp_sync_team_sg
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: spoke - read the team demo events
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/events/view/{{ misp_star_team | to_uuid(namespace=(item.content | b64decode | from_json).Event.uuid) }}"
+    status_code: [200, 404]
+  loop: "{{ _misp_sync_fixture_files.results }}"
+  loop_control:
+    label: "{{ item.source | basename }}"
+  register: _misp_sync_demo
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: spoke - bind the demo events to the team sharing group
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/events/edit/{{ item.json.Event.id }}"
+    method: POST
+    body:
+      distribution: 4
+      sharing_group_id: "{{ _misp_sync_team_sg.json.SharingGroup.id }}"
+  loop: "{{ _misp_sync_demo.results | selectattr('status', '==', 200) | list }}"
+  loop_control:
+    label: "{{ item.item.source | basename }}"
+  when: >-
+    item.json.Event.distribution | string != '4'
+    or item.json.Event.sharing_group_id | string != _misp_sync_team_sg.json.SharingGroup.id | string
+  changed_when: true
+  no_log: "{{ misp_sync_no_log }}"
+
+- name: spoke - publish the demo events (push to the hub)
+  ansible.builtin.uri:
+    url: "{{ _misp_sync_api }}/events/publish/{{ item.json.Event.id }}"
+    method: POST
+  loop: "{{ _misp_sync_demo.results | selectattr('status', '==', 200) | list }}"
+  loop_control:
+    label: "{{ item.item.source | basename }}"
+  when: >-
+    not item.json.Event.published | bool
+    or item.json.Event.distribution | string != '4'
+    or item.json.Event.sharing_group_id | string != _misp_sync_team_sg.json.SharingGroup.id | string
+  changed_when: true
+  no_log: "{{ misp_sync_no_log }}"

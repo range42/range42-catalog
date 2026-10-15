@@ -155,6 +155,9 @@ ${CAKE} Admin setSetting "Security.salt"                              "${SALT}" 
 ${CAKE} Admin setSetting "Security.csp_enforce"                       "false"    || true
 ${CAKE} Admin setSetting "Security.allow_unsafe_apikey_named_param"   "false"    || true
 ${CAKE} Admin setSetting "Security.allow_unsafe_cleartext_apikey_logging" "false" || true
+# Refuse cross-site browser POST/PUT/AJAX. Sync and API clients send no
+# Sec-Fetch-Site header, so they pass (AppController.php v2.5.50:167-172).
+${CAKE} Admin setSetting "Security.check_sec_fetch_site_header"       "true"     || true
 
 # ── GnuPG ────────────────────────────────────────────────────────────────────
 # Generate a key so MISP's validator can find it by email; the lab does not
@@ -230,6 +233,8 @@ ${CAKE} Admin setSetting "Plugin.Export_services_port"          "${_MODULES_PORT
 ${CAKE} Admin setSetting "Plugin.Action_services_enable"        "false"           || true
 ${CAKE} Admin setSetting "Plugin.Cortex_services_enable"        "false"           || true
 ${CAKE} Admin setSetting "Plugin.Workflow_enable"               "false"           || true
+# No AI connector in this lab. Unset, it is a CRITICAL diagnostics entry.
+${CAKE} Admin setSetting "Plugin.AI_services_enable"            "false"           || true
 
 # pdfexport is a dynamic module setting — cake Admin setSetting rejects it because
 # MISP only registers it after a live query to misp-modules (not available at boot).

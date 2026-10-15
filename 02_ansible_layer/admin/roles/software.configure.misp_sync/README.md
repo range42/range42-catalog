@@ -40,6 +40,7 @@ Spoke:
 3. Sets `push`, `pull`, `push_sightings`, `push_galaxy_clusters`, `pull_galaxy_clusters`. Pins the hub certificate after a pairing, or when the entry has no `cert_file`.
 4. Creates the same sharing groups locally.
 5. Requires `testConnection` status `1`.
+6. Demo events: for each element fixture `provisioning/sample-events/*.json` (read on the VM under `misp_sync_project_dir`), looks up the team copy `uuid5(<fixture uuid>, <team>)` that the element created. It sets distribution `4` with the team sharing group and publishes it, so the copy reaches the hub and no other spoke. A copy that is already in the team group and published is not touched, so a re-run does not re-publish it. A missing copy (deleted by hand) is not re-created. The hub's own sample events stay org-only.
 
 Pairing (`tasks/pair.yml`) revokes **every** key of the team sync user and mints a bootstrap key. It runs `createSync` as the sync user, deletes the bootstrap key (also when `createSync` fails), and then replaces the spoke entry with `servers/import`. Result: one valid key per sync user. A failure at any step is repaired by the next run, because the entry is then missing, `testConnection` is not `1`, or the key count is not `1`.
 
