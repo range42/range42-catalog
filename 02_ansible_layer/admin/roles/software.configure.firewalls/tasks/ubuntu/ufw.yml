@@ -11,11 +11,6 @@
   ansible.builtin.ufw:
     state: reset
 
-#
-- name: configure - ufw - enable
-  ansible.builtin.ufw:
-    state: enabled
-
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
 
 - name: configure - ufw - set default input to drop
@@ -41,6 +36,11 @@
   loop: "{{ firewall_rules }}"
 
 #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### #### ####
+
+# Apply the caller's rules before enabling the default deny policy.
+- name: configure - ufw - enable
+  ansible.builtin.ufw:
+    state: enabled
 
 #
 - name: configure - ufw - reload
