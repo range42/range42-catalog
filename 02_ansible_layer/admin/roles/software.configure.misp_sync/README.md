@@ -46,37 +46,37 @@ Pairing (`tasks/pair.yml`) revokes **every** key of the team sync user and mints
 
 ## Hardening (all three are required)
 
-The sync role has `perm_sharing_group = 1`, and `captureSGExisting` skips authorisation for sync users on `local = 0` groups. Through that path, a team that is admin on its own spoke can read or feed another team over the allowed spoke → hub 443 path (tracking issue: T9, T9c, T9d, T10).
+The sync role has `perm_sharing_group = 1`, and `captureSGExisting` skips authorisation for sync users on `local = 0` groups. Through that path, a team that is admin on its own spoke can read or feed another team over the allowed spoke → hub 443 path (reported upstream to the MISP project).
 
 | Control | Implementation | Closes |
 |---|---|---|
-| M1 | No hub sharing group with two team orgs. The role fails if a star group does not list exactly its expected orgs, or if any listed hub group has two team orgs or an `all_orgs` server entry. The only exception is `all teams` when `misp_star_inter_team_sharing: true`. | T9 |
-| M2 | Sync users get `misp_sync_role_name`, a copy of role 5 with `perm_sharing_group = 0`. The role fails if any other `perm_*` differs from role 5. | T9c, T10 (`sharing_groups/add`) |
-| L1 | Every hub sharing group gets `local = 1` through a DB update (`mariadb` as root inside the `db` container). REST cannot set it. It runs before any M1 check that can fail, and before any sync user exists. | T9d, T10 |
+| M1 | No hub sharing group with two team orgs. The role fails if a star group does not list exactly its expected orgs, or if any listed hub group has two team orgs or an `all_orgs` server entry. The only exception is `all teams` when `misp_star_inter_team_sharing: true`. | a hub group reaching two teams |
+| M2 | Sync users get `misp_sync_role_name`, a copy of role 5 with `perm_sharing_group = 0`. The role fails if any other `perm_*` differs from role 5. | a sync user creating or joining a group (`sharing_groups/add`) |
+| L1 | Every hub sharing group gets `local = 1` through a DB update (`mariadb` as root inside the `db` container). REST cannot set it. It runs before any M1 check that can fail, and before any sync user exists. | a sync user extending a `local = 0` group |
 
 ## Residual risks
 
-- The controls hold at run time only. A hub group created later through REST is `local = 0` until the next run, and an instructor can still create a group with two team orgs. Sync users cannot create groups (M2, lab test T9c), so only a hub admin can open such a gap.
+- The controls hold at run time only. A hub group created later through REST is `local = 0` until the next run, and an instructor can still create a group with two team orgs. Sync users cannot create groups (M2, lab-tested), so only a hub admin can open such a gap.
 - The role manages only the users `sync-<team>@<misp_sync_user_domain>`. It does not check other hub users that have `perm_sync`.
-- M2 keeps `perm_auth` from role 5, because v2.5.50 refuses any API key login without it (`AppController.php:1542`). A team can read its sync key on its own spoke and use it to mint more keys for the sync user (`auth_keys/add`). These keys have the same rights as the sync key. They work until the next run of the role, which re-pairs that spoke and so revokes every key of the user (lab-tested). Disabling the user (T7) blocks all of them at once.
+- M2 keeps `perm_auth` from role 5, because v2.5.50 refuses any API key login without it (`AppController.php:1542`). A team can read its sync key on its own spoke and use it to mint more keys for the sync user (`auth_keys/add`). These keys have the same rights as the sync key. They work until the next run of the role, which re-pairs that spoke and so revokes every key of the user (lab-tested). Disabling the user blocks all of them at once.
 - A spoke → hub network failure makes `testConnection` fail. Each run then re-pairs (key rotation) and fails at the final check, until the network works again.
 
 ## Behaviour to know
 
-- A disabled team sync user (revocation, T7) makes `testConnection` return `4`. The next run then tries to re-pair and fails on that spoke. This is intended, so re-enable the user or remove the spoke from the play.
+- A disabled team sync user (revocation) makes `testConnection` return `4`. The next run then tries to re-pair and fails on that spoke. This is intended, so re-enable the user or remove the spoke from the play.
 - A rebuilt hub certificate breaks `testConnection`. The next run re-pairs and pins the new certificate.
 - `misp_sync_no_log: false` shows the API results for debugging. Those results contain keys.
 - `misp_star_inter_team_sharing` and `misp_sync_no_log` must be real booleans. `-e misp_star_inter_team_sharing=true` passes the string `"true"` and the role fails. Use YAML, JSON or `-e @file.yml`.
 - `--check` is refused at the first task: the role reads its inputs with `command`, and the API calls cannot be simulated.
-- Turning `all teams` off after use: the next run fails on that group (M1). MISP refuses to delete a sharing group that an event, attribute, object or report still uses (`SharingGroup.php` `beforeDelete`). On the hub, delete or re-assign those events first, then delete the group. The spoke copies of the group and of the events stay. A later push of such an event reaches the hub without the group (M2, T9c).
+- Turning `all teams` off after use: the next run fails on that group (M1). MISP refuses to delete a sharing group that an event, attribute, object or report still uses (`SharingGroup.php` `beforeDelete`). On the hub, delete or re-assign those events first, then delete the group. The spoke copies of the group and of the events stay. A later push of such an event reaches the hub without the group (M2).
 
 ## Tested
 
-Lab on 2026-10-13/14 with MISP v2.5.50, one hub and two spokes:
+Lab-tested with MISP v2.5.50, one hub and two spokes:
 
 - First run, and idempotent re-runs (`changed=0`).
-- Sync and isolation tests T1, T2, T3, T7, the per-team inject, the hub sighting not reaching a spoke.
-- Negative tests T9c, T9d, T10a, T10b. No key in `-v` output.
+- Sync and isolation: a published team event reaches the hub and not the other spoke; a disabled sync user stops syncing; the per-team inject; the hub sighting not reaching a spoke.
+- Negative tests: sharing-group creation and extension attempts with a sync-user key are refused (the M1/M2/L1 paths above). No key in `-v` output.
 - Repair after: the sync key was deleted; an extra key was minted for a sync user; the spoke server entry was deleted by hand. Only the affected spoke changes, and each sync user ends with one key.
 - `createSync` failing after the bootstrap key was minted: the bootstrap key is deleted, and the spoke entry is not touched.
 - M1 scan: a hub group with two team orgs, with an `all_orgs` server entry, or inactive with two team orgs, makes the run fail.

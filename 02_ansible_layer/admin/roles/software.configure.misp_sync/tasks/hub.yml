@@ -152,7 +152,7 @@
 
 ## L1: REST cannot set local=1 (SharingGroup.php captureSGNew/captureSGExisting),
 ## so set it in the DB. Applies to every hub group: a local=0 group can be
-## extended by any sync user (T9d, T10).
+## extended by any sync user.
 - name: hub - store every sharing group as local (L1)
   ansible.builtin.command:
     cmd: >-

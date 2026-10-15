@@ -11,7 +11,7 @@
 misp_star_org_uuid_namespace: ""
 
 # true: also ensure the sharing group 'all teams' (every team org + white cell).
-# This is an inter-team channel by design (tracking issue, T9).
+# This is an inter-team channel by design.
 misp_star_inter_team_sharing: false
 
 # push: spoke -> hub only. both: the teams also receive white cell sightings.
