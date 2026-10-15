@@ -254,6 +254,7 @@ def test_optional_agent_trust_with_real_tls_and_strict_ssh(tmp_path, case):
     try:
         result = subprocess.run([str(binary), "-i", str(inventory), str(playbook)] + (["--check"] if case == "check" else []),
             env={**os.environ, "ANSIBLE_CONFIG": str(ansible_config), "ANSIBLE_ROLES_PATH": str(roles),
+                 "ANSIBLE_HOST_KEY_CHECKING": "True" if case == "off" else "False",
                  "RANGE42_PROXMOX_CA_FILE": str(untrusted) if case == "bad_tls" else str(ca)},
             capture_output=True, text=True, timeout=25)
         output = result.stdout + result.stderr

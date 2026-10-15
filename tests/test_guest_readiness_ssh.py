@@ -13,7 +13,7 @@ import yaml
 TASK = Path(__file__).resolve().parents[1] / "02_ansible_layer/admin/roles/ansible.utils/tasks/wait/openssh_server/is_reachable.yml"
 
 
-def run_wait(tmp_path, *, common="", extra="", alias="guest.invalid", failure=False, wrapper=False):
+def run_wait(tmp_path, *, common="", extra="", alias="guest.invalid", failure=False, wrapper=False, strict=False):
     binary = Path(sys.executable).parent / "ansible-playbook"
     if not binary.is_file():
         pytest.skip("ansible-playbook is not installed")
@@ -55,7 +55,8 @@ def run_wait(tmp_path, *, common="", extra="", alias="guest.invalid", failure=Fa
     config = tmp_path / "ansible.cfg"
     config.write_text("[defaults]\nhost_key_checking=True\nretry_files_enabled=False\n")
     result = subprocess.run([str(binary), "-i", str(inventory), str(playbook)],
-        env={**os.environ, "ANSIBLE_CONFIG": str(config), "PATH": str(bindir) + ":" + os.environ["PATH"]},
+        env={**os.environ, "ANSIBLE_CONFIG": str(config), "PATH": str(bindir) + ":" + os.environ["PATH"],
+             "ANSIBLE_HOST_KEY_CHECKING": "True" if strict else "False"},
         capture_output=True, text=True, timeout=15)
     return result, json.loads(capture.read_text()), known_hosts, marker
 
@@ -77,12 +78,20 @@ def test_remote_readiness_retains_quoted_common_and_extra_ssh_arguments(tmp_path
 
 def test_remote_readiness_cannot_weaken_batch_or_verified_host_policy(tmp_path):
     result, args, _, _ = run_wait(tmp_path,
-        extra="-o BatchMode=no -o StrictHostKeyChecking=no")
+        extra="-o BatchMode=no -o StrictHostKeyChecking=no", strict=True)
     assert result.returncode == 0, result.stdout + result.stderr
     effective = subprocess.run(["ssh", "-G", "-F", "/dev/null", *args], capture_output=True, text=True, check=True)
     options = dict(line.split(" ", 1) for line in effective.stdout.splitlines())
     assert options["batchmode"] == "yes"
     assert options["stricthostkeychecking"] == "true"
+
+
+def test_cli_readiness_retains_accept_new_for_fresh_guests(tmp_path):
+    result, args, _, _ = run_wait(tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+    effective = subprocess.run(["ssh", "-G", "-F", "/dev/null", *args], capture_output=True, text=True, check=True)
+    options = dict(line.split(" ", 1) for line in effective.stdout.splitlines())
+    assert options["stricthostkeychecking"] == "accept-new"
 
 
 def test_remote_readiness_does_not_interpret_the_target_as_shell_code(tmp_path):
@@ -101,7 +110,7 @@ def test_remote_readiness_stops_after_exhausted_ssh_retries(tmp_path):
 
 
 def test_remote_readiness_retains_the_native_adapter_ssh_wrapper(tmp_path):
-    result, args, _, _ = run_wait(tmp_path, wrapper=True)
+    result, args, _, _ = run_wait(tmp_path, wrapper=True, strict=True)
     assert result.returncode == 0, result.stdout + result.stderr
     assert args[:2] == ["-F", "/private/wrapper-config"]
     effective = subprocess.run(["ssh", "-G", "-F", "/dev/null", *args[2:]],

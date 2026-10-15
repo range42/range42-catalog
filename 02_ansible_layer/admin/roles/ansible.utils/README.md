@@ -1,12 +1,19 @@
 # Native guest SSH readiness
 
 `wait/openssh_server/is_reachable.yml` uses the existing SSH configuration and
-common/extra SSH arguments, with `BatchMode=yes` and `StrictHostKeyChecking=yes`.
-An unknown or changed host key fails readiness. The local Ansible connection
-does not open SSH.
+common/extra SSH arguments, with `BatchMode=yes`. Ordinary CLI runs retain
+`StrictHostKeyChecking=accept-new`, so a fresh guest can establish its first
+connection. A changed saved key fails readiness.
+
+When `ANSIBLE_HOST_KEY_CHECKING=True`, readiness uses
+`StrictHostKeyChecking=yes`: unknown and changed keys both fail. The API runner
+sets this existing Ansible flag after selecting its context. These command-line
+trust options take precedence over common/extra SSH arguments. The local
+Ansible connection does not open SSH.
 
 Set `range42_guest_hostkey_from_pve_agent: true` to enroll a previously unknown
-guest before that same strict wait. This option defaults to false and does
+guest before a strict wait, regardless of the Ansible environment flag. This
+option defaults to false and does
 nothing in check mode. It is for qualified Linux guests with an Ed25519 host key,
 static IPv4 cloud-init configuration, and a working QEMU guest agent.
 

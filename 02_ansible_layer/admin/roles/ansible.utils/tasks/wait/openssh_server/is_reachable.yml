@@ -29,12 +29,14 @@
 - name: WAIT FOR SSH - VIA ProxyJump
   ansible.builtin.command:
     # command parses quoted arguments into argv without invoking a shell.
-    # Put trust requirements first: OpenSSH uses the first option supplied.
+    # Keep the CLI's first-use policy. API runners enable Ansible's existing
+    # host-key checking flag; authenticated agent enrollment also requires
+    # strict verification. Put policy first: OpenSSH uses the first option.
     cmd: >-
       ssh
       -o BatchMode=yes
       -o ConnectTimeout=5
-      -o StrictHostKeyChecking=yes
+      -o StrictHostKeyChecking={{ 'yes' if (lookup('env', 'ANSIBLE_HOST_KEY_CHECKING') | default(false, true) | bool or range42_guest_hostkey_from_pve_agent | default(false) | bool) else 'accept-new' }}
       -o {{ ('UserKnownHostsFile=' ~ (deployer_cli_user_ssh_known_hosts | to_json)) | quote }}
       {{ ansible_ssh_common_args | default('') }}
       {{ ansible_ssh_extra_args | default('') }}
