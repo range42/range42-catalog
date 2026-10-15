@@ -160,8 +160,8 @@ ${CAKE} Admin setSetting "Security.allow_unsafe_cleartext_apikey_logging" "false
 ${CAKE} Admin setSetting "Security.check_sec_fetch_site_header"       "true"     || true
 
 # ── GnuPG ────────────────────────────────────────────────────────────────────
-# Generate a key so MISP's validator can find it by email; the lab does not
-# use event signing but having the key clears the diagnostics warning.
+# Generate a key so MISP's validator can find it by email; the element does
+# not use event signing but having the key clears the diagnostics warning.
 _GPG_HOME="/var/www/MISP/.gnupg"
 _GPG_EMAIL="${MISP_ADMIN_EMAIL:-admin@misp.local}"
 mkdir -p "${_GPG_HOME}" && chmod 700 "${_GPG_HOME}"

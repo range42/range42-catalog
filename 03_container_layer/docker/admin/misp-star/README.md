@@ -180,8 +180,8 @@ After deploy, **Administration > Server Settings & Maintenance** (`/servers/serv
 
 | Setting | Diagnostic | Why it stays |
 |---|---|---|
-| `MISP.baseurl` | `Invalid baseurl, it has to be in the "https://FQDN" format.` | The lab has no DNS. The base URL is the instance IP, and the certificate carries an `IP:` SAN for it (#220). Sync uses this URL. |
-| `MISP.disable_emailing` | `E-mailing is blocked.` | The lab has no SMTP server. The provisioner sets it to `true` on purpose. |
+| `MISP.baseurl` | `Invalid baseurl, it has to be in the "https://FQDN" format.` | The element targets DNS-less deployments. The base URL is the instance IP, and the certificate carries an `IP:` SAN for it (#220). Sync uses this URL. |
+| `MISP.disable_emailing` | `E-mailing is blocked.` | The element targets deployments without an SMTP server. The provisioner sets it to `true` on purpose. |
 
 Any other CRITICAL entry is a real problem. The provisioner sets the two values that are CRITICAL only when they are unset:
 
