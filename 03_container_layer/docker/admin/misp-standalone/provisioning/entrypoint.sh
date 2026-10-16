@@ -77,5 +77,8 @@ fi
 
 # ── Start services ────────────────────────────────────────────────────────────
 
+# Apache refuses to start if the PID file left by the previous run names a live process.
+rm -f /run/apache2/apache2.pid
+
 log "Starting supervisord …"
 exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
