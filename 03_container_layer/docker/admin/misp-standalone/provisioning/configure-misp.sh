@@ -85,6 +85,9 @@ ${CAKE} Admin updateWarninglists 2>&1 || true
 
 # ── 5. Initial admin user ─────────────────────────────────────────────────────
 
+# Set before userInit, which names org 1 (the host org) after MISP.org.
+${CAKE} Admin setSetting "MISP.org" "${MISP_ORG:-Default Organisation}" || true
+
 log "Creating initial admin via userInit …"
 _INIT_OUT=$(${CAKE} userInit 2>&1 || true)
 log "userInit output: ${_INIT_OUT}"
@@ -110,7 +113,6 @@ SALT="${MISP_SALT:-}"
 # ── Core identity & connectivity ─────────────────────────────────────────────
 ${CAKE} Admin setSetting "MISP.baseurl"                        "${MISP_BASEURL:-https://localhost}" || true
 ${CAKE} Admin setSetting "MISP.external_baseurl"               "${MISP_BASEURL:-https://localhost}" || true
-${CAKE} Admin setSetting "MISP.org"                            "${MISP_ORG:-Default Organisation}"  || true
 ${CAKE} Admin setSetting "MISP.host_org_id"                    "1"                                  || true
 ${CAKE} Admin setSetting "MISP.python_bin"                     "/opt/misp-venv/bin/python3"         || true
 ${CAKE} Admin setSetting "MISP.email"                          "${MISP_ADMIN_EMAIL:-admin@misp.local}" || true
@@ -158,6 +160,12 @@ ${CAKE} Admin setSetting "MISP.redis_port"                 "${REDIS_PORT:-6379}"
 ${CAKE} Admin setSetting "SimpleBackgroundJobs.enabled"    "true"                 || true
 ${CAKE} Admin setSetting "SimpleBackgroundJobs.redis_host" "${REDIS_HOST:-redis}" || true
 ${CAKE} Admin setSetting "SimpleBackgroundJobs.redis_port" "${REDIS_PORT:-6379}"  || true
+# supervisord XML-RPC endpoint; credentials are generated in entrypoint.sh.
+${CAKE} Admin setSetting "SimpleBackgroundJobs.supervisor_host"     "127.0.0.1"                || true
+${CAKE} Admin setSetting "SimpleBackgroundJobs.supervisor_port"     "9001"                     || true
+${CAKE} Admin setSetting "SimpleBackgroundJobs.supervisor_user"     "${SUPERVISOR_USER:-misp}" || true
+# Output discarded: setSetting echoes the value.
+${CAKE} Admin setSetting "SimpleBackgroundJobs.supervisor_password" "${SUPERVISOR_PASSWORD:-}" >/dev/null 2>&1 || true
 
 # ── Default distributions ─────────────────────────────────────────────────────
 ${CAKE} Admin setSetting "MISP.default_event_distribution"          "0" || true

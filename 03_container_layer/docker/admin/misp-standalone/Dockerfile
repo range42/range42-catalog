@@ -68,6 +68,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gnupg \
         curl \
         openssl \
+        ca-certificates \
     && apt-get install -y php8.3-gnupg 2>/dev/null \
         || (pecl install gnupg \
             && echo "extension=gnupg.so" > /etc/php/8.3/apache2/conf.d/20-gnupg.ini \
@@ -127,7 +128,7 @@ RUN chmod +x \
 
 EXPOSE 80 443
 
-HEALTHCHECK --interval=30s --timeout=10s --start-period=180s --retries=6 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=900s --retries=6 \
     CMD curl -sfk https://localhost/users/login | grep -qi "misp" || exit 1
 
 ENTRYPOINT ["/entrypoint.sh"]

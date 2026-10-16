@@ -31,12 +31,19 @@ if [ -n "${MISP_TLS_CERT:-}" ] && [ -f "${MISP_TLS_CERT}" ] \
     ln -sf "${MISP_TLS_KEY}"  "${KEY_DST}"
 elif [ ! -f "${CERT_DST}" ] || [ ! -f "${KEY_DST}" ]; then
     log "Generating self-signed TLS cert (CN=${MISP_HOSTNAME:-localhost}) …"
+    # IP SAN when MISP_HOSTNAME is an IPv4/IPv6 address, DNS SAN otherwise.
+    _SAN_HOST="${MISP_HOSTNAME:-localhost}"
+    if python3 -c 'import ipaddress,sys; ipaddress.ip_address(sys.argv[1])' "${_SAN_HOST}" 2>/dev/null; then
+        _SAN_PRIMARY="IP:${_SAN_HOST}"
+    else
+        _SAN_PRIMARY="DNS:${_SAN_HOST}"
+    fi
     openssl req -x509 -nodes -days 3650 \
         -newkey rsa:4096 \
         -keyout "${KEY_DST}" \
         -out    "${CERT_DST}" \
         -subj   "/CN=${MISP_HOSTNAME:-localhost}/O=range42/C=FR" \
-        -addext "subjectAltName=DNS:${MISP_HOSTNAME:-localhost},DNS:localhost,IP:127.0.0.1" \
+        -addext "subjectAltName=${_SAN_PRIMARY},DNS:localhost,IP:127.0.0.1" \
         2>/dev/null
     chmod 644 "${CERT_DST}"
     chmod 600 "${KEY_DST}"
@@ -44,6 +51,17 @@ elif [ ! -f "${CERT_DST}" ] || [ ! -f "${KEY_DST}" ]; then
 else
     log "TLS cert already present at ${CERT_DST} — skipping generation."
 fi
+
+# ── Supervisor RPC credentials ────────────────────────────────────────────────
+# Generated once per instance and kept in the keys volume. Exported for
+# configure-misp.sh (stores them in MISP) and supervisord (reads them from env).
+SUPERVISOR_USER="${SUPERVISOR_USER:-misp}"
+_SUPERVISOR_PW_FILE="/keys/.supervisor-password"
+if [ ! -s "${_SUPERVISOR_PW_FILE}" ]; then
+    ( umask 077; openssl rand -hex 24 > "${_SUPERVISOR_PW_FILE}" )
+fi
+SUPERVISOR_PASSWORD="$(cat "${_SUPERVISOR_PW_FILE}")"
+export SUPERVISOR_USER SUPERVISOR_PASSWORD
 
 # ── First-boot bootstrap ──────────────────────────────────────────────────────
 
@@ -58,6 +76,9 @@ else
 fi
 
 # ── Start services ────────────────────────────────────────────────────────────
+
+# Apache refuses to start if the PID file left by the previous run names a live process.
+rm -f /run/apache2/apache2.pid
 
 log "Starting supervisord …"
 exec /usr/bin/supervisord -c /etc/supervisor/supervisord.conf
