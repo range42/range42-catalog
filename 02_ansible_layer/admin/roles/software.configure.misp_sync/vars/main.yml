@@ -1,0 +1,43 @@
+---
+## Derived values. The hub and the team list come from the play hosts.
+
+_misp_sync_star: "{{ ansible_play_hosts_all | map('extract', hostvars) | selectattr('misp_star_role', 'defined') | list }}"
+_misp_sync_hubs: "{{ _misp_sync_star | selectattr('misp_star_role', '==', 'hub') | map(attribute='inventory_hostname') | list }}"
+_misp_sync_hub: "{{ _misp_sync_hubs | first }}"
+_misp_sync_teams: "{{ _misp_sync_star | selectattr('misp_star_role', '==', 'spoke') | map(attribute='misp_star_team', default='') | list }}"
+
+_misp_sync_api: "https://127.0.0.1:{{ misp_sync_https_port }}"
+_misp_sync_sightings_policy: "{{ {'push': 0, 'both': 3}[misp_star_sightings_sync] }}"
+
+# Team orgs: uuid5(namespace, name), as the element provisions them.
+_misp_sync_team_orgs: >-
+  {%- set out = [] -%}
+  {%- for t in _misp_sync_teams -%}
+  {%- set _ = out.append({'name': t, 'uuid': t | to_uuid(namespace=misp_star_org_uuid_namespace)}) -%}
+  {%- endfor -%}
+  {{ out }}
+
+# Same sharing groups on the hub and on the spokes, matched by UUID.
+# members = the team orgs (SharingGroupOrg entries); the white cell
+# (extend 1) is added at use time.
+_misp_sync_sgs: >-
+  {%- set out = [] -%}
+  {%- for o in _misp_sync_team_orgs -%}
+  {%- set _ = out.append({'team': o.name, 'name': o.name ~ ' -> white cell',
+        'uuid': ('sharing-group:' ~ o.name) | to_uuid(namespace=misp_star_org_uuid_namespace),
+        'members': [{'extend': 0, 'Organisation': o}]}) -%}
+  {%- endfor -%}
+  {%- if misp_star_inter_team_sharing | bool -%}
+  {%- set _ = out.append({'team': '', 'name': 'all teams',
+        'uuid': 'sharing-group:all-teams' | to_uuid(namespace=misp_star_org_uuid_namespace),
+        'members': out | map(attribute='members') | flatten}) -%}
+  {%- endif -%}
+  {{ out }}
+
+_misp_sync_server_fields:
+  push: true
+  pull: true
+  push_sightings: true
+  push_galaxy_clusters: true
+  pull_galaxy_clusters: "{{ misp_star_galaxy_clusters_sync == 'both' }}"
+  self_signed: false
