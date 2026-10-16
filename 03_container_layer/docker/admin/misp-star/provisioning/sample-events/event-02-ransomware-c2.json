@@ -105,7 +105,7 @@
       },
       {
         "uuid": "c0ffee02-cafe-4bab-b000-00000000002b",
-        "type": "hostname",
+        "type": "target-machine",
         "category": "Targeting data",
         "value": "WORKSTATION-FINANCE-01",
         "to_ids": false,

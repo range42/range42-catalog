@@ -3,7 +3,9 @@
 # Idempotent: checks event UUID before creating; skips if already present.
 #
 # Add more fixtures by dropping .json files into provisioning/sample-events/.
-# Each file must contain a top-level "Event" object with a "uuid" field.
+# Each file must contain a top-level "Event" object with a "uuid" field;
+# software.configure.misp_sync reads .Event.uuid too. A file without it stops
+# the provisioner with an error naming the file.
 set -euo pipefail
 
 MISP_URL="https://misp"
@@ -57,7 +59,9 @@ import json, sys, uuid
 src, dst, team = sys.argv[1:4]
 with open(src) as f:
     data = json.load(f)
-ev = data.get('Event', data)
+ev = data.get('Event') if isinstance(data, dict) else None
+if not isinstance(ev, dict) or not isinstance(ev.get('uuid'), str) or not ev['uuid']:
+    sys.exit('[provision-sample-events] ERROR: %s: no top-level \"Event\" object with a \"uuid\" (bare event JSON is not accepted)' % src)
 def rekey(node):
     if isinstance(node, dict):
         if team and isinstance(node.get('uuid'), str):
@@ -67,21 +71,15 @@ def rekey(node):
     elif isinstance(node, list):
         for v in node:
             rekey(v)
-if ev.get('uuid'):
-    rekey(ev)
-    if team:
-        ev['info'] = '[%s] %s' % (team, ev.get('info', ''))
+rekey(ev)
+if team:
+    ev['info'] = '[%s] %s' % (team, ev.get('info', ''))
 with open(dst, 'w') as f:
     json.dump(data, f)
-print('%s\t%s' % (ev.get('uuid', ''), ev.get('info', src)))
-" "${fixture}" "${payload}" "${TEAM}" 2>/dev/null || true)
+print('%s\t%s' % (ev['uuid'], ev.get('info', src)))
+" "${fixture}" "${payload}" "${TEAM}")
     event_uuid="${meta%%$'\t'*}"
     event_info="${meta#*$'\t'}"
-
-    if [ -z "${event_uuid}" ]; then
-        log "  WARNING: no uuid in ${fixture} — skipping"
-        continue
-    fi
 
     if misp_get "/events/view/${event_uuid}" >/dev/null 2>&1; then
         log "  Already exists (${event_uuid}): ${event_info}"

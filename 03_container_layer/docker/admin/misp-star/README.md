@@ -37,6 +37,8 @@ The hub/spoke pairing (sync users, server entries, sharing groups, certificate e
 
 Sample events: the hub imports `provisioning/sample-events/*.json` as they are (org-only, local to the hub). A spoke imports a **team copy** of each fixture: every `uuid` in the event becomes `uuid5(<fixture uuid>, MISP_ORG)` and the event info gets a `[<team>]` prefix. Without this, the hub and every spoke hold events and attributes with the same UUIDs, and a pushed team event collides with the hub copy. The copies are created org-only and unpublished, because the team sharing group exists only after pairing. `software.configure.misp_sync` binds them to the team sharing group and publishes them.
 
+Fixture format: each fixture must wrap the event in a top-level `Event` object with a `uuid` (`{"Event": {"uuid": ..., ...}}`), as MISP exports it. `software.configure.misp_sync` finds the team copies by `.Event.uuid`, so a bare event object would import but stay invisible to the role. The provisioner therefore refuses it and stops with `ERROR: <file>: no top-level "Event" object with a "uuid"`. Every attribute must also pass MISP validation (allowed category/type pair, valid value): `/events/add` still creates the event but drops an invalid attribute, and records `Attribute dropped due to validation` in the MISP audit log.
+
 ---
 
 ## Prerequisites
@@ -185,8 +187,10 @@ After deploy, **Administration > Server Settings & Maintenance** (`/servers/serv
 
 Any other CRITICAL entry is a real problem. The provisioner sets the two values that are CRITICAL only when they are unset:
 
-- `Security.check_sec_fetch_site_header` = `true`. MISP refuses a POST, PUT or AJAX request whose `Sec-Fetch-Site` header is present and is not `same-origin`. Browsers send that header; the sync and API clients (curl) do not, so sync is not affected.
+- `Security.check_sec_fetch_site_header` = `true`. MISP refuses a POST, PUT or AJAX request whose `Sec-Fetch-Site` header is present and is not `same-origin`. Browsers send that header; the sync and API clients (curl) do not, so sync is not affected. It is `true` here because it blocks cross-site browser requests (CSRF) and the element serves one address only. Upstream warns that this check "can actively prevent the operation of instances hosted under multiple addresses" (`app/Model/Server.php` v2.5.50:2508). If the instance is later served under more than one address (a reverse proxy, an alternate hostname), set it to `false`: `docker compose exec misp runuser -u www-data -- /var/www/MISP/app/Console/cake Admin setSetting "Security.check_sec_fetch_site_header" false`.
 - `Plugin.AI_services_enable` = `false`. No AI connector runs in this element.
+
+Sample events: each instance stores every attribute of every fixture (spokes: of the team copies). Fixtures must use the `Event` wrapper (see [Fixture format](#hub-and-spoke-modes)); a missing wrapper stops the provisioner, and a lower stored count means MISP dropped an invalid attribute (search the audit log for `Attribute dropped due to validation`).
 
 ---
 
