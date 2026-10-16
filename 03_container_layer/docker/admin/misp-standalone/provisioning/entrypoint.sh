@@ -31,12 +31,19 @@ if [ -n "${MISP_TLS_CERT:-}" ] && [ -f "${MISP_TLS_CERT}" ] \
     ln -sf "${MISP_TLS_KEY}"  "${KEY_DST}"
 elif [ ! -f "${CERT_DST}" ] || [ ! -f "${KEY_DST}" ]; then
     log "Generating self-signed TLS cert (CN=${MISP_HOSTNAME:-localhost}) …"
+    # IP SAN when MISP_HOSTNAME is an IPv4/IPv6 address, DNS SAN otherwise.
+    _SAN_HOST="${MISP_HOSTNAME:-localhost}"
+    if python3 -c 'import ipaddress,sys; ipaddress.ip_address(sys.argv[1])' "${_SAN_HOST}" 2>/dev/null; then
+        _SAN_PRIMARY="IP:${_SAN_HOST}"
+    else
+        _SAN_PRIMARY="DNS:${_SAN_HOST}"
+    fi
     openssl req -x509 -nodes -days 3650 \
         -newkey rsa:4096 \
         -keyout "${KEY_DST}" \
         -out    "${CERT_DST}" \
         -subj   "/CN=${MISP_HOSTNAME:-localhost}/O=range42/C=FR" \
-        -addext "subjectAltName=DNS:${MISP_HOSTNAME:-localhost},DNS:localhost,IP:127.0.0.1" \
+        -addext "subjectAltName=${_SAN_PRIMARY},DNS:localhost,IP:127.0.0.1" \
         2>/dev/null
     chmod 644 "${CERT_DST}"
     chmod 600 "${KEY_DST}"

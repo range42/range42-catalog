@@ -68,6 +68,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         gnupg \
         curl \
         openssl \
+        ca-certificates \
     && apt-get install -y php8.3-gnupg 2>/dev/null \
         || (pecl install gnupg \
             && echo "extension=gnupg.so" > /etc/php/8.3/apache2/conf.d/20-gnupg.ini \
