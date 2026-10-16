@@ -45,6 +45,17 @@ else
     log "TLS cert already present at ${CERT_DST} — skipping generation."
 fi
 
+# ── Supervisor RPC credentials ────────────────────────────────────────────────
+# Generated once per instance and kept in the keys volume. Exported for
+# configure-misp.sh (stores them in MISP) and supervisord (reads them from env).
+SUPERVISOR_USER="${SUPERVISOR_USER:-misp}"
+_SUPERVISOR_PW_FILE="/keys/.supervisor-password"
+if [ ! -s "${_SUPERVISOR_PW_FILE}" ]; then
+    ( umask 077; openssl rand -hex 24 > "${_SUPERVISOR_PW_FILE}" )
+fi
+SUPERVISOR_PASSWORD="$(cat "${_SUPERVISOR_PW_FILE}")"
+export SUPERVISOR_USER SUPERVISOR_PASSWORD
+
 # ── First-boot bootstrap ──────────────────────────────────────────────────────
 
 if [ ! -f "${SENTINEL}" ] || [ ! -f "/var/www/MISP/app/Config/core.php" ]; then
