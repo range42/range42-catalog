@@ -17,14 +17,14 @@
   ansible.builtin.include_tasks: pve_agent_hostkey.yml
   when:
     - not ansible_check_mode
-    - ansible_connection | default('ssh') != 'local'
+    - hostvars[inventory_hostname].ansible_connection | default('ssh') != 'local'
     - range42_guest_hostkey_from_pve_agent | default(false) | bool
 
 - name: WAIT FOR LOCAL INVENTORY CONNECTION
   ansible.builtin.wait_for_connection:
     timeout: 30
     sleep: 1
-  when: ansible_connection | default('ssh') == 'local'
+  when: hostvars[inventory_hostname].ansible_connection | default('ssh') == 'local'
 
 - name: WAIT FOR SSH - VIA ProxyJump
   ansible.builtin.command:
@@ -49,7 +49,7 @@
   until: ssh_check.rc == 0
   changed_when: false
   delegate_to: localhost
-  when: ansible_connection | default('ssh') != 'local'
+  when: hostvars[inventory_hostname].ansible_connection | default('ssh') != 'local'
 #########
 #########
 #########
