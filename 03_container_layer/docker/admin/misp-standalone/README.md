@@ -135,7 +135,7 @@ Normal — MISP has ~30 submodules fetched in parallel. The `--progress` flag sh
 
 **MISP healthcheck keeps failing / container restart loop**
 Check logs: `docker compose logs misp`. Common causes:
-- DB not yet ready — `start_period` is 3 minutes; increase in `docker-compose.yml` for slow hardware.
+- DB not yet ready — `start_period` is 15 minutes; increase in `docker-compose.yml` for slow hardware.
 - Bootstrap aborted — look for `[configure]` lines to see where it stopped.
 
 **Provisioner exits with "Keys file already exists"**

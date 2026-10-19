@@ -83,7 +83,7 @@ services:
       test: ["CMD", "curl", "-sfk", "https://localhost/users/login"]
       interval: 30s
       timeout: 10s
-      start_period: 180s
+      start_period: 900s
       retries: 6
 
   # ── Provisioner ────────────────────────────────────────────────────────────
