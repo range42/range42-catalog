@@ -3,3 +3,7 @@
 # Useful for lab/training environments where a prior partial run may leave
 # containers on orphaned Docker networks.
 FORCE_RECREATE: "NO"
+
+# Opt in when the destination .env is managed separately from catalog sources.
+# Default false retains intentional source .env delivery and updates.
+DOCKER_COMPOSE_PRESERVE_REMOTE_ENV: false
