@@ -1,0 +1,104 @@
+---
+- name: Inspect the declared native SSH target and private pins
+  range42_guest_hostkey_pin:
+    phase: inspect
+    ssh_host: "{{ ARG_vm_ssh_name }}"
+    expected_ip: "{{ global_vm_ci_ip }}"
+    known_hosts_file: "{{ deployer_cli_user_ssh_known_hosts }}"
+    ssh_common_args: "{{ ansible_ssh_common_args | default('') }}"
+    ssh_extra_args: "{{ ansible_ssh_extra_args | default('') }}"
+  register: r42_guest_pin
+  delegate_to: localhost
+  become: false
+  vars:
+    ansible_become: false
+
+- name: Enroll only an unknown owned guest through the verified PVE API
+  when: not r42_guest_pin.existing
+  delegate_to: localhost
+  become: false
+  vars:
+    ansible_become: false
+  no_log: true
+  block:
+    - name: Require authenticated TLS and exact native guest inputs
+      ansible.builtin.assert:
+        that:
+          - proxmox_api_validate_certs | default(false) | bool
+          - global_vm_id | int > 0
+          - global_vm_name | length > 0
+          - proxmox_node is match('^[A-Za-z0-9][A-Za-z0-9_.-]*$')
+          - proxmox_api_user | length > 0
+          - proxmox_api_token_id | length > 0
+          - proxmox_api_token_secret | length > 0
+
+    - name: Read the exact VM configuration through authenticated PVE HTTPS
+      ansible.builtin.uri: &pve_config_read
+        url: "https://{{ proxmox_api_host }}/api2/json/nodes/{{ proxmox_node }}/qemu/{{ global_vm_id | int }}/config"
+        method: GET
+        follow_redirects: none
+        headers:
+          Authorization: "PVEAPIToken={{ proxmox_api_user }}!{{ proxmox_api_token_id }}={{ proxmox_api_token_secret }}"
+        validate_certs: true
+        ca_path: "{{ lookup('env', 'RANGE42_PROXMOX_CA_FILE') | default(omit, true) }}"
+        return_content: true
+        status_code: 200
+      register: r42_guest_config
+      changed_when: false
+
+    - name: Bind the VM name and declared static IPv4 before reading its public key
+      ansible.builtin.assert:
+        that:
+          - r42_guest_config.json.data.name == global_vm_name
+          - not (r42_guest_config.json.data.template | default(false) | bool)
+          - r42_guest_config.json.data.digest is match('^[a-f0-9]{40}$')
+          - (r42_guest_config.json.data.ipconfig0 | default('')) is search('(^|,)ip=' ~ (global_vm_ci_ip | regex_escape) ~ '/[0-9]+(,|$)')
+
+    - name: Read only the fixed Ed25519 public host key through QGA
+      ansible.builtin.uri:
+        url: "https://{{ proxmox_api_host }}/api2/json/nodes/{{ proxmox_node }}/qemu/{{ global_vm_id | int }}/agent/file-read?file=%2Fetc%2Fssh%2Fssh_host_ed25519_key.pub&count=4096&decode=1&offset=0"
+        method: GET
+        follow_redirects: none
+        headers:
+          Authorization: "PVEAPIToken={{ proxmox_api_user }}!{{ proxmox_api_token_id }}={{ proxmox_api_token_secret }}"
+        validate_certs: true
+        ca_path: "{{ lookup('env', 'RANGE42_PROXMOX_CA_FILE') | default(omit, true) }}"
+        return_content: true
+        status_code: [200, 500, 503]
+      register: r42_guest_public_key
+      retries: 60
+      delay: 5
+      until: r42_guest_public_key.status | default(-1) not in [500, 503]
+      changed_when: false
+
+    - name: Refuse malformed or truncated QGA responses
+      ansible.builtin.assert:
+        that:
+          - r42_guest_public_key.status == 200
+          - r42_guest_public_key.json.data.content is string
+          - r42_guest_public_key.json.data.truncated | default(false) in [false, 0]
+          - r42_guest_public_key.json.data.content | length <= 4096
+
+    - name: Recheck the VM identity before recording its public key
+      ansible.builtin.uri: *pve_config_read
+      register: r42_guest_config_after
+      changed_when: false
+
+    - name: Refuse changed VM configuration during enrollment
+      ansible.builtin.assert:
+        that:
+          - r42_guest_config_after.json.data.digest == r42_guest_config.json.data.digest
+          - r42_guest_config_after.json.data.name == global_vm_name
+          - not (r42_guest_config_after.json.data.template | default(false) | bool)
+          - r42_guest_config_after.json.data.ipconfig0 == r42_guest_config.json.data.ipconfig0
+
+    - name: Append the verified key only while the target remains unknown
+      range42_guest_hostkey_pin:
+        phase: append
+        ssh_host: "{{ ARG_vm_ssh_name }}"
+        expected_ip: "{{ global_vm_ci_ip }}"
+        known_hosts_file: "{{ deployer_cli_user_ssh_known_hosts }}"
+        ssh_common_args: "{{ ansible_ssh_common_args | default('') }}"
+        ssh_extra_args: "{{ ansible_ssh_extra_args | default('') }}"
+        expected_state: "{{ r42_guest_pin.state }}"
+        public_key: "{{ r42_guest_public_key.json.data.content }}"
