@@ -1,0 +1,24 @@
+---
+##
+## ISSUE 171
+##
+
+# Base URL of the Gitea instance, reachable from the target host.
+# In gitea_lab: http://localhost:3000 (role runs on the Gitea VM itself).
+# In cross-service scenarios: http://<gitea_vm_ip>:3000
+gitea_oauth2_base_url: "http://localhost:3000"
+
+gitea_oauth2_admin_user: ""
+gitea_oauth2_admin_pass: ""
+
+# Name of the OAuth2 application to register in Gitea (must be unique).
+# Use a stable, lowercase slug: mattermost, rocketchat, nextcloud, …
+gitea_oauth2_app_name: "service"
+
+# Full redirect URI for the consumer service's OAuth2 callback.
+# Example: https://mattermost.lab/oauth/gitea/complete
+gitea_oauth2_redirect_uri: ""
+
+# Whether to treat the client as confidential (has a secret).
+# True for server-side apps (Mattermost, Rocket.Chat, Nextcloud).
+gitea_oauth2_confidential: true

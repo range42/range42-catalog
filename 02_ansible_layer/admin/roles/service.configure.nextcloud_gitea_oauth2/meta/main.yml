@@ -1,0 +1,6 @@
+---
+galaxy_info:
+  author: nc3lu
+  description: Enable Nextcloud user_oidc app and register Gitea as OIDC provider via occ
+  min_ansible_version: "2.15"
+dependencies: []

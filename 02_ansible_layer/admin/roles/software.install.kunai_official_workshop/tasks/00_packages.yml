@@ -1,0 +1,17 @@
+---
+# apt packages for the kunai toolchain. Runs as root (play become).
+# lock_timeout guards against the fresh-VM dpkg race with unattended-upgrades.
+
+- name: kunai - apt install toolchain packages (yara, pipx, helpers)
+  ansible.builtin.apt:
+    name:
+      - yara
+      - pipx
+      - jq
+      - curl
+      - wget
+      - gnupg
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+    lock_timeout: 300

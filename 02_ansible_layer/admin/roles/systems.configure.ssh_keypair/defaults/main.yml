@@ -1,0 +1,10 @@
+---
+# systems.configure.ssh_keypair - defaults
+#
+# Places a user's SSH keypair (private + optional public) into ~<TARGET_USER>/.ssh/
+# so the user can SSH OUT (e.g. the trainer reaching the student VMs).
+
+TARGET_USER: ""                  # user whose ~/.ssh receives the keypair (required)
+SSH_KEYPAIR_PRIVATE_SRC: ""      # path on the controller to the private key (required)
+SSH_KEYPAIR_PUBLIC_SRC: ""       # path on the controller to the public key (optional)
+SSH_KEYPAIR_NAME: "id_ed25519"   # destination filename in ~<TARGET_USER>/.ssh/

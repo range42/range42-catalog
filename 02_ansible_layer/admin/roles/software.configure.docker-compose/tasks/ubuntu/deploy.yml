@@ -27,10 +27,11 @@
         src: "{{ LOCAL__PROJECT_DIR }}/"
         dest: "{{ REMOTE_PROJECT_DIR }}/"
         recursive: yes
-        rsync_opts:
-          - "--exclude=poc/"
-          - "-e ssh --info=progress2"
-      delegate_to: localhost
+        use_ssh_args: true
+        verify_host: true
+        rsync_opts: >-
+          {{ ['--exclude=poc/', '--info=progress2']
+             + (['--exclude=/.env'] if DOCKER_COMPOSE_PRESERVE_REMOTE_ENV | bool else []) }}
       become: false
       when: SEND_POC_DIR == "NO"
 
@@ -40,9 +41,11 @@
         src: "{{ LOCAL__PROJECT_DIR }}/"
         dest: "{{ REMOTE_PROJECT_DIR }}/"
         recursive: yes
-        rsync_opts:
-          - "-e ssh --info=progress2"
-      delegate_to: localhost
+        use_ssh_args: true
+        verify_host: true
+        rsync_opts: >-
+          {{ ['--info=progress2']
+             + (['--exclude=/.env'] if DOCKER_COMPOSE_PRESERVE_REMOTE_ENV | bool else []) }}
       become: false
       when: SEND_POC_DIR == "YES"
 
@@ -55,6 +58,8 @@
       community.docker.docker_compose_v2:
         project_src: "{{ REMOTE_PROJECT_DIR }}"
         state: present
+        recreate: "{{ 'always' if FORCE_RECREATE == 'YES' else 'auto' }}"
+        remove_orphans: "{{ FORCE_RECREATE == 'YES' }}"
     #
     - name: DOCKER - GET CONTAINER INFO {{ LABEL_PROJET_NAME }}
       community.docker.docker_container_info:

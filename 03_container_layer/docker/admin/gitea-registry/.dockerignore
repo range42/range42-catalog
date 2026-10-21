@@ -1,0 +1,7 @@
+.env
+*.env
+*.key
+*.pem
+*.p12
+*.pfx
+README.md

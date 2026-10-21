@@ -7,5 +7,6 @@
       - nmap
       - tcpdump
       - net-tools
+      - iputils-ping
 
   when: ansible_facts.distribution == 'Ubuntu'

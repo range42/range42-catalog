@@ -1,0 +1,142 @@
+#
+# ISSUE 141, ISSUE 171
+#
+
+services:
+
+  db:
+    image: postgres:16-alpine
+    container_name: gitea-db
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-gitea}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGEME_replace_before_deploying}
+      POSTGRES_DB:       ${POSTGRES_DB:-gitea}
+    volumes:
+      - gitea-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gitea}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  cert-gen:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gitea-cert-gen
+    user: root
+    entrypoint: ["/bin/bash", "/cert-gen.sh"]
+    env_file: .env
+    environment:
+      GITEA_TLS_MODE: ${GITEA_TLS_MODE:-disabled}
+      GITEA_DOMAIN:   ${GITEA_DOMAIN:-localhost}
+    volumes:
+      - gitea-certs:/certs
+      - ./provisioning/cert-gen.sh:/cert-gen.sh:ro
+    restart: "no"
+
+  gitea: &main
+    image: gitea/gitea:latest
+    container_name: gitea
+    environment:
+      USER_UID: "1000"
+      USER_GID: "1000"
+      GITEA__database__DB_TYPE:  postgres
+      GITEA__database__HOST:     db:5432
+      GITEA__database__NAME:     ${POSTGRES_DB:-gitea}
+      GITEA__database__USER:     ${POSTGRES_USER:-gitea}
+      GITEA__database__PASSWD:   ${POSTGRES_PASSWORD:-CHANGEME_replace_before_deploying}
+      GITEA__server__DOMAIN:         ${GITEA_DOMAIN:-localhost}
+      GITEA__server__ROOT_URL:       ${GITEA_BASE_URL:-http://localhost:3000}
+      GITEA__server__HTTP_PORT:      "3000"
+      GITEA__server__SSH_DOMAIN:     ${GITEA_DOMAIN:-localhost}
+      GITEA__server__START_SSH_SERVER: "true"
+      # SSH_LISTEN_PORT inside the container is moved off :22 to avoid colliding
+      # with the system openssh shipped enabled in the gitea-alpine image (both
+      # would try to bind :22 -> Gitea built-in fails at boot with
+      # "listen tcp :22: bind: address already in use"). The Gitea built-in
+      # SSH listens on :2022 instead, and the ports mapping below routes
+      # host:<SSH_PORT> -> container:2022. SSH_PORT (the externally advertised
+      # port in clone URLs) is unchanged.
+      GITEA__server__SSH_LISTEN_PORT: "2022"
+      GITEA__server__SSH_PORT:        "${SSH_PORT:-2222}"
+      GITEA__server__PROTOCOL:        "${GITEA_PROTOCOL:-http}"
+      GITEA__server__CERT_FILE:       "/certs/server.crt"
+      GITEA__server__KEY_FILE:        "/certs/server.key"
+      GITEA__service__DISABLE_REGISTRATION: "true"
+      GITEA__security__INSTALL_LOCK:    "true"
+      GITEA__security__SECRET_KEY:      ${GITEA_SECRET_KEY:-please-change-me-in-production}
+      GITEA__security__INTERNAL_TOKEN:  ${GITEA_INTERNAL_TOKEN:-please-change-me-in-production}
+      # JWT_SECRET enables id_token signing — required for full OIDC compliance.
+      # Without it the /.well-known/openid-configuration endpoint is present but
+      # id_token is absent from token responses (OAuth2-only mode).
+      GITEA__oauth2__JWT_SECRET:        ${GITEA_OAUTH2_JWT_SECRET:-please-change-me-in-production}
+      # Allow webhook delivery to HTTPS endpoints with self-signed certs (lab only).
+      GITEA__webhook__SKIP_TLS_VERIFY:   "true"
+      # Allow webhooks to call back to the VM's own IP (private range).
+      # Without this Gitea denies delivery to 192.168.x.x with SSRF protection.
+      # [security] is the current section for this key — the [webhook] variant
+      # is deprecated (removal in v28, image tag is :latest) and logs a boot
+      # warning. Same switch already verified on gitea-registry (ed2c5b7).
+      GITEA__security__ALLOWED_HOST_LIST: "private"
+    volumes:
+      - gitea-data:/data
+      - gitea-certs:/certs:ro
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "${HTTP_PORT:-3000}:3000"
+      # SSH port maps host -> container:2022 (Gitea built-in SSH).
+      # Image's system openssh stays on container:22 but is not externally
+      # mapped (idle process, harmless).
+      - "${SSH_PORT:-2222}:2022"
+    depends_on:
+      db:
+        condition: service_healthy
+      cert-gen:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fk ${GITEA_PROTOCOL:-http}://localhost:3000/api/v1/version"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+#
+# #### #### do not remove.
+#
+#   debug:
+#     <<: *main
+#     container_name: gitea-debug
+#     ports:
+#       - "60443:443"
+#     command: ["sleep", "infinity"]
+
+  provisioner:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gitea-provisioner
+    user: root
+    env_file: .env
+    environment:
+      GITEA_URL: "${GITEA_PROTOCOL:-http}://gitea:3000"
+    volumes:
+      - gitea-data:/data
+      - gitea-tokens:/tokens
+      - ./provisioning/provision.sh:/provisioning/provision.sh:ro
+      - ./provisioning/provision-users.sh:/provisioning/provision-users.sh:ro
+      - ./provisioning/provision-org.sh:/provisioning/provision-org.sh:ro
+      - ./provisioning/provision-tokens.sh:/provisioning/provision-tokens.sh:ro
+      - ./provisioning/provision-oauth2.sh:/provisioning/provision-oauth2.sh:ro
+    depends_on:
+      gitea:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  gitea-data:
+  gitea-db-data:
+  gitea-tokens:
+  gitea-certs:

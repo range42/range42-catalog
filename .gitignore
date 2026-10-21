@@ -5,3 +5,9 @@ CLAUDE.md
 **/CLAUDE.md
 **/.env
 !**/.env.example
+# operator-provided TLS certs (GITEA_TLS_MODE=provided) — never commit
+03_container_layer/docker/admin/gitea-registry/certs/*
+!03_container_layer/docker/admin/gitea-registry/certs/.gitkeep
+# operator backup artifacts — never commit
+03_container_layer/docker/admin/gitea-registry/backup/
+03_container_layer/docker/admin/gitea-registry/sbom/

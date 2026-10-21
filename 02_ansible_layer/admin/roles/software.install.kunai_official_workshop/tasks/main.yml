@@ -1,0 +1,18 @@
+---
+# software.install.kunai_official_workshop
+#
+# Installs the CIRCL Kunai OFFICIAL workshop toolchain on the target host,
+# turnkey. The operator user runs the exercises, nothing to install or configure
+# by hand.
+#
+#   00 packages   : apt yara + pipx (+ helpers)
+#   01 pipx tools : pykunai (kunai-search, kunai-iocgen, misp-to-kunai, ...) + PATH wiring
+#   02 binary     : pinned kunai eBPF binary, GPG-verified, placed in /usr/local/bin
+#   03 config     : m2k-config.toml (public CIRCL OSINT feed on ; local [misp] opt-in)
+#   04 boot-seed  : tmpfiles.d rule to reseed /tmp/m2k-config.toml on boot
+
+- ansible.builtin.import_tasks: 00_packages.yml
+- ansible.builtin.import_tasks: 01_pipx_tools.yml
+- ansible.builtin.import_tasks: 02_binary.yml
+- ansible.builtin.import_tasks: 03_config.yml
+- ansible.builtin.import_tasks: 04_boot_seed.yml

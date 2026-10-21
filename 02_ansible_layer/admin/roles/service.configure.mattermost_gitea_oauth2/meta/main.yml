@@ -1,0 +1,6 @@
+---
+galaxy_info:
+  author: nc3lu
+  description: Write Mattermost .env with GitLab-SSO (Gitea) OAuth2 settings
+  min_ansible_version: "2.15"
+dependencies: []

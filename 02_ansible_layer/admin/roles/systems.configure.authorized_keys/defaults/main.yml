@@ -1,0 +1,9 @@
+---
+# systems.configure.authorized_keys - defaults
+#
+# Add/remove a public key in a user's ~/.ssh/authorized_keys (SSH-in).
+
+TARGET_USER: ""                    # user whose authorized_keys is managed (required)
+AUTHORIZED_KEY: ""                 # the public key string (required)
+AUTHORIZED_KEY_STATE: "present"    # present | absent
+AUTHORIZED_KEY_EXCLUSIVE: false    # true -> remove all other keys for this user

@@ -1,0 +1,14 @@
+---
+- name: ensure mattermost deploy directory exists
+  ansible.builtin.file:
+    path: "{{ mattermost_deploy_dir }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    mode: "0750"
+
+- name: write mattermost .env with GitLab-SSO (Gitea) settings
+  ansible.builtin.template:
+    src: mattermost.env.j2
+    dest: "{{ mattermost_deploy_dir }}/.env"
+    owner: "{{ ansible_user }}"
+    mode: "0600"
