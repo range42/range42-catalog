@@ -1,41 +1,20 @@
 #!/usr/bin/env bash
-# provision-content.sh — enables curated MISP taxonomies and updates galaxies.
+# provision-content.sh — enables curated MISP taxonomies and removes the install news thread.
 # Idempotent: enabling an already-enabled taxonomy is a no-op.
 #
-# Taxonomies are pre-loaded by cake Admin runUpdates during MISP first boot.
+# misp-core loads galaxies and taxonomies from bundled files on every boot.
 # This script only enables specific ones via the REST API.
 #
 # Override taxonomy namespaces by setting MISP_TAXONOMY_NAMESPACES to a
 # newline-separated list of namespace strings.
 set -euo pipefail
 
-MISP_URL="https://misp"
-ADMIN_KEY_FILE="/keys/admin-authkey"
-
-log()  { echo "[provision-content] $*" >&2; }
-
-ADMIN_KEY=$(tr -d '[:space:]' < "${ADMIN_KEY_FILE}" 2>/dev/null || true)
-[ -n "${ADMIN_KEY}" ] || { log "ERROR: admin-authkey not found"; exit 1; }
-
-misp_get() {
-    curl -sfk \
-        -H "Authorization: ${ADMIN_KEY}" \
-        -H "Accept: application/json" \
-        "${MISP_URL}${1}"
-}
-
-misp_post() {
-    curl -sk \
-        -H "Authorization: ${ADMIN_KEY}" \
-        -H "Content-Type: application/json" \
-        -H "Accept: application/json" \
-        -X POST -d "${2:-}" \
-        "${MISP_URL}${1}"
-}
+LOG_TAG="provision-content"
+# shellcheck source=lib.sh
+. "$(dirname "$0")/lib.sh"
 
 # ── Remove initial-install news thread ───────────────────────────────────────
-# Belt-and-suspenders: configure-misp.sh deletes this via DB during bootstrap,
-# but if any thread survived (e.g. re-created by migrations), remove it here too.
+# MISP seeds an "Initial Install" thread that shows as news after every login.
 
 log "Removing initial-install news threads …"
 THREADS_JSON=$(misp_get "/threads/index.json" 2>/dev/null || true)
@@ -59,11 +38,6 @@ except Exception:
     done
 fi
 
-# ── Galaxy update ─────────────────────────────────────────────────────────────
-
-log "Updating galaxy clusters …"
-misp_post "/galaxies/update" "{}" > /dev/null || log "WARNING: galaxy update failed (non-fatal)."
-
 # ── Curated taxonomy namespaces ───────────────────────────────────────────────
 # tlp            — Traffic Light Protocol: essential for sharing classification
 # kill-chain     — Lockheed Martin Kill Chain: attack phase annotation
@@ -83,28 +57,15 @@ workflow"
 
 WANT_NS="${MISP_TAXONOMY_NAMESPACES:-${DEFAULT_NAMESPACES}}"
 
-# Ensure taxonomy definitions are imported from bundled files before enabling.
-# configure-misp.sh does this via cake CLI at boot; this call is a fallback in
-# case the provisioner runs against a MISP that skipped that step.
-log "Triggering taxonomy import …"
-misp_post "/taxonomies/update" '{}' > /dev/null \
-    || log "WARNING: /taxonomies/update failed (non-fatal, continuing)."
-
 # ── Fetch all taxonomies and enable matched ones ──────────────────────────────
 
 log "Fetching taxonomies …"
-ALL_TAX_JSON=$(misp_get "/taxonomies" || true)
-
-# Build id→namespace map and collect IDs to enable (skip already-enabled ones)
-MATCHED=$(python3 -c "
+# Prints id:namespace:enabled for each wanted taxonomy; JSON arrives on stdin.
+MATCHED=$(misp_get "/taxonomies" | python3 -c "
 import json, sys
 
 want = set(line.strip() for line in sys.argv[1].splitlines() if line.strip())
-try:
-    data = json.loads(sys.argv[2])
-except Exception as e:
-    print(f'parse error: {e}', file=sys.stderr)
-    sys.exit(0)
+data = json.load(sys.stdin)
 
 # MISP wraps the list in various keys depending on version; try all known shapes.
 if isinstance(data, list):
@@ -127,7 +88,7 @@ for item in items:
 
 for m in sorted(want - found):
     print(f'WARN: namespace not found: {m}', file=sys.stderr)
-" "${WANT_NS}" "${ALL_TAX_JSON}" 2>&1 | grep -v '^WARN:' || true)
+" "${WANT_NS}") || fail "could not read /taxonomies"
 
 if [ -z "${MATCHED}" ]; then
     log "WARNING: no matching taxonomies found — check that /taxonomies returned data."

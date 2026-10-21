@@ -6,47 +6,14 @@
 # Reads:
 #   MISP_SHARING_GROUP_NAME — display name of the group (default: all-teams)
 #   MISP_TEAMS              — comma-separated team names  (default: team-blue,team-red)
-#   MISP_INSTRUCTOR_ORG     — instructor org name         (default: instructors)
+#   MISP_INSTRUCTOR_ORG     — instructor org name         (default: MISP_ORG)
 #   /keys/org-ids.env       — org ID map written by provision-orgs.sh
 set -euo pipefail
 
-MISP_URL="https://misp"
-ADMIN_KEY_FILE="/keys/admin-authkey"
+LOG_TAG="provision-sharing-groups"
+# shellcheck source=lib.sh
+. "$(dirname "$0")/lib.sh"
 ORG_IDS_FILE="/keys/org-ids.env"
-
-log()  { echo "[provision-sharing-groups] $*" >&2; }
-fail() { echo "[provision-sharing-groups] ERROR: $*" >&2; exit 1; }
-
-# ── Wait for admin auth-key ───────────────────────────────────────────────────
-
-log "Waiting for admin auth-key …"
-ADMIN_KEY=""
-for i in $(seq 1 60); do
-    ADMIN_KEY=$(tr -d '[:space:]' < "${ADMIN_KEY_FILE}" 2>/dev/null || true)
-    [ -n "${ADMIN_KEY}" ] && break
-    sleep 5
-done
-[ -n "${ADMIN_KEY}" ] || fail "admin-authkey did not appear within 300 s"
-log "Admin auth-key loaded."
-
-# ── REST helpers ──────────────────────────────────────────────────────────────
-
-misp_get() {
-    curl -sfk \
-        -H "Authorization: ${ADMIN_KEY}" \
-        -H "Accept: application/json" \
-        "${MISP_URL}${1}"
-}
-
-misp_post() {
-    curl -sk \
-        -H "Authorization: ${ADMIN_KEY}" \
-        -H "Content-Type: application/json" \
-        -H "Accept: application/json" \
-        -X POST \
-        -d "${2}" \
-        "${MISP_URL}${1}"
-}
 
 # Returns the sharing group ID for the given name, or empty string if not found.
 get_sg_id() {
@@ -54,13 +21,14 @@ get_sg_id() {
     misp_get "/sharingGroups/index" | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
+entries = data.get('response', []) if isinstance(data, dict) else data
 target = sys.argv[1]
-for entry in data:
+for entry in entries:
     sg = entry.get('SharingGroup', {})
     if sg.get('name') == target:
         print(sg.get('id', ''))
         sys.exit(0)
-" "${name}" 2>/dev/null || true
+" "${name}"
 }
 
 # ── Load org IDs ──────────────────────────────────────────────────────────────
@@ -71,7 +39,6 @@ for entry in data:
 
 # ── Build member org list ─────────────────────────────────────────────────────
 
-INSTRUCTOR_ORG="${MISP_INSTRUCTOR_ORG:-instructors}"
 IFS=',' read -ra TEAM_LIST <<< "${MISP_TEAMS:-team-blue,team-red}"
 
 ALL_ORGS=("${INSTRUCTOR_ORG}")
@@ -82,7 +49,7 @@ done
 # Resolve org IDs from the env file values sourced above.
 ORG_IDS=()
 for org_name in "${ALL_ORGS[@]}"; do
-    env_key="MISP_ORG_ID_$(echo "${org_name}" | tr '[:lower:]-' '[:upper:]_')"
+    env_key="$(org_env_key "${org_name}")"
     org_id="${!env_key:-}"
     if [ -z "${org_id}" ]; then
         log "WARNING: no ID found for org '${org_name}' — skipping from sharing group."

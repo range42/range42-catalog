@@ -6,31 +6,10 @@
 # Each file must contain a top-level "Event" object with a "uuid" field.
 set -euo pipefail
 
-MISP_URL="https://misp"
-ADMIN_KEY_FILE="/keys/admin-authkey"
+LOG_TAG="provision-sample-events"
+# shellcheck source=lib.sh
+. "$(dirname "$0")/lib.sh"
 EVENTS_DIR="/provisioning/sample-events"
-
-log() { echo "[provision-sample-events] $*" >&2; }
-
-ADMIN_KEY=$(tr -d '[:space:]' < "${ADMIN_KEY_FILE}" 2>/dev/null || true)
-[ -n "${ADMIN_KEY}" ] || { log "ERROR: admin-authkey not found"; exit 1; }
-
-misp_get() {
-    curl -sfk \
-        -H "Authorization: ${ADMIN_KEY}" \
-        -H "Accept: application/json" \
-        "${MISP_URL}${1}"
-}
-
-misp_post_file() {
-    curl -sk \
-        -H "Authorization: ${ADMIN_KEY}" \
-        -H "Content-Type: application/json" \
-        -H "Accept: application/json" \
-        -X POST \
-        --data "@${1}" \
-        "${MISP_URL}${2}"
-}
 
 shopt -s nullglob
 fixtures=("${EVENTS_DIR}"/*.json)

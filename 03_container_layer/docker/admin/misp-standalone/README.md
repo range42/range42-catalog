@@ -1,67 +1,78 @@
 # misp-standalone
 
-A self-contained, auto-provisioned MISP deployment via Docker Compose.
-After a single `docker compose up --build`, the instance is ready to consume programmatically: reader and writer API keys are generated and waiting in a mounted volume.
+A self-contained, auto-provisioned MISP for range42 exercises, built on the
+official [misp-docker](https://github.com/MISP/misp-docker) images. Nothing is
+built on the host: the stack pulls pinned images, boots MISP, then seeds
+organisations, users, sharing groups, warning lists, taxonomies and sample
+events through the REST API.
 
 ---
 
-## Prerequisites
+## Services
 
-- Docker Engine 24+ with the Compose plugin (`docker compose version`)
-- Internet access during the first build (pulls Ubuntu 24.04, clones MISP from GitHub)
+| Service | Image | Role |
+|---------|-------|------|
+| `db` | `mariadb:10.11` | MISP database |
+| `redis` | `valkey/valkey:7.2` | Cache and background job queue (no password, compose network only) |
+| `misp-modules` | `misp-docker/misp-modules` | Enrichment, import and export modules |
+| `misp-core` | `misp-docker/misp-core` | PHP-FPM, workers, first-boot initialisation |
+| `misp-nginx` | `misp-docker/misp-nginx` | TLS front, publishes `MISP_HTTP_PORT` → 8080 and `MISP_HTTPS_PORT` → 8443 |
+| `certgen` | `misp-docker/misp-core` | One-shot: places the TLS cert misp-nginx serves |
+| `provisioner` | `misp-docker/misp-core` | One-shot: range42 provisioning, writes credentials to `./keys/` |
 
 ---
 
 ## Quick start
 
 ```bash
-# 1. Copy and edit configuration
 cp .env.example .env
-$EDITOR .env   # set passwords (≥12 chars), base URL, org name, salt
-
-# 2. Build and start — first build takes 10–20 min (git clone + submodules + apt)
-docker compose up --build -d
-
-# 3. Watch progress — bootstrap takes 3–5 min after the build finishes
-docker compose logs -f misp
-docker compose logs -f provisioner
+$EDITOR .env   # MISP_BASEURL, passwords (≥12 chars), MISP_ADMIN_KEY (openssl rand -hex 20)
+docker compose up -d
+docker compose logs -f provisioner   # ends with "Provisioning complete."
 ```
 
-MISP is ready when `docker compose logs provisioner` shows **"Provisioning complete."**
+Timings once the images are pulled (~3.2 GB): MISP answers about 2 minutes
+after a cold start and provisioning finishes about 15 seconds later. A restart
+with existing volumes is healthy in about 30 seconds.
+
+`MISP_BASEURL` must be the `https://` address users browse to, including the
+port when it is not 443. MISP redirects to it, and the self-signed cert is
+issued for its host.
 
 ---
 
-## Retrieve API keys
+## Credentials
+
+The provisioner writes three root-only files to `./keys/` on the host:
+
+| File | Contents |
+|------|----------|
+| `api-keys.txt` | `KEY=value` lines: admin, reader, writer, instructor and team account e-mails, passwords and API keys |
+| `misp-credentials.json` | `{ service, version, baseurl, generated_at, users: [{ username, role, org, api_key }], service_specific }` |
+| `org-ids.env` | `MISP_ORG_ID_<NAME>=<id>` for the instructor and team orgs |
 
 ```bash
-# Print to stdout
-docker compose exec misp cat /keys/api-keys.txt
-
-# Copy to local file
-docker compose cp misp:/keys/api-keys.txt ./api-keys.txt
+sudo cat keys/api-keys.txt
 ```
-
-`api-keys.txt` contains:
-
-| Variable | Role |
-|----------|------|
-| `MISP_ADMIN_KEY` | Site Admin (full access) |
-| `MISP_ADMIN2_KEY` | Second Site Admin (if configured) |
-| `MISP_READER_KEY` | Read Only |
-| `MISP_WRITER_KEY` | Publisher (create + publish events) |
 
 ---
 
-## Default accounts
+## Accounts and organisations
 
-| Account | E-mail | Role | Role ID |
-|---------|--------|------|---------|
-| Admin   | `MISP_ADMIN_EMAIL` | Site Admin | 1 |
-| Reader  | `MISP_READER_EMAIL` | Read Only | 6 |
-| Writer  | `MISP_WRITER_EMAIL` | Publisher | 4 |
+| Account | E-mail | Role | Org |
+|---------|--------|------|-----|
+| Admin | `MISP_ADMIN_EMAIL` | Site Admin | host org (`MISP_ORG`) |
+| Second admin (optional) | `MISP_ADMIN2_EMAIL` | Site Admin | host org |
+| Reader | `MISP_READER_EMAIL` | Read Only | host org |
+| Writer | `MISP_WRITER_EMAIL` | Publisher | host org |
+| Instructors | `instructor[N]@MISP_USER_DOMAIN` | Org Admin | `MISP_INSTRUCTOR_ORG` (defaults to the host org) |
+| Team lead | `<team>-lead@MISP_USER_DOMAIN` | Org Admin | one org per `MISP_TEAMS` entry |
+| Team users | `<team>-user<N>@MISP_USER_DOMAIN` | User | team org |
 
-Passwords are set via the corresponding `_PASSWORD` variables in `.env`.
-**Passwords must be at least 12 characters** (MISP default policy enforced at user creation time).
+The admin password and API key come from `.env` and are reapplied by misp-core
+on every boot. All other passwords and keys are generated on first provisioning.
+The sharing group `MISP_SHARING_GROUP_NAME` contains the instructor org and every
+team org. New events, attributes and objects default to *Your organisation only*.
 
 ---
 
@@ -69,35 +80,41 @@ Passwords are set via the corresponding `_PASSWORD` variables in `.env`.
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MISP_VERSION` | MISP git tag to build from | `v2.5.37` |
-| `MISP_PORT` | Host port for the MISP web UI | `8080` |
-| `MISP_BASEURL` | URL advertised in events/feeds/e-mails | `http://localhost:8080` |
-| `MISP_ORG` | Default organisation name | `Default Organisation` |
-| `MISP_SALT` | Security salt — generate with `openssl rand -hex 32` | — |
-| `MISP_ADMIN_EMAIL` / `MISP_ADMIN_PASSWORD` | Primary admin credentials | see `.env.example` |
-| `MISP_ADMIN2_EMAIL` / `MISP_ADMIN2_PASSWORD` | Optional second admin (leave blank to skip) | — |
-| `MISP_READER_EMAIL` / `MISP_READER_PASSWORD` | Read Only user | see `.env.example` |
-| `MISP_WRITER_EMAIL` / `MISP_WRITER_PASSWORD` | Publisher user | see `.env.example` |
-| `MISP_DB_*` / `DB_*` | MariaDB connection settings | see `.env.example` |
-| `REDIS_HOST` / `REDIS_PORT` | Redis connection | `redis` / `6379` |
+| `MISP_CORE_TAG` | misp-core and misp-nginx image tag | `v2.5.50` |
+| `MISP_MODULES_TAG` | misp-modules image tag | `v3.0.12` |
+| `MISP_HTTP_PORT` / `MISP_HTTPS_PORT` | Host ports | `80` / `443` |
+| `MISP_BASEURL` | Public `https://` URL | `https://localhost` |
+| `MISP_ORG` | Host organisation name | `Default Organisation` |
+| `MISP_TEAMS` | Comma-separated player team names | `team-blue,team-red` |
+| `MISP_INSTRUCTOR_ORG` / `MISP_INSTRUCTOR_COUNT` | Instructor org and account count | host org / `1` |
+| `MISP_USERS_PER_TEAM` | Regular users per team | `2` |
+| `MISP_SHARING_GROUP_NAME` | Cross-team sharing group | `all-teams` |
+| `MISP_USER_DOMAIN` | E-mail domain for generated accounts | `range42.local` |
+| `MISP_SALT` | Security salt, generated by MISP when blank | — |
+| `MISP_ADMIN_EMAIL` / `MISP_ADMIN_PASSWORD` | Primary admin | see `.env.example` |
+| `MISP_ADMIN_KEY` | Admin API key, 40 alphanumeric characters | placeholder |
+| `MISP_ADMIN2_*`, `MISP_READER_*`, `MISP_WRITER_*` | Service accounts | see `.env.example` |
+| `MISP_DB_*` / `DB_ROOT_PASSWORD` | MariaDB credentials | see `.env.example` |
+| `MISP_WARNINGLIST_NAMES` | Newline-separated warning lists to enable | curated list in `provision-warninglists.sh` |
+| `MISP_TAXONOMY_NAMESPACES` | Newline-separated taxonomies to enable | curated list in `provision-content.sh` |
 
 ---
 
-## Build and push
+## TLS
 
-```bash
-# Build and tag for a registry
-docker build \
-  --target runtime \
-  --build-arg MISP_VERSION=v2.5.37 \
-  -t registry.example.com/range42/misp-standalone:v2.5.37 \
-  -t registry.example.com/range42/misp-standalone:latest \
-  .
+`certgen` copies `./ssl/cert.pem` and `./ssl/key.pem` when both exist. Otherwise
+it generates a self-signed cert for the `MISP_BASEURL` host (IP or DNS SAN) and
+regenerates it when that host changes.
 
-# Push
-docker push registry.example.com/range42/misp-standalone:v2.5.37
-docker push registry.example.com/range42/misp-standalone:latest
-```
+---
+
+## Customisation
+
+| File | Runs | Purpose |
+|------|------|---------|
+| `provisioning/customize_misp.sh` | in misp-core on every boot, before PHP-FPM starts | Lab settings: org-only default distribution, e-mailing off, PDF export on |
+| `provisioning/provision.sh` | in the provisioner on every `up` | Calls the `provision-*.sh` steps in order; each step is idempotent |
+| `provisioning/sample-events/*.json` | provisioner | MISP event fixtures, imported once by UUID |
 
 ---
 
@@ -105,47 +122,28 @@ docker push registry.example.com/range42/misp-standalone:latest
 
 | Volume | Contents |
 |--------|----------|
-| `db-data` | MariaDB data files |
-| `misp-files` | MISP uploaded files |
-| `misp-attachments` | Event attachments |
+| `db-data` | MariaDB data |
+| `misp-config` | `app/Config` (config.php, database.php) |
+| `misp-files` | Uploaded files and attachments |
 | `misp-logs` | MISP application logs |
-| `keys` | Bootstrap auth-key and final `api-keys.txt` |
+| `misp-gnupg` | GnuPG home |
+| `certs` | Cert and key served by misp-nginx |
 
-Volumes persist across `docker compose down`. To fully reset:
-
-```bash
-docker compose down -v
-docker compose up --build -d
-```
-
----
-
-## Subsequent boots
-
-The bootstrap sentinel `/var/www/MISP/.bootstrapped` prevents re-provisioning on container restart. The provisioner runs once (`restart: "no"`) and will not re-run unless the `keys` volume is removed.
-
-If the container is **recreated** (e.g. after `docker compose up --build`), the sentinel is gone but the DB volume persists — the bootstrap detects the existing schema, skips the seed, and proceeds safely.
+Full reset: `docker compose down -v && sudo rm -rf keys && docker compose up -d`.
 
 ---
 
 ## Troubleshooting
 
-**Build hangs during submodule fetch**
-Normal — MISP has ~30 submodules fetched in parallel. The `--progress` flag shows per-submodule transfer stats. A cold build typically takes 10–20 minutes.
+**`misp-core` never turns healthy** — `docker compose logs misp-core`. Every init
+phase logs a `MISP |` line; the last one shows where it stopped.
 
-**MISP healthcheck keeps failing / container restart loop**
-Check logs: `docker compose logs misp`. Common causes:
-- DB not yet ready — `start_period` is 3 minutes; increase in `docker-compose.yml` for slow hardware.
-- Bootstrap aborted — look for `[configure]` lines to see where it stopped.
+**Provisioner fails with "MISP API did not answer"** — `MISP_ADMIN_KEY` in `.env`
+is not 40 alphanumeric characters, or misp-nginx is not serving; check
+`docker compose logs misp-nginx`.
 
-**Provisioner exits with "Keys file already exists"**
-Provisioning already ran successfully. To re-provision: `docker compose down -v && docker compose up -d`.
+**misp-nginx exits with "BASE_URL starts with http://"** — `MISP_BASEURL` must
+start with `https://`.
 
-**Provisioner exits with "admin-authkey never appeared"**
-The bootstrap did not complete in time. Check `docker compose logs misp` for errors in the `[configure]` phase. Usually a DB connectivity issue on first boot.
-
-**User creation fails with "Password length requirement not met"**
-MISP enforces a minimum 12-character password. Update `MISP_*_PASSWORD` in `.env` and do a full reset: `docker compose down -v && docker compose up -d`.
-
-**php8.3-gnupg not available**
-The Dockerfile falls back to `pecl install gnupg` automatically. If that also fails, pre-install `libgpgme-dev` in a custom base layer.
+**User creation fails with "Password length requirement not met"** — MISP needs
+at least 12 characters. Fix `.env`, then do a full reset.

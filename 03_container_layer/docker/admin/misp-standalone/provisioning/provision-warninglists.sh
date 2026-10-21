@@ -2,36 +2,15 @@
 # provision-warninglists.sh — enables a curated set of MISP warning lists.
 # Idempotent: enabling an already-enabled list is a no-op (MISP toggleEnable is safe to repeat).
 #
-# Warning lists are loaded from bundled files by configure-misp.sh (cake Admin updateWarninglists).
-# This script runs after that, via provision.sh.
+# misp-core loads warning lists from bundled files on every boot; this script only enables them.
 #
 # Override the default set by setting MISP_WARNINGLIST_NAMES to a newline-separated
 # list of exact warning list names (as they appear in MISP).
 set -euo pipefail
 
-MISP_URL="https://misp"
-ADMIN_KEY_FILE="/keys/admin-authkey"
-
-log()  { echo "[provision-warninglists] $*" >&2; }
-
-ADMIN_KEY=$(tr -d '[:space:]' < "${ADMIN_KEY_FILE}" 2>/dev/null || true)
-[ -n "${ADMIN_KEY}" ] || { log "ERROR: admin-authkey not found"; exit 1; }
-
-misp_get() {
-    curl -sfk \
-        -H "Authorization: ${ADMIN_KEY}" \
-        -H "Accept: application/json" \
-        "${MISP_URL}${1}"
-}
-
-misp_post() {
-    curl -sk \
-        -H "Authorization: ${ADMIN_KEY}" \
-        -H "Content-Type: application/json" \
-        -H "Accept: application/json" \
-        -X POST -d "${2}" \
-        "${MISP_URL}${1}"
-}
+LOG_TAG="provision-warninglists"
+# shellcheck source=lib.sh
+. "$(dirname "$0")/lib.sh"
 
 # ── Curated list ──────────────────────────────────────────────────────────────
 # Names must match exactly what MISP stores (see GET /warninglists).
@@ -60,47 +39,31 @@ WANT_NAMES="${MISP_WARNINGLIST_NAMES:-${DEFAULT_NAMES}}"
 # ── Resolve names → IDs ───────────────────────────────────────────────────────
 
 log "Fetching warning lists …"
-ALL_LISTS_JSON=$(misp_get "/warninglists" || true)
-
-MATCHED_IDS=$(python3 -c "
+# Prints "ID <id>" for each wanted list not yet enabled and "MISSING <name>" for
+# each wanted name MISP does not know; JSON arrives on stdin.
+RESOLVED=$(misp_get "/warninglists" | python3 -c "
 import json, sys
 
 want = set(line.strip() for line in sys.argv[1].splitlines() if line.strip())
-try:
-    data = json.loads(sys.argv[2])
-except Exception:
-    sys.exit(0)
+data = json.load(sys.stdin)
 
 items = data.get('Warninglists', data) if isinstance(data, dict) else data
 found = set()
 for item in items:
     wl = item.get('Warninglist', item)
     name = wl.get('name', '')
-    if name in want and not wl.get('enabled', False):
-        print(wl['id'])
+    if name in want:
         found.add(name)
+        if not wl.get('enabled', False):
+            print(f\"ID {wl['id']}\")
 
 for m in sorted(want - found):
-    print(f'WARN: no match for \"{m}\"', file=sys.stderr)
-" "${WANT_NAMES}" "${ALL_LISTS_JSON}" 2>&1 | grep -v '^WARN:' || true)
+    print(f'MISSING {m}')
+" "${WANT_NAMES}") || fail "could not read /warninglists"
 
-WARNINGS=$(python3 -c "
-import json, sys
-
-want = set(line.strip() for line in sys.argv[1].splitlines() if line.strip())
-try:
-    data = json.loads(sys.argv[2])
-except Exception:
-    sys.exit(0)
-
-items = data.get('Warninglists', data) if isinstance(data, dict) else data
-found = set(item.get('Warninglist', item).get('name', '') for item in items
-            if item.get('Warninglist', item).get('name', '') in want)
-for m in sorted(want - found):
-    print(m)
-" "${WANT_NAMES}" "${ALL_LISTS_JSON}" 2>/dev/null || true)
-
-[ -n "${WARNINGS}" ] && log "WARNING: no match for: $(echo "${WARNINGS}" | tr '\n' ',')"
+MATCHED_IDS=$(sed -n 's/^ID //p' <<< "${RESOLVED}")
+MISSING=$(sed -n 's/^MISSING //p' <<< "${RESOLVED}")
+[ -n "${MISSING}" ] && log "WARNING: no match for: $(paste -sd, - <<< "${MISSING}")"
 
 if [ -z "${MATCHED_IDS}" ]; then
     log "All target warning lists already enabled (or none matched) — nothing to do."

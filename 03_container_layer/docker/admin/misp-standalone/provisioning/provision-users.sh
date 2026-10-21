@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # Provisioner container entrypoint — runs ONCE after MISP is healthy.
 #
-# Reads the admin auth-key that entrypoint.sh wrote to /keys/admin-authkey,
-# then uses the MISP REST API to:
-#   1. Rename/update the default admin account
+# Uses the MISP REST API, authenticated with MISP_ADMIN_KEY, to:
+#   1. Record the admin account (created by misp-core from ADMIN_EMAIL/ADMIN_PASSWORD)
 #   2. Create an optional second admin
 #   3. Create the reader user  (role_id=6 — Read Only)
 #   4. Create the writer user  (role_id=4 — Publisher)
@@ -15,15 +14,13 @@
 #   2 = Org Admin     4 = Publisher     6 = Read Only
 set -euo pipefail
 
-MISP_URL="https://misp"
+LOG_TAG="provisioner"
+# shellcheck source=lib.sh
+. "$(dirname "$0")/lib.sh"
 KEYS_FILE="/keys/api-keys.txt"
 CREDS_JSON_FILE="/keys/misp-credentials.json"
-ADMIN_KEY_FILE="/keys/admin-authkey"
 ORG_IDS_FILE="/keys/org-ids.env"
 CREDS_TMP="/keys/.creds.tmp"
-
-log()  { echo "[provisioner] $*" >&2; }
-fail() { echo "[provisioner] ERROR: $*" >&2; exit 1; }
 
 # ── Idempotency guard ─────────────────────────────────────────────────────────
 
@@ -31,42 +28,6 @@ if [ -s "${KEYS_FILE}" ]; then
     log "Keys file already exists — provisioning already done. Exiting."
     exit 0
 fi
-
-# ── Wait for admin auth-key ───────────────────────────────────────────────────
-
-log "Waiting for admin auth-key …"
-ADMIN_KEY=""
-for i in $(seq 1 60); do
-    ADMIN_KEY=$(tr -d '[:space:]' < "${ADMIN_KEY_FILE}" 2>/dev/null || true)
-    [ -n "${ADMIN_KEY}" ] && break
-    sleep 5
-done
-[ -n "${ADMIN_KEY}" ] || fail "admin-authkey did not appear within 300 s"
-log "Admin auth-key loaded."
-
-# ── REST helpers ──────────────────────────────────────────────────────────────
-
-misp_post() {
-    local path="$1" body="$2"
-    curl -sk \
-        -H "Authorization: ${ADMIN_KEY}" \
-        -H "Content-Type: application/json" \
-        -H "Accept: application/json" \
-        -X POST \
-        -d "${body}" \
-        "${MISP_URL}${path}"
-}
-
-misp_put() {
-    local path="$1" body="$2"
-    curl -sk \
-        -H "Authorization: ${ADMIN_KEY}" \
-        -H "Content-Type: application/json" \
-        -H "Accept: application/json" \
-        -X PUT \
-        -d "${body}" \
-        "${MISP_URL}${path}"
-}
 
 extract_key() {
     grep -oP '"authkey"\s*:\s*"\K[^"]+' || true
@@ -113,22 +74,8 @@ JSON
 )" | extract_key
 }
 
-# ── 1. Update default admin account ──────────────────────────────────────────
+# ── 1. Default admin account ─────────────────────────────────────────────────
 
-log "Updating admin account (admin@admin.test → ${MISP_ADMIN_EMAIL:-admin@misp.local}) …"
-misp_put "/admin/users/edit/1" "$(cat <<JSON
-{
-  "email":            "${MISP_ADMIN_EMAIL:-admin@misp.local}",
-  "password":         "${MISP_ADMIN_PASSWORD:-Admin1234!}",
-  "confirm_password": "${MISP_ADMIN_PASSWORD:-Admin1234!}",
-  "change_pw":        0,
-  "role_id":          1,
-  "org_id":           1,
-  "termsaccepted":    1
-}
-JSON
-)" > /dev/null
-log "Admin account updated."
 append_cred "${MISP_ADMIN_EMAIL:-admin@misp.local}" "site_admin" "${MISP_ORG:-Range42}" "${ADMIN_KEY}"
 
 # ── 2. Optional second admin ──────────────────────────────────────────────────
@@ -189,8 +136,7 @@ else
     # shellcheck source=/dev/null
     . "${ORG_IDS_FILE}"
 
-    INSTRUCTOR_ORG="${MISP_INSTRUCTOR_ORG:-instructors}"
-    INSTR_ORG_VAR="MISP_ORG_ID_$(echo "${INSTRUCTOR_ORG}" | tr '[:lower:]-' '[:upper:]_')"
+    INSTR_ORG_VAR="$(org_env_key "${INSTRUCTOR_ORG}")"
     INSTR_ORG_ID="${!INSTR_ORG_VAR:-}"
 
     if [ -n "${INSTR_ORG_ID}" ]; then
@@ -216,7 +162,7 @@ else
         team=$(echo "${raw_team}" | tr -d '[:space:]')
         [ -z "${team}" ] && continue
 
-        TEAM_ORG_VAR="MISP_ORG_ID_$(echo "${team}" | tr '[:lower:]-' '[:upper:]_')"
+        TEAM_ORG_VAR="$(org_env_key "${team}")"
         TEAM_ORG_ID="${!TEAM_ORG_VAR:-}"
 
         if [ -z "${TEAM_ORG_ID}" ]; then
@@ -224,7 +170,7 @@ else
             continue
         fi
 
-        TEAM_UP="$(echo "${team}" | tr '[:lower:]-' '[:upper:]_')"
+        TEAM_UP="$(env_name "${team}")"
         TEAM_LINES+=$'\n'"# ── ${team} ──────────────────────────────────────────────────────────"$'\n'
 
         # Lead — org-admin (role_id=2)
@@ -303,7 +249,3 @@ print(json.dumps(creds, indent=2))
 chmod 600 "${CREDS_JSON_FILE}"
 rm -f "${CREDS_TMP}"
 log "Credentials JSON written to ${CREDS_JSON_FILE}"
-
-log "Provisioning complete."
-log "Retrieve keys: docker compose exec misp cat ${KEYS_FILE}"
-log "         or:   docker compose cp misp:${KEYS_FILE} ./api-keys.txt"
