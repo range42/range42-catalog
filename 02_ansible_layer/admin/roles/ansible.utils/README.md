@@ -1,5 +1,13 @@
 # Native guest SSH readiness
 
+`wait/cloudinit/is_boot_finished.yml` waits for the guest's fixed
+`/var/lib/cloud/instance/boot-finished` marker before later setup tasks run.
+Cold cloud-init runs may need several minutes, especially when multiple guests
+boot together. The timeout defaults to 1200 seconds (20 minutes), with the
+existing initial 10-second delay. Set `range42_cloud_init_timeout_seconds` to a
+YAML integer from 1 to 3600 seconds to override it. Invalid values fail before
+the wait; a missing marker still fails when the configured timeout expires.
+
 `wait/openssh_server/is_reachable.yml` uses the existing SSH configuration and
 common/extra SSH arguments, with `BatchMode=yes`. Ordinary CLI runs retain
 `StrictHostKeyChecking=accept-new`, so a fresh guest can establish its first

@@ -1,11 +1,16 @@
 ---
-##
-## ISSUE - 8
-##
-#
+- name: CLOUD INIT - VALIDATE WAIT TIMEOUT
+  ansible.builtin.assert:
+    that:
+      - (range42_cloud_init_timeout_seconds | default(1200)) is integer
+      - (range42_cloud_init_timeout_seconds | default(1200)) >= 1
+      - (range42_cloud_init_timeout_seconds | default(1200)) <= 3600
+    fail_msg: range42_cloud_init_timeout_seconds must be an integer from 1 to 3600 seconds
+    quiet: true
+
 - name: CLOUD INIT - WAIT END OF SETUP
-  wait_for:
+  ansible.builtin.wait_for:
     path: /var/lib/cloud/instance/boot-finished
     state: present
-    delay: 10 # WAIT FOR 10seconds
-    timeout: 500 # MAX 5 min
+    delay: 10
+    timeout: "{{ range42_cloud_init_timeout_seconds | default(1200) }}"
