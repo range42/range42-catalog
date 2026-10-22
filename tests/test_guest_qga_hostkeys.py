@@ -30,6 +30,12 @@ import yaml
 
 ROLE = Path(__file__).resolve().parents[1] / "02_ansible_layer/admin/roles/ansible.utils"
 HELPER = ROLE / "library/range42_guest_hostkey_pin.py"
+INVALID_QGA_BUDGETS = {
+    "qga_invalid_true": True, "qga_invalid_false": False, "qga_invalid_string": "1200",
+    "qga_invalid_float": 1.5, "qga_invalid_null": None, "qga_invalid_list": [],
+    "qga_invalid_mapping": {}, "qga_invalid_zero": 0, "qga_invalid_negative": -1,
+    "qga_invalid_max": 3601,
+}
 
 
 def public_key():
@@ -66,7 +72,8 @@ def test_role_local_hostkey_module_has_discoverable_ansible_documentation():
 @pytest.mark.parametrize("case", ["first", "existing", "changed", "off", "denied", "bad_tls", "hostname_tls",
     "wrong_name", "wrong_ip", "wrong_ssh_ip", "malformed", "truncated", "concurrent_pin", "port_lookup",
     "alias_none", "ssh_config_drift", "vm_config_drift", "template", "tls_disabled", "check", "truncated_invalid",
-    "paths_with_spaces", "redirect", "become_play", "become_inventory", "become_all"])
+    "paths_with_spaces", "redirect", "become_play", "become_inventory", "become_all",
+    "qga_delayed", "qga_deadline", "qga_exhausted", "qga_minimum", "qga_maximum", *INVALID_QGA_BUDGETS])
 def test_optional_agent_trust_with_real_tls_and_strict_ssh(tmp_path, case):
     if case == "paths_with_spaces":
         tmp_path = tmp_path / "private 'workspace"
@@ -128,6 +135,7 @@ def test_optional_agent_trust_with_real_tls_and_strict_ssh(tmp_path, case):
     request_log = []
     injected = []
     config_reads = []
+    agent_reads = []
 
     class Pve(BaseHTTPRequestHandler):
         def do_GET(self):
@@ -145,6 +153,7 @@ def test_optional_agent_trust_with_real_tls_and_strict_ssh(tmp_path, case):
                 if parsed.path != "/unapproved-key":
                     assert parsed.path == "/api2/json/nodes/test-node/qemu/3191/agent/file-read"
                     assert query == {"file": ["/etc/ssh/ssh_host_ed25519_key.pub"], "count": ["4096"], "decode": ["1"], "offset": ["0"]}
+                agent_reads.append(True)
                 if case == "concurrent_pin":
                     injected.append("fixture-key " + public_key() + "\n")
                     pins.write_text(injected[-1])
@@ -156,6 +165,10 @@ def test_optional_agent_trust_with_real_tls_and_strict_ssh(tmp_path, case):
                 elif case == "truncated_invalid":
                     data["truncated"] = "not-a-boolean"
                 status = 403 if case == "denied" else 200
+                if case == "qga_delayed" and len(agent_reads) <= 2:
+                    status = 500 if len(agent_reads) == 1 else 503
+                if case in ("qga_deadline", "qga_exhausted"):
+                    status = 503
                 if case == "redirect" and parsed.path.endswith("agent/file-read"):
                     status = 302
             body = json.dumps({"data": data}).encode()
@@ -201,19 +214,19 @@ def test_optional_agent_trust_with_real_tls_and_strict_ssh(tmp_path, case):
     copied = roles / "ansible.utils"
     shutil.copytree(ROLE, copied)
     # Shorten only retry timers in the disposable role copy.
-    def timers(value):
+    def timers(value, *, keep_retries=False):
         if isinstance(value, dict):
             for key, item in value.items():
-                if key in ("retries", "delay"):
+                if key == "delay" or (key == "retries" and not keep_retries):
                     value[key] = 0
                 else:
-                    timers(item)
+                    timers(item, keep_retries=keep_retries)
         elif isinstance(value, list):
             for item in value:
-                timers(item)
+                timers(item, keep_retries=keep_retries)
     for path in (copied / "tasks/wait/openssh_server").glob("*.yml"):
         value = yaml.safe_load(path.read_text())
-        timers(value)
+        timers(value, keep_retries=case.startswith("qga_") and path.name == "pve_agent_hostkey.yml")
         path.write_text(yaml.safe_dump(value, sort_keys=False))
     config = tmp_path / "ssh-config"
     key_alias = "" if case == "port_lookup" else " HostKeyAlias none\n" if case == "alias_none" else " HostKeyAlias fixture-key\n"
@@ -233,6 +246,9 @@ def test_optional_agent_trust_with_real_tls_and_strict_ssh(tmp_path, case):
         "proxmox_api_host": f"127.0.0.1:{server.server_port}", "proxmox_node": "test-node",
         "proxmox_api_validate_certs": case != "tls_disabled", "proxmox_api_user": "fixture@pve",
         "proxmox_api_token_id": "guest", "proxmox_api_token_secret": "public-fixture-secret",
+        **({"range42_cloud_init_timeout_seconds": INVALID_QGA_BUDGETS[case]} if case in INVALID_QGA_BUDGETS else {}),
+        **({"range42_cloud_init_timeout_seconds": 1} if case in ("qga_exhausted", "qga_minimum") else {}),
+        **({"range42_cloud_init_timeout_seconds": 3600} if case == "qga_maximum" else {}),
         **({"ansible_become": True, "ansible_become_exe": str(fake_become)} if case == "become_inventory" else {}),
     }}}}))
     if case == "become_all":
@@ -251,26 +267,52 @@ def test_optional_agent_trust_with_real_tls_and_strict_ssh(tmp_path, case):
         ]}], sort_keys=False))
     ansible_config = tmp_path / "ansible.cfg"
     ansible_config.write_text("[defaults]\nhost_key_checking=True\nretry_files_enabled=False\n")
+    clock = tmp_path / "clock"
+    clock.mkdir()
+    ticks = clock / "ticks"
+    ticks.write_text("1000")
+    step = 235 if case == "qga_delayed" else 2 if case == "qga_exhausted" else 700
+    date = clock / "date"
+    date.write_text(f"#!{sys.executable}\nimport sys\nfrom pathlib import Path\n"
+                    "assert sys.argv[1:] == ['+%s']\n"
+                    f"p = Path({str(ticks)!r})\nv = int(p.read_text())\nprint(v)\np.write_text(str(v + {step}))\n")
+    date.chmod(0o700)
     try:
         result = subprocess.run([str(binary), "-i", str(inventory), str(playbook)] + (["--check"] if case == "check" else []),
             env={**os.environ, "ANSIBLE_CONFIG": str(ansible_config), "ANSIBLE_ROLES_PATH": str(roles),
                  "ANSIBLE_HOST_KEY_CHECKING": "True" if case == "off" else "False",
-                 "RANGE42_PROXMOX_CA_FILE": str(untrusted) if case == "bad_tls" else str(ca)},
+                 "RANGE42_PROXMOX_CA_FILE": str(untrusted) if case == "bad_tls" else str(ca),
+                 **({"PATH": str(clock) + os.pathsep + os.environ["PATH"]}
+                    if case in ("qga_delayed", "qga_deadline", "qga_exhausted") else {})},
             capture_output=True, text=True, timeout=25)
         output = result.stdout + result.stderr
         success = case in ("first", "existing", "port_lookup", "alias_none", "check", "paths_with_spaces",
-                           "become_play", "become_inventory", "become_all")
+                           "become_play", "become_inventory", "become_all", "qga_delayed", "qga_minimum", "qga_maximum")
         executes = success and case != "check" and not case.startswith("become_")
         assert (result.returncode == 0) is success, output
         assert marker.exists() is (success and case != "check")
         assert ssh_command.is_set() is executes
         assert "public-fixture-secret" not in output
+        if case == "qga_delayed":
+            # Two unavailable QGA responses span 470 simulated seconds, longer
+            # than the measured 466.65-second cold cloud-init run. The default
+            # budget must retain enough attempts and admit the eventual key.
+            assert len(agent_reads) == 3
+            assert "240 retries left" in output, output
+            assert int(ticks.read_text()) >= 1705
+        elif case == "qga_deadline":
+            # The controller deadline, not just the retry count, bounds slow
+            # QGA responses. Keep the default 240-attempt cap in this test.
+            assert len(agent_reads) == 2
+            assert "240 retries left" in output, output
+        elif case == "qga_exhausted":
+            assert len(agent_reads) == 1
         if case.startswith("become_"):
             assert not escalated.exists()
             assert pins.stat().st_uid == os.getuid()
         if case == "redirect":
             assert not any(path == "/unapproved-key" for path, _ in request_log)
-        if case in ("first", "port_lookup", "alias_none", "paths_with_spaces", "become_play", "become_inventory", "become_all"):
+        if case in ("first", "port_lookup", "alias_none", "paths_with_spaces", "become_play", "become_inventory", "become_all", "qga_delayed", "qga_minimum", "qga_maximum"):
             target = f"[127.0.0.1]:{port}" if case == "port_lookup" else "none" if case == "alias_none" else "fixture-key"
             assert pins.read_text() == target + " " + pub + "\n"
             assert any(path.endswith("agent/file-read") for path, _ in request_log)
@@ -278,7 +320,7 @@ def test_optional_agent_trust_with_real_tls_and_strict_ssh(tmp_path, case):
             assert injected and pins.read_text() == injected[-1]
         else:
             assert pins.read_bytes() == original
-        if case in ("existing", "changed", "off", "bad_tls", "hostname_tls", "wrong_ssh_ip", "tls_disabled", "check"):
+        if case in ("existing", "changed", "off", "bad_tls", "hostname_tls", "wrong_ssh_ip", "tls_disabled", "check") or case in INVALID_QGA_BUDGETS:
             assert not request_log
         elif case in ("wrong_name", "wrong_ip", "template"):
             assert request_log and all(path.endswith("/config") for path, _ in request_log)

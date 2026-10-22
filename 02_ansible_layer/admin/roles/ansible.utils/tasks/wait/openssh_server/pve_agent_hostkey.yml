@@ -1,4 +1,17 @@
 ---
+- name: Validate the guest startup readiness timeout
+  ansible.builtin.assert:
+    that:
+      - (range42_cloud_init_timeout_seconds | default(1200)) is integer
+      - (range42_cloud_init_timeout_seconds | default(1200)) >= 1
+      - (range42_cloud_init_timeout_seconds | default(1200)) <= 3600
+    fail_msg: range42_cloud_init_timeout_seconds must be an integer from 1 to 3600 seconds
+    quiet: true
+  delegate_to: localhost
+  become: false
+  vars:
+    ansible_become: false
+
 - name: Inspect the declared native SSH target and private pins
   range42_guest_hostkey_pin:
     phase: inspect
@@ -54,6 +67,10 @@
           - r42_guest_config.json.data.digest is match('^[a-f0-9]{40}$')
           - (r42_guest_config.json.data.ipconfig0 | default('')) is search('(^|,)ip=' ~ (global_vm_ci_ip | regex_escape) ~ '/[0-9]+(,|$)')
 
+    - name: Bound guest agent readiness by the shared startup deadline
+      ansible.builtin.set_fact:
+        r42_guest_qga_deadline: "{{ (lookup('ansible.builtin.pipe', 'date +%s') | int) + (range42_cloud_init_timeout_seconds | default(1200)) }}"
+
     - name: Read only the fixed Ed25519 public host key through QGA
       ansible.builtin.uri:
         url: "https://{{ proxmox_api_host }}/api2/json/nodes/{{ proxmox_node }}/qemu/{{ global_vm_id | int }}/agent/file-read?file=%2Fetc%2Fssh%2Fssh_host_ed25519_key.pub&count=4096&decode=1&offset=0"
@@ -65,10 +82,13 @@
         ca_path: "{{ lookup('env', 'RANGE42_PROXMOX_CA_FILE') | default(omit, true) }}"
         return_content: true
         status_code: [200, 500, 503]
+        timeout: "{{ [30, range42_cloud_init_timeout_seconds | default(1200)] | min }}"
       register: r42_guest_public_key
-      retries: 60
-      delay: 5
-      until: r42_guest_public_key.status | default(-1) not in [500, 503]
+      retries: "{{ ((range42_cloud_init_timeout_seconds | default(1200)) + 4) // 5 }}"
+      delay: "{{ [5, range42_cloud_init_timeout_seconds | default(1200)] | min }}"
+      until: >-
+        (r42_guest_public_key.status | default(-1) not in [500, 503]) or
+        ((lookup('ansible.builtin.pipe', 'date +%s') | int) >= (r42_guest_qga_deadline | int))
       changed_when: false
 
     - name: Refuse malformed or truncated QGA responses

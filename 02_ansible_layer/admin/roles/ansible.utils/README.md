@@ -36,6 +36,17 @@ verified PVE CA. It reads the exact VM configuration and only
 private-key read. VM name, static IP, configuration digest and the effective
 SSH destination, port and HostKeyAlias are checked before appending a pin.
 
+Guest-agent readiness shares `range42_cloud_init_timeout_seconds`: the default
+1200-second startup budget allows cold package installation to finish before
+QGA becomes available. The same strict integer bounds (1–3600 seconds) apply
+before inspecting pins or accessing PVE. Only the existing HTTP 500/503
+unavailable responses are retried, with a five-second poll interval and a
+controller deadline as well as a retry cap. An in-flight request (at most 30
+seconds, reduced for shorter budgets) and the final poll can briefly outlast
+the deadline. Exhaustion fails before appending a key or continuing setup;
+TLS, authorization, ownership and malformed-response failures still stop the
+operation. The later strict SSH wait retains its existing timeout.
+
 The PVE token needs `VM.Audit` to read configuration and
 `VM.GuestAgent.FileRead` on the owned VMs. PVE grants FileRead per VM, not per
 pathname, so enroll only VMs covered by the qualified template and token scope.
