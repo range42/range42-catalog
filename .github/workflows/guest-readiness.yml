@@ -1,0 +1,57 @@
+name: Guest readiness
+
+'on':
+  pull_request:
+    paths:
+      - '.github/workflows/guest-readiness.yml'
+      - '02_ansible_layer/admin/roles/ansible.utils/**'
+      - 'tests/test_cloud_init_wait.py'
+      - 'tests/test_guest_readiness_*.py'
+      - 'tests/test_guest_qga_hostkeys.py'
+  push:
+    branches: [dev]
+    paths:
+      - '.github/workflows/guest-readiness.yml'
+      - '02_ansible_layer/admin/roles/ansible.utils/**'
+      - 'tests/test_cloud_init_wait.py'
+      - 'tests/test_guest_readiness_*.py'
+      - 'tests/test_guest_qga_hostkeys.py'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: guest-readiness-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  local-readiness:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        # Native Ubuntu CLI and the participant API image respectively.
+        ansible-core: ['2.16.3', '2.19.1']
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - name: Install local test dependencies
+        run: >-
+          python -m pip install
+          'ansible-core==${{ matrix.ansible-core }}' 'pytest==8.3.4'
+          'PyYAML==6.0.3' 'cryptography==46.0.5' 'paramiko==3.5.1'
+      - name: Exercise local cloud-init, SSH readiness, and host-key trust
+        run: >-
+          python -m pytest -q
+          tests/test_cloud_init_wait.py
+          tests/test_guest_readiness_local.py
+          tests/test_guest_readiness_ssh.py
+          tests/test_guest_qga_hostkeys.py

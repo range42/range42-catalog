@@ -13,7 +13,7 @@ import yaml
 TASK = Path(__file__).resolve().parents[1] / "02_ansible_layer/admin/roles/ansible.utils/tasks/wait/openssh_server/is_reachable.yml"
 
 
-def run_wait(tmp_path, *, common="", extra="", alias="guest.invalid", failure=False, wrapper=False, strict=False):
+def run_wait(tmp_path, *, common="", extra="", alias="guest.invalid", failure=False, wrapper=False, strict=False, implicit=False):
     binary = Path(sys.executable).parent / "ansible-playbook"
     if not binary.is_file():
         pytest.skip("ansible-playbook is not installed")
@@ -41,6 +41,10 @@ def run_wait(tmp_path, *, common="", extra="", alias="guest.invalid", failure=Fa
         "ansible_ssh_extra_args": extra, "ARG_vm_ssh_name": alias,
         "deployer_cli_user_ssh_known_hosts": str(known_hosts),
     }}}}))
+    if implicit:
+        loaded = yaml.safe_load(inventory.read_text())
+        del loaded['all']['hosts']['guest.invalid']['ansible_connection']
+        inventory.write_text(yaml.safe_dump(loaded))
     tasks = yaml.safe_load(TASK.read_text())
     for task in tasks:
         if task.get("name") == "WAIT FOR SSH - VIA ProxyJump":
@@ -58,6 +62,7 @@ def run_wait(tmp_path, *, common="", extra="", alias="guest.invalid", failure=Fa
         env={**os.environ, "ANSIBLE_CONFIG": str(config), "PATH": str(bindir) + ":" + os.environ["PATH"],
              "ANSIBLE_HOST_KEY_CHECKING": "True" if strict else "False"},
         capture_output=True, text=True, timeout=15)
+    assert capture.is_file(), result.stdout + result.stderr
     return result, json.loads(capture.read_text()), known_hosts, marker
 
 
@@ -117,3 +122,10 @@ def test_remote_readiness_retains_the_native_adapter_ssh_wrapper(tmp_path):
         capture_output=True, text=True, check=True)
     options = dict(line.split(" ", 1) for line in effective.stdout.splitlines())
     assert options["stricthostkeychecking"] == "true"
+
+
+def test_implicit_remote_transport_still_waits_for_ssh_before_the_next_stage(tmp_path):
+    result, args, _, marker = run_wait(tmp_path, implicit=True, strict=True)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert args[-2:] == ['guest.invalid', 'true']
+    assert marker.exists()

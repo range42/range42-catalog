@@ -1,5 +1,13 @@
 # Native guest SSH readiness
 
+`wait/cloudinit/is_boot_finished.yml` waits for the guest's fixed
+`/var/lib/cloud/instance/boot-finished` marker before later setup tasks run.
+Cold cloud-init runs may need several minutes, especially when multiple guests
+boot together. The timeout defaults to 1200 seconds (20 minutes), with the
+existing initial 10-second delay. Set `range42_cloud_init_timeout_seconds` to a
+YAML integer from 1 to 3600 seconds to override it. Invalid values fail before
+the wait; a missing marker still fails when the configured timeout expires.
+
 `wait/openssh_server/is_reachable.yml` uses the existing SSH configuration and
 common/extra SSH arguments, with `BatchMode=yes`. Ordinary CLI runs retain
 `StrictHostKeyChecking=accept-new`, so a fresh guest can establish its first
@@ -27,6 +35,17 @@ verified PVE CA. It reads the exact VM configuration and only
 `agent/file-read` GET, with a 4096-byte bound and no HTTP redirects. There is no agent exec or guest
 private-key read. VM name, static IP, configuration digest and the effective
 SSH destination, port and HostKeyAlias are checked before appending a pin.
+
+Guest-agent readiness shares `range42_cloud_init_timeout_seconds`: the default
+1200-second startup budget allows cold package installation to finish before
+QGA becomes available. The same strict integer bounds (1–3600 seconds) apply
+before inspecting pins or accessing PVE. Only the existing HTTP 500/503
+unavailable responses are retried, with a five-second poll interval and a
+controller deadline as well as a retry cap. An in-flight request (at most 30
+seconds, reduced for shorter budgets) and the final poll can briefly outlast
+the deadline. Exhaustion fails before appending a key or continuing setup;
+TLS, authorization, ownership and malformed-response failures still stop the
+operation. The later strict SSH wait retains its existing timeout.
 
 The PVE token needs `VM.Audit` to read configuration and
 `VM.GuestAgent.FileRead` on the owned VMs. PVE grants FileRead per VM, not per
