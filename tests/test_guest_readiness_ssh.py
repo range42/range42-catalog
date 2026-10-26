@@ -99,7 +99,7 @@ def test_remote_readiness_does_not_interpret_the_target_as_shell_code(tmp_path):
     alias = f"guest.invalid; printf injected > {shlex.quote(str(injected))}"
     result, args, _, _ = run_wait(tmp_path, alias=alias)
     assert result.returncode == 0, result.stdout + result.stderr
-    assert args[-2:] == [alias, "true"]
+    assert args[-2:] == [alias, "exit"]
     assert not injected.exists()
 
 

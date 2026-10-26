@@ -92,7 +92,7 @@ def test_optional_agent_trust_with_real_tls_and_strict_ssh(tmp_path, case):
 
         def check_channel_exec_request(self, channel, value):
             ssh_command.set()
-            return value == b"true"
+            return value == b"exit"
 
     listener = socket.socket()
     listener.bind(("127.0.0.1", 0))
