@@ -1,0 +1,46 @@
+profile: basic
+
+skip_list:
+  # SCREAMING_SNAKE is the documented convention for infrastructure-wide vars
+  - var-naming[pattern]
+  # dot-notation role naming is the documented convention (e.g. software.install.wazuh)
+  - role-name
+  # dot-notation roles produce nonsensical prefix requirements
+  - var-naming[no-role-prefix]
+  # pre-existing task naming convention: lowercase names throughout catalog
+  - name[casing]
+  # large legacy codebase: hundreds of unnamed tasks, out of scope for CI hardening
+  - name[missing]
+  # plays in catalog bundles do not require names
+  - name[play]
+  # Jinja template syntax in task names is intentional
+  - name[template]
+  # cosmetic key ordering; pre-existing throughout catalog
+  - key-order[task]
+  # partial become (become without become_user) is pre-existing throughout catalog
+  - partial-become[task]
+  # octal file permission values are intentional (e.g. 0644, 0755)
+  - yaml[octal-values]
+  # pre-existing shell usage throughout catalog — all cases are intentional
+  - command-instead-of-shell
+  # pre-existing free-form module calls throughout catalog
+  - no-free-form
+  # pre-existing {{ var}} spacing in catalog roles — cosmetic only
+  - jinja[spacing]
+
+warn_list:
+  - yaml[line-length]
+  - yaml[truthy]
+  - yaml[trailing-spaces]
+  - yaml[empty-lines]
+  - yaml[new-line-at-end-of-file]
+  - yaml[colons]
+  - yaml[comments]
+  - yaml[indentation]
+  - risky-shell-pipe
+
+# catalog roles that reference themselves in test.yml or cross-repo roles not checked out in CI
+mock_roles:
+  - soft.install.warmup.local_bin
+  - software.install.dotFiles
+  - system.checks.overview
