@@ -49,7 +49,9 @@
   until: ssh_check.rc == 0
   changed_when: false
   delegate_to: localhost
-  when: ansible_connection | default('ssh') != 'local'
+  # Read the target's own connection : in a task delegated to localhost, `ansible_connection`
+  # is the delegated one (local), which would skip this wait for every host.
+  when: hostvars[inventory_hostname]['ansible_connection'] | default('ssh') != 'local'
 #########
 #########
 #########
