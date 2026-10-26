@@ -1,0 +1,25 @@
+schema_version: "1.0"
+kind: component
+name: systems.clone.linux_cloudinit
+description: Portable Linux guest for attaching catalog roles, files, scripts
+  and supported Compose workloads.
+tags:
+  - linux
+  - cloud-init
+  - vm
+  - sdn
+nodes:
+  - id: linux_cloudinit
+    kind: vm
+    role: admin
+    config:
+      name: linux-cloudinit
+      os: Linux with cloud-init and Python 3
+      cores: 2
+      memory_mb: 2048
+      disk_gb: 20
+    networks:
+      - node_ref: network
+        dhcp: true
+  - id: network
+    kind: network
