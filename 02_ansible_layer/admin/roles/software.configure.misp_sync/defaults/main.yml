@@ -1,0 +1,36 @@
+---
+##
+## software.configure.misp_sync — see README.md.
+##
+## Per-host vars, set by add_host in the scenario:
+##   misp_star_role : hub | spoke
+##   misp_star_team : team name, spoke only (= MISP_ORG of that spoke)
+##
+
+# Must equal MISP_ORG_UUID_NAMESPACE of every instance of the star.
+misp_star_org_uuid_namespace: ""
+
+# true: also ensure the sharing group 'all teams' (every team org + white cell).
+# This is an inter-team channel by design.
+misp_star_inter_team_sharing: false
+
+# push: spoke -> hub only. both: the teams also receive white cell sightings.
+misp_star_sightings_sync: push
+
+# push: spoke -> hub only. both: the spokes also pull galaxy clusters.
+misp_star_galaxy_clusters_sync: push
+
+# Element location on each VM (bundle REMOTE_PROJECT_DIR) and MISP_HTTPS_PORT.
+misp_sync_project_dir: /home/alice/misp-star
+misp_sync_https_port: 443
+
+# Hub host org (MISP_ORG) = white cell. The hub must set MISP_ORG to MISP_INSTRUCTOR_ORG.
+misp_sync_white_cell_org: instructors
+
+# Hub sync users: sync-<team>@<misp_sync_user_domain>.
+misp_sync_user_domain: range42.local
+misp_sync_role_name: "Sync user (misp-star)"
+misp_sync_server_name: "misp-star hub"
+
+# Set to false only to debug: the API tasks carry site admin and sync keys.
+misp_sync_no_log: true

@@ -1,0 +1,18 @@
+FROM python:3.11-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        curl \
+        libmagic1 \
+        libgl1 \
+        libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install misp-modules from PyPI; fpdf2 + reportlab satisfy the export_pdf module.
+RUN pip install --no-cache-dir misp-modules==3.0.8 fpdf2 reportlab
+
+EXPOSE 6666
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=90s --retries=5 \
+    CMD curl -sf http://localhost:6666/modules || exit 1
+
+CMD ["misp-modules", "-l", "0.0.0.0", "-p", "6666"]
