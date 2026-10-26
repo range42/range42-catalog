@@ -41,13 +41,17 @@
       retries: 10
       delay: 5
       changed_when: false
+      # Non-fatal: on isolated lab networks NTP may be unreachable (range42-catalog#208).
+      # The clock is normally already correct (host/cloud-init), so don't abort the deploy.
+      ignore_errors: true
 
     #
     - name: assert - time is sync - ubuntu
-      assert:
-        that:
-          - ntp_sync_check.stdout == "yes"
-        fail_msg: " clock is not sync!"
-        success_msg: " clock is sync !"
+      debug:
+        msg: >-
+          {{ ' clock is sync !' if ntp_sync_check.stdout == 'yes'
+             else 'WARNING clock not NTP-synchronized (NTPSynchronized='
+                  ~ (ntp_sync_check.stdout | default('unknown'))
+                  ~ ') - continuing anyway; ensure a reachable NTP server for production.' }}
 
   when: ansible_facts.distribution == 'Ubuntu'
