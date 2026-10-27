@@ -1,0 +1,83 @@
+---
+# systems.configure.ad_domain_member
+# Join a Windows host to an existing Active Directory domain : DNS to the domain controller, join,
+# reboot, then check that the host is a member and that its local built-in Administrator is
+# disabled. Join only : no local or domain object is created here. Idempotent : a member of the
+# domain makes microsoft.ad.membership report ok.
+
+- name: AD MEMBER - assert the public variables
+  ansible.builtin.assert:
+    that:
+      - AD_MEMBER_DOMAIN is defined
+      - AD_MEMBER_DOMAIN is string
+      - AD_MEMBER_DOMAIN is match('^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?([.][A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$')
+      - AD_MEMBER_DC_IP is defined
+      - AD_MEMBER_DC_IP is match('^(?:(?:25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])[.]){3}(?:25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])$')
+      - AD_MEMBER_JOIN_USER is defined
+      - AD_MEMBER_JOIN_USER is string
+      - AD_MEMBER_JOIN_USER | length > 0
+      - AD_MEMBER_OU is string
+    fail_msg: >-
+      AD_MEMBER_DOMAIN must be a DNS name with at least two labels, AD_MEMBER_DC_IP an IPv4 address,
+      AD_MEMBER_JOIN_USER a non-empty string, AD_MEMBER_OU a string.
+    quiet: true
+
+## The value is never printed : the assert reports only which condition failed.
+- name: AD MEMBER - assert the join password is set
+  ansible.builtin.assert:
+    that:
+      - AD_MEMBER_JOIN_PASSWORD is defined
+      - AD_MEMBER_JOIN_PASSWORD is string
+      - AD_MEMBER_JOIN_PASSWORD | length > 0
+    fail_msg: "AD_MEMBER_JOIN_PASSWORD must be a non-empty string."
+    quiet: true
+
+## The join locates the domain through its DNS SRV records, which only the domain DNS serves.
+- name: AD MEMBER - use the domain controller as DNS server
+  ansible.windows.win_dns_client:
+    adapter_names: "*"
+    dns_servers:
+      - "{{ AD_MEMBER_DC_IP }}"
+
+## A reboot after a join takes several minutes under nested virtualisation, hence 1800 s.
+- name: AD MEMBER - join the domain
+  microsoft.ad.membership:
+    dns_domain_name: "{{ AD_MEMBER_DOMAIN }}"
+    domain_admin_user: "{{ AD_MEMBER_JOIN_USER }}"
+    domain_admin_password: "{{ AD_MEMBER_JOIN_PASSWORD }}"
+    domain_ou_path: "{{ AD_MEMBER_OU if (AD_MEMBER_OU | length) > 0 else omit }}"
+    state: domain
+    reboot: true
+    reboot_timeout: 1800
+  no_log: true
+
+- name: AD MEMBER - read the membership
+  ansible.windows.win_shell: |
+    $cs = Get-CimInstance -ClassName Win32_ComputerSystem
+    "$($cs.PartOfDomain)|$($cs.Domain)"
+  register: _adm_cs
+  changed_when: false
+
+- name: AD MEMBER - assert the host is a member of the domain
+  ansible.builtin.assert:
+    that:
+      - (_adm_cs.stdout | trim).split('|')[0] == 'True'
+      - ((_adm_cs.stdout | trim).split('|')[1] | lower) == (AD_MEMBER_DOMAIN | lower)
+    fail_msg: "PartOfDomain|Domain is '{{ _adm_cs.stdout | trim }}', expected 'True|{{ AD_MEMBER_DOMAIN }}'"
+    success_msg: "member of {{ AD_MEMBER_DOMAIN }}"
+
+## Found by its RID 500, not by its name (localised images). Disabled by default on Windows client
+## editions ; enabled, it is a local administrator outside the domain's control.
+- name: AD MEMBER - read the local built-in Administrator (RID 500)
+  ansible.windows.win_shell: |
+    $a = Get-LocalUser | Where-Object { $_.SID.Value -match '-500$' }
+    "$($a.Name)|$($a.Enabled)"
+  register: _adm_rid500
+  changed_when: false
+
+- name: AD MEMBER - assert the local built-in Administrator is disabled
+  ansible.builtin.assert:
+    that:
+      - (_adm_rid500.stdout | trim).split('|')[1] == 'False'
+    fail_msg: "local built-in Administrator '{{ _adm_rid500.stdout | trim }}' (name|enabled) is enabled : disable it or set a dedicated password before joining"
+    success_msg: "local built-in Administrator '{{ (_adm_rid500.stdout | trim).split('|')[0] }}' is disabled"

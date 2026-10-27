@@ -1,0 +1,11 @@
+---
+# systems.configure.ad_domain_member - public variables
+#
+# Required, no default (the role asserts them) :
+#   AD_MEMBER_DOMAIN         DNS name of the domain to join, for example example.lab
+#   AD_MEMBER_DC_IP          IPv4 address of a domain controller that is also the DNS server of the domain
+#   AD_MEMBER_JOIN_USER      account allowed to join computers, for example Administrator@example.lab
+#   AD_MEMBER_JOIN_PASSWORD  its password (secret)
+
+# Distinguished name of the OU of the new computer object ; empty = the default Computers container
+AD_MEMBER_OU: ""
