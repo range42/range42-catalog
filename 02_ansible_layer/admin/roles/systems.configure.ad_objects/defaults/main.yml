@@ -1,0 +1,15 @@
+---
+# systems.configure.ad_objects - public variables. Every list is empty by default : the role then
+# changes nothing.
+
+# Organizational units : [{ name, path }] ; path = distinguished name of the parent, optional
+# (default : the domain root)
+AD_OBJECTS_OUS: []
+
+# Groups : [{ name, path, scope }] ; scope = domainlocal | global | universal, required ;
+# path optional (default : the default container of groups, CN=Users)
+AD_OBJECTS_GROUPS: []
+
+# Users : [{ name, password, path, groups, display_name }] ; password required (secret) ;
+# path, groups (list of group names to add the user to) and display_name optional
+AD_OBJECTS_USERS: []
