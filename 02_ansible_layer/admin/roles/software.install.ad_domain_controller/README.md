@@ -19,7 +19,11 @@ Invoked via the thin bundle `range42-playbooks/bundles/admin/software.install.ad
      `C:\ProgramData\ssh\administrators_authorized_keys` and restricts that file to
      Administrators and SYSTEM (`icacls`), so the SSH key of the connection user still works
      after the promotion when `sshd_config` uses the Windows default
-     `Match Group administrators` block.
+     `Match Group administrators` block. Privilege consequence : under that block, the keys of
+     the connection user then authenticate as **every** member of Administrators, which after
+     the promotion includes the domain Administrator. Use this role only where the connection
+     user is already trusted with domain-admin rights. With an `sshd_config` that has no such
+     block, the copied file is not read.
 3. `microsoft.ad.domain` : new forest, `install_dns: true`, `reboot: true`
    (`reboot_timeout` 1800 s).
 4. Waits until `Get-ADDomain` returns the domain (60 x 10 s).
