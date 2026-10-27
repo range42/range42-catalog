@@ -16,6 +16,7 @@
 # reboot the guest before that, so probe from the controller with plain ssh, like
 # openssh_server/is_reachable.yml : a dropped connection is retried, not fatal. Two reads
 # 15 s apart, so that a service stopped by a shutdown in progress does not count.
+# cloudinit_wait_retries (default 60, at least 10 s apart) sets the budget.
 - name: CLOUD INIT - WAIT END OF SETUP (Windows, cloudbase-init service stopped)
   ansible.builtin.command:
     cmd: >-
@@ -32,7 +33,7 @@
     expand_argument_vars: false
   register: cloudbase_init_status
   until: cloudbase_init_status.stdout | default('') | trim == 'Stopped/Stopped'
-  retries: 60
+  retries: "{{ cloudinit_wait_retries | default(60) }}"
   delay: 10
   failed_when: cloudbase_init_status.stdout | default('') | trim != 'Stopped/Stopped'
   changed_when: false
