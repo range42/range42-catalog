@@ -1,0 +1,112 @@
+---
+# software.install.ad_domain_controller
+# Promote a Windows Server host to the first domain controller of a new forest (DNS included),
+# then configure the DNS forwarders. Promotion only : no OU, group or user here (see
+# systems.configure.ad_objects). Idempotent : on a host that is already a domain controller the
+# pre-promotion steps are skipped and microsoft.ad.domain reports ok.
+#
+# Requires the microsoft.ad and ansible.windows collections. Connection : any (tested over OpenSSH
+# with ansible_shell_type powershell).
+
+- name: AD DC - assert the public variables
+  ansible.builtin.assert:
+    that:
+      - AD_DC_DOMAIN is defined
+      - AD_DC_DOMAIN is string
+      - AD_DC_DOMAIN is match('^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?([.][A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$')
+      - AD_DC_NETBIOS is defined
+      - AD_DC_NETBIOS is string
+      - AD_DC_NETBIOS is match('^[A-Za-z0-9][A-Za-z0-9-]{0,14}$')
+      - AD_DC_DNS_FORWARDERS is sequence
+      - AD_DC_DNS_FORWARDERS is not string
+      - (AD_DC_DNS_FORWARDERS | reject('match', '^(?:(?:25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])[.]){3}(?:25[0-5]|2[0-4][0-9]|1?[0-9]?[0-9])$') | list | length) == 0
+    fail_msg: >-
+      AD_DC_DOMAIN must be a DNS name with at least two labels, AD_DC_NETBIOS 1 to 15 letters, digits
+      or hyphens, AD_DC_DNS_FORWARDERS a list of IPv4 addresses.
+    quiet: true
+
+## The values are never printed : the assert reports only which condition failed.
+- name: AD DC - assert the passwords are set
+  ansible.builtin.assert:
+    that:
+      - AD_DC_DSRM_PASSWORD is defined
+      - AD_DC_DSRM_PASSWORD is string
+      - AD_DC_DSRM_PASSWORD | length > 0
+      - AD_DC_BUILTIN_ADMIN_PASSWORD is defined
+      - AD_DC_BUILTIN_ADMIN_PASSWORD is string
+      - AD_DC_BUILTIN_ADMIN_PASSWORD | length > 0
+    fail_msg: "AD_DC_DSRM_PASSWORD and AD_DC_BUILTIN_ADMIN_PASSWORD must be non-empty strings."
+    quiet: true
+
+## DomainRole 4 = backup DC, 5 = primary DC.
+- name: AD DC - read the domain role of the host
+  ansible.windows.win_shell: (Get-CimInstance -ClassName Win32_ComputerSystem).DomainRole
+  register: _addc_role
+  changed_when: false
+
+- name: AD DC - steps before the promotion
+  when: (_addc_role.stdout | trim | int) < 4
+  block:
+
+    ## The name is looked up by SID : it is "Administrator" only on English images.
+    - name: AD DC - find the built-in Administrator (RID 500)
+      ansible.windows.win_shell: |
+        (Get-LocalUser | Where-Object { $_.SID.Value -match '-500$' }).Name
+      register: _addc_rid500
+      changed_when: false
+      failed_when: (_addc_rid500.stdout | trim | length) == 0
+
+    ## Its password becomes the domain Administrator password at the promotion.
+    - name: AD DC - set the built-in Administrator password
+      ansible.windows.win_user:
+        name: "{{ _addc_rid500.stdout | trim }}"
+        password: "{{ AD_DC_BUILTIN_ADMIN_PASSWORD }}"
+        update_password: always
+      no_log: true
+
+    ## sshd only reads this file for members of Administrators when its config has the Windows
+    ## default "Match Group administrators" block. Copying the key keeps SSH working through the
+    ## promotion with either configuration.
+    - name: AD DC - copy the connection user's SSH keys to administrators_authorized_keys
+      ansible.windows.win_copy:
+        src: 'C:\Users\{{ ansible_user }}\.ssh\authorized_keys'
+        dest: 'C:\ProgramData\ssh\administrators_authorized_keys'
+        remote_src: true
+
+    ## sshd ignores the file unless only Administrators and SYSTEM can access it.
+    - name: AD DC - restrict administrators_authorized_keys to Administrators and SYSTEM
+      ansible.windows.win_shell: |
+        icacls.exe 'C:\ProgramData\ssh\administrators_authorized_keys' /inheritance:r /grant '*S-1-5-32-544:F' /grant '*S-1-5-18:F'
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+## A reboot after a promotion takes several minutes under nested virtualisation, hence 1800 s.
+- name: AD DC - promote to the first domain controller of a new forest
+  microsoft.ad.domain:
+    dns_domain_name: "{{ AD_DC_DOMAIN }}"
+    domain_netbios_name: "{{ AD_DC_NETBIOS }}"
+    safe_mode_password: "{{ AD_DC_DSRM_PASSWORD }}"
+    install_dns: true
+    reboot: true
+    reboot_timeout: 1800
+  no_log: true
+
+## Active Directory Web Services answer some time after the reboot.
+- name: AD DC - wait for the domain to answer
+  ansible.windows.win_shell: (Get-ADDomain -Identity '{{ AD_DC_DOMAIN }}').DNSRoot
+  register: _addc_domain
+  until:
+    - _addc_domain.rc == 0
+    - (_addc_domain.stdout | trim | lower) == (AD_DC_DOMAIN | lower)
+  retries: 60
+  delay: 10
+  changed_when: false
+
+- name: AD DC - add the missing DNS forwarders
+  ansible.windows.win_shell: |
+    $want = '{{ AD_DC_DNS_FORWARDERS | to_json }}' | ConvertFrom-Json
+    $have = @((Get-DnsServerForwarder).IPAddress | ForEach-Object { $_.IPAddressToString })
+    foreach ($ip in $want) {
+      if ($have -notcontains $ip) { Add-DnsServerForwarder -IPAddress $ip ; "added $ip" }
+    }
+  register: _addc_forwarders
+  changed_when: "'added ' in _addc_forwarders.stdout"

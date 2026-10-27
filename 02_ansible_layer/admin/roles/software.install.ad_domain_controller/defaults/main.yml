@@ -1,0 +1,12 @@
+---
+# software.install.ad_domain_controller - public variables
+#
+# Required, no default (the role asserts them) :
+#   AD_DC_DOMAIN                  DNS name of the new domain, for example example.lab
+#   AD_DC_NETBIOS                 NetBIOS name of the domain, at most 15 characters
+#   AD_DC_DSRM_PASSWORD           Directory Services Restore Mode password (secret)
+#   AD_DC_BUILTIN_ADMIN_PASSWORD  password set on the built-in Administrator (RID 500) before the
+#                                 promotion ; it becomes the domain Administrator password (secret)
+
+# DNS servers the DC forwards the names it does not host to
+AD_DC_DNS_FORWARDERS: ["1.1.1.1"]
