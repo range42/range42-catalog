@@ -1,7 +1,8 @@
 # systems.configure.rdp_access
 
 Enable **Remote Desktop** on a Windows host and add accounts to the group "Remote Desktop
-Users". Works on a domain member and on a domain controller.
+Users". Works on a domain member and on a domain controller (on a domain controller the group
+step was tested in check mode only).
 
 Invoked via the thin bundle `range42-playbooks/bundles/generic/systems.configure.rdp_access/`.
 
@@ -25,7 +26,7 @@ Invoked via the thin bundle `range42-playbooks/bundles/generic/systems.configure
    built-in domain-local group of the domain (container `CN=Builtin`). The module reaches both
    through the WinNT provider.
 
-A second run reports `ok` for every task.
+A second run reports no change : every task is `ok` or `skipping`.
 
 ## What it does not change
 
@@ -33,9 +34,9 @@ A second run reports `ok` for every task.
   (`PortNumber`, 3389 by default).
 - User rights. Membership of "Remote Desktop Users" is enough on a member : there the right
   "Allow log on through Remote Desktop Services" lists Administrators and Remote Desktop Users by
-  default. On a domain controller the Default Domain Controllers Policy grants that right to
-  Administrators only, so a member of "Remote Desktop Users" still cannot log on to a DC ; use an
-  administrator account there.
+  default. On a domain controller the right lists Administrators only by default (measured on
+  Windows Server 2025 : `SeRemoteInteractiveLogonRight = *S-1-5-32-544`), so a member of "Remote
+  Desktop Users" still cannot log on to a DC ; use an administrator account there.
 - Network firewalls outside the host (for example the Proxmox firewall).
 
 ## Variables
@@ -52,12 +53,14 @@ The role widens the host firewall : tcp and udp 3389 (User Mode rules) and the S
 any local port, program `%SystemRoot%\system32\RdpSa.exe`) accept connections, for the
 profiles and remote addresses of the built-in rules. On Windows Server 2025 and Windows 11 these
 are all profiles and any remote address. Restrict the sources with a network firewall in front of
-the host. Every account in `RDP_USERS` can open an interactive session on a member.
+the host. Every member of the Administrators group can open a Remote Desktop session, also with
+the default `RDP_USERS: []` ; every account in `RDP_USERS` can open one on a member.
 
 ## Requirements
 
 - Collection `ansible.windows` (tested with 3.5.0). Connection : tested over OpenSSH with
-  `ansible_shell_type: powershell` and a local administrator.
+  `ansible_shell_type: powershell` and an administrator account (a local administrator on the
+  member, a member of the domain built-in Administrators group on the domain controller).
 - Domain accounts in `RDP_USERS` : the host must be a member of the domain, or its domain
   controller, when the role runs.
 

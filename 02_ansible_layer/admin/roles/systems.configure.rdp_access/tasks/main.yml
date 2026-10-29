@@ -3,7 +3,7 @@
 # Enable Remote Desktop on a Windows host : allow connections (fDenyTSConnections 0), enable the
 # firewall rule group "Remote Desktop", start TermService, add RDP_USERS to the group
 # "Remote Desktop Users". NLA, the listening port and the user rights stay as they are.
-# Idempotent : a second run reports ok.
+# Idempotent : a second run reports no change.
 
 - name: RDP ACCESS - assert the public variables
   ansible.builtin.assert:
