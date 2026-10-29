@@ -1,0 +1,62 @@
+---
+# systems.configure.rdp_access
+# Enable Remote Desktop on a Windows host : allow connections (fDenyTSConnections 0), enable the
+# firewall rule group "Remote Desktop", start TermService, add RDP_USERS to the group
+# "Remote Desktop Users". NLA, the listening port and the user rights stay as they are.
+# Idempotent : a second run reports ok.
+
+- name: RDP ACCESS - assert the public variables
+  ansible.builtin.assert:
+    that:
+      - RDP_USERS is sequence
+      - RDP_USERS is not string
+      - RDP_USERS is not mapping
+      - RDP_USERS | select('string') | list | length == RDP_USERS | length
+      - RDP_USERS | reject('match', '^[^\x00-\x1f",:;|=+*?<>\[\]/]+$') | list | length == 0
+    fail_msg: "RDP_USERS must be a list of account names, for example ['EXAMPLE\\user']."
+    quiet: true
+
+- name: RDP ACCESS - allow Remote Desktop connections
+  ansible.windows.win_regedit:
+    path: HKLM:\System\CurrentControlSet\Control\Terminal Server
+    name: fDenyTSConnections
+    data: 0
+    type: dword
+
+## The group is found by its resource string, not by its localised display name.
+- name: RDP ACCESS - enable the firewall rule group Remote Desktop
+  ansible.windows.win_shell: |
+    $ProgressPreference = 'SilentlyContinue'
+    $rules = @(Get-NetFirewallRule -Group '@FirewallAPI.dll,-28752' -ErrorAction SilentlyContinue)
+    if ($rules.Count -eq 0) { throw 'no firewall rule in the group Remote Desktop (@FirewallAPI.dll,-28752)' }
+    $off = @($rules | Where-Object { $_.Enabled -ne 'True' })
+    if ($off.Count -gt 0) {
+        $off | Enable-NetFirewallRule
+        "range42: enabled $(($off | ForEach-Object { $_.Name }) -join ',')"
+    }
+    $rules | ForEach-Object { "$($_.Name) Enabled=$((Get-NetFirewallRule -Name $_.Name).Enabled)" }
+  register: _rdp_fw
+  changed_when: "'range42: enabled' in _rdp_fw.stdout"
+
+## The start type stays as found (Manual by default).
+- name: RDP ACCESS - start the Remote Desktop service
+  ansible.windows.win_service:
+    name: TermService
+    state: started
+
+## Built-in group : local on a member, domain-local in CN=Builtin on a domain controller. Both
+## answer to the WinNT provider that ansible.windows.win_group_membership uses.
+- name: RDP ACCESS - read the name of the group Remote Desktop Users (SID S-1-5-32-555)
+  ansible.windows.win_shell: |
+    (New-Object System.Security.Principal.SecurityIdentifier 'S-1-5-32-555').Translate([System.Security.Principal.NTAccount]).Value.Split([char]0x5C)[-1]
+  register: _rdp_group
+  changed_when: false
+  check_mode: false
+  when: RDP_USERS | length > 0
+
+- name: RDP ACCESS - add RDP_USERS to the group Remote Desktop Users
+  ansible.windows.win_group_membership:
+    name: "{{ _rdp_group.stdout | trim }}"
+    members: "{{ RDP_USERS }}"
+    state: present
+  when: RDP_USERS | length > 0
