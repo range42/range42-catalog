@@ -1,0 +1,13 @@
+---
+galaxy_info:
+  role_name: software_install_wazuh_agent_windows
+  namespace: range42
+  author: range42
+  description: Install the Wazuh agent on a Windows host from a pinned MSI (SHA-256 checked), enroll it on a manager and keep the service WazuhSvc running.
+  license: MIT
+  min_ansible_version: "2.16"
+  platforms:
+    - name: Windows
+      versions:
+        - all
+dependencies: []
