@@ -1,0 +1,71 @@
+---
+# systems.configure.windows_eval_activation
+# Activate a Windows evaluation edition online (`slmgr.vbs /ato`), with retries, until Windows is
+# licensed with more than one day left. A clone of an evaluation template starts with an expired
+# grace period ; without this activation the Windows Licensing Monitoring Service (wlms.exe) shuts
+# the host down every hour. Idempotent : a host licensed with more than one day left reports ok.
+
+- name: WIN EVAL ACTIVATION - assert the public variables
+  ansible.builtin.assert:
+    that:
+      - WIN_EVAL_ACTIVATION_RETRIES | string is match('^[0-9]+$')
+      - WIN_EVAL_ACTIVATION_RETRIES | int >= 1
+      - WIN_EVAL_ACTIVATION_DELAY | string is match('^[0-9]+$')
+    fail_msg: "WIN_EVAL_ACTIVATION_RETRIES must be an integer >= 1, WIN_EVAL_ACTIVATION_DELAY an integer >= 0."
+    quiet: true
+
+## Lower bound of the SPP events read by the failure report below.
+- name: WIN EVAL ACTIVATION - read the guest clock
+  ansible.windows.win_shell: (Get-Date).ToUniversalTime().ToString('o')
+  register: _wea_t0
+  changed_when: false
+
+## GracePeriodRemaining (minutes) and LicenseStatus (1 = licensed) are the values that
+## `slmgr.vbs /xpr` prints as text ; the role tests them, not the localised text. 1440 = one day.
+- name: WIN EVAL ACTIVATION - activate online until licensed with more than one day left
+  ansible.windows.win_shell: |
+    $slmgr = Join-Path $env:WINDIR 'System32\slmgr.vbs'
+    function Get-WindowsLicence {
+        Get-CimInstance -ClassName SoftwareLicensingProduct `
+            -Filter "ApplicationID='55c92734-d682-4d71-983e-d6ec3f16059f' AND PartialProductKey IS NOT NULL" |
+            Select-Object -First 1
+    }
+    $p = Get-WindowsLicence
+    if (-not ($p.LicenseStatus -eq 1 -and $p.GracePeriodRemaining -gt 1440)) {
+        'range42: slmgr /ato'
+        cscript.exe //nologo $slmgr /ato
+        $p = Get-WindowsLicence
+    }
+    cscript.exe //nologo $slmgr /xpr
+    "range42: $($p.Name) LicenseStatus=$($p.LicenseStatus) GracePeriodRemaining=$($p.GracePeriodRemaining) min"
+    if ($p.LicenseStatus -eq 1 -and $p.GracePeriodRemaining -gt 1440) { 'range42: activated' }
+  register: _wea
+  until: "'range42: activated' in (_wea.stdout | default(''))"
+  retries: "{{ WIN_EVAL_ACTIVATION_RETRIES | int }}"
+  delay: "{{ WIN_EVAL_ACTIVATION_DELAY | int }}"
+  changed_when: "'range42: slmgr /ato' in (_wea.stdout | default(''))"
+  failed_when: false
+
+## The Software Protection service logs the failed activation as Application event 8200, hr=0x...
+- name: WIN EVAL ACTIVATION - read the activation errors (SPP event 8200)
+  ansible.windows.win_shell: |
+    $since = [datetime]::Parse('{{ _wea_t0.stdout | trim }}').ToLocalTime()
+    $e = Get-WinEvent -FilterHashtable @{ LogName = 'Application'; Id = 8200; StartTime = $since } `
+        -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($e) { "$($e.TimeCreated.ToUniversalTime().ToString('o')) $([regex]::Match($e.Message, 'hr=0x[0-9A-Fa-f]{8}').Value)" }
+    else { 'no event 8200 since the start of the activation' }
+  register: _wea_8200
+  changed_when: false
+  when: "'range42: activated' not in (_wea.stdout | default(''))"
+
+- name: WIN EVAL ACTIVATION - fail when Windows never activated
+  ansible.builtin.fail:
+    msg: >-
+      Windows evaluation not activated after {{ WIN_EVAL_ACTIVATION_RETRIES | int + 1 }} attempts.
+      Last SPP event 8200: {{ _wea_8200.stdout | default('') | trim }}.
+      Last attempt: {{ (_wea.stdout | default('') | trim) ~ ' ' ~ (_wea.stderr | default('') | trim) }}
+  when: "'range42: activated' not in (_wea.stdout | default(''))"
+
+- name: WIN EVAL ACTIVATION - report the licence
+  ansible.builtin.debug:
+    msg: "{{ _wea.stdout_lines | select('search', 'expire|range42:') | list }}"

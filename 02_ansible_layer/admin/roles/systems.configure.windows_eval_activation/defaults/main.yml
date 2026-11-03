@@ -1,0 +1,6 @@
+---
+# systems.configure.windows_eval_activation - public variables
+
+# Attempts of `slmgr.vbs /ato` after the first one, and the delay between two attempts (seconds)
+WIN_EVAL_ACTIVATION_RETRIES: 10
+WIN_EVAL_ACTIVATION_DELAY: 60

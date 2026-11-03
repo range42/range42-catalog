@@ -1,0 +1,63 @@
+---
+# systems.configure.ad_objects
+# Create the declared organizational units, groups and users of an Active Directory domain.
+# Runs on a domain controller of that domain (for example after
+# software.install.ad_domain_controller). Idempotent : state present everywhere, and a user
+# password is only written when it differs from the current one (update_password when_changed).
+# The role never deletes an object and never removes a group membership.
+#
+# Order : OUs, then groups, then users - a group or a user may live in a declared OU, and a user
+# may join a declared group.
+
+- name: AD OBJECTS - assert the shape of the lists
+  ansible.builtin.assert:
+    that:
+      - AD_OBJECTS_OUS is sequence and AD_OBJECTS_OUS is not string
+      - AD_OBJECTS_GROUPS is sequence and AD_OBJECTS_GROUPS is not string
+      - AD_OBJECTS_USERS is sequence and AD_OBJECTS_USERS is not string
+      - (AD_OBJECTS_OUS | rejectattr('name', 'defined') | list | length) == 0
+      - (AD_OBJECTS_GROUPS | rejectattr('name', 'defined') | list | length) == 0
+      - (AD_OBJECTS_GROUPS | rejectattr('scope', 'defined') | list | length) == 0
+      - (AD_OBJECTS_GROUPS | map(attribute='scope') | reject('in', ['domainlocal', 'global', 'universal']) | list | length) == 0
+      - (AD_OBJECTS_USERS | rejectattr('name', 'defined') | list | length) == 0
+      - (AD_OBJECTS_USERS | rejectattr('password', 'defined') | list | length) == 0
+    fail_msg: >-
+      Every OU needs a name ; every group a name and a scope (domainlocal, global or universal) ;
+      every user a name and a password.
+    quiet: true
+
+- name: AD OBJECTS - organizational units
+  microsoft.ad.ou:
+    name: "{{ _ado_ou.name }}"
+    path: "{{ _ado_ou.path | default(omit) }}"
+    state: present
+  loop: "{{ AD_OBJECTS_OUS }}"
+  loop_control:
+    loop_var: _ado_ou
+    label: "{{ _ado_ou.name }}"
+
+- name: AD OBJECTS - groups
+  microsoft.ad.group:
+    name: "{{ _ado_group.name }}"
+    path: "{{ _ado_group.path | default(omit) }}"
+    scope: "{{ _ado_group.scope }}"
+    state: present
+  loop: "{{ AD_OBJECTS_GROUPS }}"
+  loop_control:
+    loop_var: _ado_group
+    label: "{{ _ado_group.name }}"
+
+## no_log hides the whole result, the user names included : the password is one of its arguments.
+- name: AD OBJECTS - users
+  microsoft.ad.user:
+    name: "{{ _ado_user.name }}"
+    password: "{{ _ado_user.password }}"
+    update_password: when_changed
+    path: "{{ _ado_user.path | default(omit) }}"
+    display_name: "{{ _ado_user.display_name | default(omit) }}"
+    groups: "{{ {'add': _ado_user.groups} if (_ado_user.groups | default([]) | length) > 0 else omit }}"
+    state: present
+  loop: "{{ AD_OBJECTS_USERS }}"
+  loop_control:
+    loop_var: _ado_user
+  no_log: true

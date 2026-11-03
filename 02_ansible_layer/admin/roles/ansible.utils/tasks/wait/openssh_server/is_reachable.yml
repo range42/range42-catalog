@@ -40,16 +40,20 @@
       -o {{ ('UserKnownHostsFile=' ~ (deployer_cli_user_ssh_known_hosts | to_json)) | quote }}
       {{ ansible_ssh_common_args | default('') }}
       {{ ansible_ssh_extra_args | default('') }}
-      {{ ARG_vm_ssh_name | quote }} true
+      {{ ARG_vm_ssh_name | quote }} exit
     expand_argument_vars: false
 
+  # `exit` returns 0 in sh and in PowerShell (`true` is not a PowerShell command).
+  # Windows clones need more time : the first boot after sysprep takes several minutes.
   register: ssh_check
-  retries: 60
+  retries: "{{ ssh_wait_retries | default(60) }}"
   delay: 5
   until: ssh_check.rc == 0
   changed_when: false
   delegate_to: localhost
-  when: ansible_connection | default('ssh') != 'local'
+  # Read the target's own connection : in a task delegated to localhost, `ansible_connection`
+  # is the delegated one (local), which would skip this wait for every host.
+  when: hostvars[inventory_hostname]['ansible_connection'] | default('ssh') != 'local'
 #########
 #########
 #########

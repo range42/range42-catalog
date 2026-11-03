@@ -1,0 +1,13 @@
+---
+galaxy_info:
+  role_name: systems_configure_rdp_access
+  namespace: range42
+  author: range42
+  description: Enable Remote Desktop on a Windows host (registry, firewall rule group, service) and add accounts to the Remote Desktop Users group.
+  license: MIT
+  min_ansible_version: "2.16"
+  platforms:
+    - name: Windows
+      versions:
+        - all
+dependencies: []

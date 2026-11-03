@@ -1,0 +1,13 @@
+---
+galaxy_info:
+  role_name: systems_configure_windows_eval_activation
+  namespace: range42
+  author: range42
+  description: Activate a Windows evaluation edition online, with retries, and fail with the activation error code when it never succeeds.
+  license: MIT
+  min_ansible_version: "2.16"
+  platforms:
+    - name: Windows
+      versions:
+        - all
+dependencies: []

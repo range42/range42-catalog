@@ -19,6 +19,10 @@
   become: false
   vars:
     ansible_become: false
+    # Windows clones (OpenSSH for Windows) keep their host keys under ProgramData
+    r42_guest_hostkey_path: >-
+      {{ 'C:/ProgramData/ssh/ssh_host_ed25519_key.pub' if (ansible_shell_type | default('sh')) == 'powershell'
+         else '/etc/ssh/ssh_host_ed25519_key.pub' }}
   no_log: true
   block:
     - name: Require authenticated TLS and exact native guest inputs
@@ -56,7 +60,9 @@
 
     - name: Read only the fixed Ed25519 public host key through QGA
       ansible.builtin.uri:
-        url: "https://{{ proxmox_api_host }}/api2/json/nodes/{{ proxmox_node }}/qemu/{{ global_vm_id | int }}/agent/file-read?file=%2Fetc%2Fssh%2Fssh_host_ed25519_key.pub&count=4096&decode=1&offset=0"
+        url: >-
+          https://{{ proxmox_api_host }}/api2/json/nodes/{{ proxmox_node }}/qemu/{{ global_vm_id | int
+          }}/agent/file-read?file={{ r42_guest_hostkey_path | urlencode | replace('/', '%2F') }}&count=4096&decode=1&offset=0
         method: GET
         follow_redirects: none
         headers:
@@ -66,7 +72,8 @@
         return_content: true
         status_code: [200, 500, 503]
       register: r42_guest_public_key
-      retries: 60
+      # same budget as the SSH wait : the agent of a Windows clone starts late in the first boot
+      retries: "{{ ssh_wait_retries | default(60) }}"
       delay: 5
       until: r42_guest_public_key.status | default(-1) not in [500, 503]
       changed_when: false

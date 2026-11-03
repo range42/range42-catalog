@@ -1,0 +1,19 @@
+---
+# software.install.wazuh_agent_windows - public variables
+#
+# Required, no default (the role asserts them) :
+#   WAZUH_MANAGER     address of the Wazuh manager the agent reports to (IPv4 or DNS name)
+#   WAZUH_AGENT_NAME  name the agent enrolls with, for example the host name
+
+# Enrollment server (tcp 1515). Empty = WAZUH_MANAGER.
+WAZUH_REGISTRATION_SERVER: ""
+
+# Enrollment password the manager requires (authd use_password). Empty = enroll without password.
+# Pass it from a vault ; it reaches the msiexec command line, so the install task runs with no_log.
+WAZUH_REGISTRATION_PASSWORD: ""
+
+# The pinned agent package. Same version as the server role software.install.wazuh (VERSION.json).
+# The vendor publishes no usable checksum next to the MSI (the .sha512 URL answers 403) : the
+# SHA-256 below was computed from the file downloaded over HTTPS from this URL.
+WAZUH_AGENT_MSI_URL: "https://packages.wazuh.com/4.x/windows/wazuh-agent-4.14.4-1.msi"
+WAZUH_AGENT_MSI_SHA256: "0791a9eeb7ce41ca52fb34ed0e48a9ec3760645c6c6ac788f9404c3511ead66f"
