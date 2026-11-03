@@ -16,10 +16,13 @@
       - WAZUH_AGENT_NAME is match('^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$')
       - WAZUH_AGENT_MSI_URL is match('^https://[^\s"]+/[A-Za-z0-9._-]+[.]msi$')
       - WAZUH_AGENT_MSI_SHA256 is match('^[0-9a-fA-F]{64}$')
+      - WAZUH_REGISTRATION_PASSWORD is string
+      - WAZUH_REGISTRATION_PASSWORD == '' or WAZUH_REGISTRATION_PASSWORD is match('^[A-Za-z0-9._-]{8,128}$')
     fail_msg: >-
       WAZUH_MANAGER and WAZUH_REGISTRATION_SERVER must be an IPv4 address or a DNS name,
       WAZUH_AGENT_NAME letters, digits, '.', '_' or '-' (at most 128), WAZUH_AGENT_MSI_URL an
-      https URL of a .msi file, WAZUH_AGENT_MSI_SHA256 a SHA-256 in hexadecimal.
+      https URL of a .msi file, WAZUH_AGENT_MSI_SHA256 a SHA-256 in hexadecimal,
+      WAZUH_REGISTRATION_PASSWORD empty or 8 to 128 letters, digits, '.', '_' or '-'.
     quiet: true
 
 ## %TEMP% of the connection account, not C:\Windows\Temp : with the default ACL any local user can
@@ -37,6 +40,8 @@
 ## The module reads the ProductCode from the local MSI : no install when that product is present.
 ## The properties apply at install time only : a later change of WAZUH_MANAGER does not reach an
 ## agent that is already installed.
+## no_log : the arguments carry WAZUH_REGISTRATION_PASSWORD. A failure prints no detail ; rerun
+## with an empty password against a manager without use_password to debug.
 - name: WAZUH AGENT WINDOWS - install the agent and enroll it
   ansible.windows.win_package:
     path: "{{ _wazuh_agent_msi.dest }}"
@@ -44,7 +49,9 @@
       WAZUH_MANAGER={{ WAZUH_MANAGER }}
       WAZUH_REGISTRATION_SERVER={{ WAZUH_REGISTRATION_SERVER or WAZUH_MANAGER }}
       WAZUH_AGENT_NAME={{ WAZUH_AGENT_NAME }}
+      {% if WAZUH_REGISTRATION_PASSWORD | length > 0 %}WAZUH_REGISTRATION_PASSWORD={{ WAZUH_REGISTRATION_PASSWORD }}{% endif %}
     state: present
+  no_log: true
 
 - name: WAZUH AGENT WINDOWS - the service WazuhSvc runs and starts automatically
   ansible.windows.win_service:

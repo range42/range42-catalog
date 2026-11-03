@@ -12,13 +12,14 @@ path needs `become` and gathered facts, writes `ossec.conf` with `template:` (no
 ## What it does
 
 1. Asserts the variables. They reach the `msiexec` command line, so only IPv4 addresses, DNS
-   names and plain agent names pass.
+   names, plain agent names and plain passwords (letters, digits, `.`, `_`, `-`) pass.
 2. `ansible.windows.win_get_url` : downloads `WAZUH_AGENT_MSI_URL` to `%TEMP%` of the connection
    account and checks it against `WAZUH_AGENT_MSI_SHA256` (`checksum_algorithm: sha256`). A file
    already there with the right checksum is not downloaded again.
 3. `ansible.windows.win_package` : installs the MSI with the properties `WAZUH_MANAGER`,
-   `WAZUH_REGISTRATION_SERVER` and `WAZUH_AGENT_NAME`. The module reads the ProductCode from the
-   MSI and does nothing when that product is installed.
+   `WAZUH_REGISTRATION_SERVER`, `WAZUH_AGENT_NAME` and, when it is not empty,
+   `WAZUH_REGISTRATION_PASSWORD`. The module reads the ProductCode from the MSI and does nothing
+   when that product is installed. The task runs with `no_log: true`.
 4. `ansible.windows.win_service` : `WazuhSvc` running, start type automatic. At its first start
    the agent enrolls on `WAZUH_REGISTRATION_SERVER` (tcp 1515), then reports to `WAZUH_MANAGER`
    (tcp 1514).
@@ -29,7 +30,7 @@ The MSI stays in `%TEMP%` : a second run finds it with the right checksum and do
 
 - An agent that is already installed : the MSI properties apply at install time only, so a new
   `WAZUH_MANAGER` does not reach it. Uninstall the agent first.
-- The agent configuration beyond the three properties : the `ossec.conf` of the MSI stays as
+- The agent configuration beyond these properties : the `ossec.conf` of the MSI stays as
   shipped (event channels, active response).
 - The Windows audit policy : the agent forwards the events that Windows already logs.
 
@@ -40,6 +41,7 @@ The MSI stays in `%TEMP%` : a second run finds it with the right checksum and do
 | `WAZUH_MANAGER` | (required) | address of the manager the agent reports to (tcp 1514) |
 | `WAZUH_AGENT_NAME` | (required) | name the agent enrolls with, for example the host name |
 | `WAZUH_REGISTRATION_SERVER` | `""` | enrollment server (tcp 1515) ; empty = `WAZUH_MANAGER` |
+| `WAZUH_REGISTRATION_PASSWORD` | `""` | enrollment password of the manager (authd `use_password`) ; empty = no password |
 | `WAZUH_AGENT_MSI_URL` | `https://packages.wazuh.com/4.x/windows/wazuh-agent-4.14.4-1.msi` | the pinned package |
 | `WAZUH_AGENT_MSI_SHA256` | `0791a9ee…ead66f` (see `defaults/main.yml`) | SHA-256 of that package |
 
@@ -48,15 +50,26 @@ the URL and the checksum together. The vendor publishes no usable checksum next 
 `.sha512` URL answers 403) : the SHA-256 in the defaults was computed from the file downloaded
 over HTTPS from the URL above.
 
-No secret : `no_log` is not needed.
+## Enrollment password
 
-## Enrollment limit
+Set `WAZUH_REGISTRATION_PASSWORD` when the manager requires a password for enrollment (authd
+`use_password: yes`). The range42 server bundle `admin/software.install.wazuh` requires one :
+the vault key `infrastructure_wazuh_authd_password`. Without a password on the manager side, any
+host that reaches tcp 1515 of the manager can enroll an agent under any free name.
 
-The role passes no enrollment password. The manager must accept enrollment without one (the
-range42 server role does : port 1515, no password). Then **any host that reaches tcp 1515 of the
-manager can enroll an agent** under any free name. Restrict the sources of tcp 1515 (and 1514)
-with a network firewall in front of the manager, for example to the `/32` addresses of the hosts
-that run this role.
+Where the password goes :
+
+- The install task runs with `no_log: true` : the Ansible output does not show the `msiexec`
+  arguments, at any verbosity. A failure of this task prints no detail either.
+- The `msiexec` command line carries the password while the installer runs. A process that may
+  read the command lines of other processes on the host (an administrator) sees it during that
+  time.
+- The agent keeps the password on disk after the install, to enroll again later (not verified on
+  this MSI : check `authd.pass` in the agent install directory). Whoever controls the host can
+  read it and enroll other agents on the manager.
+
+Restrict the sources of tcp 1514 and 1515 on the manager as well, for example to the `/32`
+addresses of the hosts that run this role : the server bundle does it with ufw.
 
 ## Security
 
