@@ -64,9 +64,11 @@ Where the password goes :
 - The `msiexec` command line carries the password while the installer runs. A process that may
   read the command lines of other processes on the host (an administrator) sees it during that
   time.
-- The agent keeps the password on disk after the install, to enroll again later (not verified on
-  this MSI : check `authd.pass` in the agent install directory). Whoever controls the host can
-  read it and enroll other agents on the manager.
+- The agent keeps the password on disk after the install, to enroll again later : with the
+  `wazuh-agent-4.14.4-1.msi` package, `C:\Program Files (x86)\ossec-agent\authd.pass` exists and
+  its ACL grants `FullControl` to `NT AUTHORITY\SYSTEM` and `BUILTIN\Administrators` only. A
+  non-administrator user cannot read it. Whoever has administrator rights on the host can read it
+  and enroll other agents on the manager.
 
 Restrict the sources of tcp 1514 and 1515 on the manager as well, for example to the `/32`
 addresses of the hosts that run this role : the server bundle does it with ufw.
