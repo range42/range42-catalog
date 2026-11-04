@@ -1,5 +1,38 @@
 # Wazuh-Ansible
 
+## range42 copy
+
+This directory is the upstream repository
+[wazuh/wazuh-ansible](https://github.com/wazuh/wazuh-ansible) at tag `v4.14.9`, without
+`.github/`, `.ansible-lint`, `.gitignore` and `.yamllint`. Local changes:
+
+- `roles/wazuh/{ansible-filebeat-oss,ansible-wazuh-agent,ansible-wazuh-manager,wazuh-dashboard,wazuh-indexer}/tasks/main.yml`:
+  `include_vars` reads `../vars/...` instead of `../../vars/...`.
+- `roles/wazuh/wazuh-indexer/templates/jvm.options.j2`: `-XX:TieredStopAtLevel=1`, a workaround
+  for a crash of the C2 JIT compiler of the indexer JVM on some Intel CPUs.
+- Blank lines in `roles/wazuh/wazuh-indexer/tasks/main.yml` and `jvm.options.j2`, and this section.
+
+`VERSION.json` is the upstream file. Upstream keeps in a final tag the `stage` of its last
+release candidate: `"stage": "rc2"` in `v4.14.9` is the final release 4.14.9, not a release
+candidate.
+
+Upgrade 4.14.4 to 4.14.9 (manager, indexer, dashboard, filebeat template, Linux agent).
+Reason: the security fixes listed in the Wazuh release notes, among them:
+
+- 4.14.5: Remoted `ReadSecMSG` size_t underflow, potential heap overflow (wazuh/wazuh#35193);
+  RBAC bypass in DAPI, privilege escalation (#35307); buffer overflow in Analysisd regex match
+  processing (#35106); path traversal in Authd through the agent group name (#35230).
+- 4.14.6: cluster file synchronization security (#36060).
+- 4.14.9: integer underflows and an overflow in `OS_StrBreak()` (#38625).
+
+Remoted (tcp 1514) and Authd (tcp 1515) receive data from every agent host. In a cyber range,
+trainees or attackers can control agent hosts, so these code paths are reachable.
+
+To upgrade again: apply `git diff v<current> v<new>` of the upstream repository (without the
+files excluded above) to this directory, check that the local changes above are still present,
+and move every other Wazuh agent package that range42 pins to the same version (an agent must
+not be newer than its manager).
+
 [![Slack](https://img.shields.io/badge/slack-join-blue.svg)](https://wazuh.com/community/join-us-on-slack/)
 [![Email](https://img.shields.io/badge/email-join-blue.svg)](https://groups.google.com/forum/#!forum/wazuh)
 [![Documentation](https://img.shields.io/badge/docs-view-green.svg)](https://documentation.wazuh.com)
