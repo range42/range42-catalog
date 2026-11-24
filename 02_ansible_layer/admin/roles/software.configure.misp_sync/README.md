@@ -46,7 +46,7 @@ Pairing (`tasks/pair.yml`) revokes **every** key of the team sync user and mints
 
 ## Hardening (all three are required)
 
-The sync role has `perm_sharing_group = 1`, and `captureSGExisting` skips authorisation for sync users on `local = 0` groups. Through that path, a team that is admin on its own spoke can read or feed another team over the allowed spoke → hub 443 path (reported upstream to the MISP project).
+The sync role has `perm_sharing_group = 1`. Up to v2.5.51, `captureSGExisting` skipped authorisation for sync users on `local = 0` groups (CVE-2026-132069, fixed in v2.5.52). Since v2.5.52, a sync user that is a member of a `local = 0` group can still change that group by a push, member orgs included (`captureSGExisting` + `captureSGOrgs`). This is upstream design, and each team sync user is a member of its team group. Through these paths, a team that is admin on its own spoke can read or feed another team over the allowed spoke → hub 443 path. The sync fixes of v2.5.52 and v2.5.53 do not make any of the three controls obsolete.
 
 | Control | Implementation | Closes |
 |---|---|---|
@@ -58,7 +58,7 @@ The sync role has `perm_sharing_group = 1`, and `captureSGExisting` skips author
 
 - The controls hold at run time only. A hub group created later through REST is `local = 0` until the next run, and an instructor can still create a group with two team orgs. Sync users cannot create groups (M2, lab-tested), so only a hub admin can open such a gap.
 - The role manages only the users `sync-<team>@<misp_sync_user_domain>`. It does not check other hub users that have `perm_sync`.
-- M2 keeps `perm_auth` from role 5, because v2.5.50 refuses any API key login without it (`AppController.php:1542`). A team can read its sync key on its own spoke and use it to mint more keys for the sync user (`auth_keys/add`). These keys have the same rights as the sync key. They work until the next run of the role, which re-pairs that spoke and so revokes every key of the user (lab-tested). Disabling the user blocks all of them at once.
+- M2 keeps `perm_auth` from role 5, because v2.5.53 refuses any API key login without it (`AppController.php:1549`). A team can read its sync key on its own spoke and use it to mint more keys for the sync user (`auth_keys/add`). These keys have the same rights as the sync key. They work until the next run of the role, which re-pairs that spoke and so revokes every key of the user (lab-tested). Disabling the user blocks all of them at once.
 - A spoke → hub network failure makes `testConnection` fail. Each run then re-pairs (key rotation) and fails at the final check, until the network works again.
 
 ## Behaviour to know
@@ -81,6 +81,8 @@ Lab-tested with MISP v2.5.50, one hub and two spokes:
 - `createSync` failing after the bootstrap key was minted: the bootstrap key is deleted, and the spoke entry is not touched.
 - M1 scan: a hub group with two team orgs, with an `all_orgs` server entry, or inactive with two team orgs, makes the run fail.
 - `misp_star_inter_team_sharing: true`: `all teams` is created on the hub (`local = 1`) and on both spokes (the spokes create the missing team orgs by UUID), a team-01 event in it reaches spoke-02, re-run `changed=0`. Turning it off with the procedure above.
+
+Re-checked with MISP v2.5.53 on a fresh deploy (one hub, two spokes): first run, re-run `changed=0`, no hub group with `local = 0` (L1), sync users on the M2 role, team events pushed to the hub and to no other spoke, a hub event in the team-01 group pulled by spoke-01 and not by spoke-02, and a sharing-group edit with a sync-user key refused with HTTP 403 (M2). The other tests above were not repeated on v2.5.53.
 
 ## Not verified
 
