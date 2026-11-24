@@ -16,7 +16,7 @@ This copy carries the five `misp-standalone` fixes reported as range42-catalog #
 | #222 | `misp` healthcheck `start_period` raised from 180s to 900s (first boot under load exceeds 180s). |
 | #223 | `entrypoint.sh` removes a stale `/run/apache2/apache2.pid` before supervisord starts. |
 
-Image tags are renamed to `misp-star:${MISP_VERSION}` and `misp-star-modules:local` so the two elements do not collide on a shared Docker host.
+Image tags are renamed to `misp-star:${MISP_VERSION}` and `misp-star-modules:local` so the two elements do not collide on a shared Docker host. The provisioner runs on the `misp-star:${MISP_VERSION}` image, so a `MISP_VERSION` change rebuilds it too.
 
 Beyond the carried fixes, this element adds the star identity settings:
 
