@@ -829,7 +829,11 @@ playbook_resp=$(curl -s -X POST "${MM_URL}/plugins/playbooks/api/v0/playbooks" \
       }
     ]
   }')") || true
-playbook_id=$(printf '%s' "$playbook_resp" | jq -r '.id // empty')
+# jq guard: on Team Edition the Playbooks API returns a non-JSON error body
+# (playbooks is Enterprise-licensed on 12.x). Without 2>/dev/null||true the jq
+# parse error exits 5 and set -e aborts provisioning — a cosmetic last step
+# then fails the whole deploy. Empty id falls through to the skip warning below.
+playbook_id=$(printf '%s' "$playbook_resp" | jq -r '.id // empty' 2>/dev/null || true)
 if [ -n "$playbook_id" ]; then
   echo "[init] Playbook 'Incident Response Runbook' created (id=${playbook_id})"
 else
