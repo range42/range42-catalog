@@ -44,7 +44,7 @@ services:
     restart: "no"
 
   nextcloud: &main
-    image: nextcloud:latest
+    image: nextcloud:35.0.3-apache
     container_name: nextcloud
     environment:
       NEXTCLOUD_ADMIN_USER:     ${NC_ADMIN_USER:-nc-admin}
@@ -95,7 +95,7 @@ services:
 #     command: ["sleep", "infinity"]
 
   collabora:
-    image: collabora/code
+    image: collabora/code:26.04.6.2.1
     container_name: nextcloud-collabora
     environment:
       domain: ".*"
@@ -116,7 +116,7 @@ services:
     restart: unless-stopped
 
   mailpit:
-    image: axllent/mailpit
+    image: axllent/mailpit:v1.34.0
     container_name: nextcloud-mailpit
     environment:
       MP_SMTP_AUTH_ACCEPT_ANY:     "1"
@@ -126,7 +126,7 @@ services:
     restart: unless-stopped
 
   nginx:
-    image: nginx:alpine
+    image: nginx:1.31.10-alpine
     container_name: nextcloud-nginx
     ports:
       - "${HTTP_PORT:-8443}:443"

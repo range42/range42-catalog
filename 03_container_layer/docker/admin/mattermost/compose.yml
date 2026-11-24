@@ -34,7 +34,7 @@ services:
     restart: "no"
 
   nginx:
-    image: nginx:alpine
+    image: nginx:1.31.10-alpine
     container_name: mattermost-nginx
     ports:
       - "${HTTP_PORT:-8065}:443"
@@ -53,7 +53,7 @@ services:
     # (mmctl panics on non-root UID resolution) breaking the container's
     # Docker healthcheck, which the provisioner waits on via depends_on.
     # image: mattermost/mattermost-team-edition:latest   # re-enable to retest latest
-    image: mattermost/mattermost-team-edition:10.9.5
+    image: mattermost/mattermost-team-edition:12.1.0
     # Upstream bug : https://github.com/mattermost/mattermost/issues/36224
     container_name: mattermost
     env_file:
