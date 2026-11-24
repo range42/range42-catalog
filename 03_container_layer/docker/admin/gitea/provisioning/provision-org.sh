@@ -213,7 +213,7 @@ maybe_create_mirror() {
     '{"clone_addr":$u,"repo_name":$n,"uid":$id,"mirror":true,"mirror_interval":"8h0m0s","private":true,"description":"Read-only mirror — offline training content"}')"
   resp_body="$(curl -sk --max-time 120 -o /tmp/mirror_resp.json -w '%{http_code}' \
     "${AUTH[@]}" -H "Content-Type: application/json" \
-    -X POST "${API}/repos/migrate" -d "${body}")"
+    -X POST "${API}/repos/migrate" -d "${body}")" || true  # mirror is optional: a curl failure must not abort provisioning
   http_code="${resp_body}"
   case "${http_code}" in
     2*)
