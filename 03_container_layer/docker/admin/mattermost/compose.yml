@@ -49,12 +49,15 @@ services:
     restart: unless-stopped
 
   mattermost: &main
-    # Pinned to 10.9.5 : Mattermost 10.10.x+ has an upstream healthcheck bug
-    # (mmctl panics on non-root UID resolution) breaking the container's
-    # Docker healthcheck, which the provisioner waits on via depends_on.
+    # Mattermost 12.1.0. The stock `curl` healthcheck cannot run: the 12.x
+    # image is distroless (no curl/sh), and mmctl panics on non-root UID
+    # resolution over HTTP (upstream bug #36224). Local mode avoids both —
+    # ENABLELOCALMODE (below) exposes a unix socket, and the healthcheck uses
+    # `mmctl --local system status` (reports server/DB/filestore health). The
+    # nginx + provisioner gates on service_healthy then work on 12.x.
+    # https://github.com/mattermost/mattermost/issues/36224
     # image: mattermost/mattermost-team-edition:latest   # re-enable to retest latest
     image: mattermost/mattermost-team-edition:12.1.0
-    # Upstream bug : https://github.com/mattermost/mattermost/issues/36224
     container_name: mattermost
     env_file:
       - path: .env
@@ -74,6 +77,9 @@ services:
       MM_EMAILSETTINGS_REQUIREEMAILVERIFICATION: "false"
       MM_LOGSETTINGS_CONSOLELEVEL:      "ERROR"
       MM_LOGSETTINGS_ENABLEFILE:        "false"
+      # Local mode: unix socket for mmctl --local, used by the healthcheck
+      # (the 12.x distroless image has no curl for the old HTTP healthcheck).
+      MM_SERVICESETTINGS_ENABLELOCALMODE: "true"
       # ── Gitea OAuth2 (wired through Mattermost's built-in "GitLab" SSO) ─────────
       # Endpoint env vars are pinned here so they always override any stale value
       # in config.json. Enable/Id/Secret are NOT set as env vars — empty-string
@@ -91,7 +97,7 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8065/api/v4/system/ping"]
+      test: ["CMD", "/mattermost/bin/mmctl", "--local", "system", "status"]
       interval: 15s
       timeout: 10s
       retries: 15
