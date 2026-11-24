@@ -49,15 +49,13 @@ services:
     restart: unless-stopped
 
   mattermost: &main
-    # Mattermost 12.1.0. The stock `curl` healthcheck cannot run: the 12.x
-    # image is distroless (no curl/sh), and mmctl panics on non-root UID
-    # resolution over HTTP (upstream bug #36224). Local mode avoids both —
-    # ENABLELOCALMODE (below) exposes a unix socket, and the healthcheck uses
-    # `mmctl --local system status` (reports server/DB/filestore health). The
-    # nginx + provisioner gates on service_healthy then work on 12.x.
-    # https://github.com/mattermost/mattermost/issues/36224
-    # image: mattermost/mattermost-team-edition:latest   # re-enable to retest latest
-    image: mattermost/mattermost-team-edition:12.1.0
+    # Stay on the 10.11 ESR: from v11.0 the GitLab SSO button (used for Gitea SSO)
+    # needs a licence (server/config/client.go, license.Features.OpenId).
+    # The healthcheck uses `mmctl --local system status` over the local-mode unix
+    # socket (ENABLELOCALMODE below). Keep it: it also works on 11.x/12.x images,
+    # which are distroless (no curl) and where mmctl over HTTP panics on a
+    # non-root UID (https://github.com/mattermost/mattermost/issues/36224).
+    image: mattermost/mattermost-team-edition:10.11.26
     container_name: mattermost
     env_file:
       - path: .env
@@ -78,7 +76,7 @@ services:
       MM_LOGSETTINGS_CONSOLELEVEL:      "ERROR"
       MM_LOGSETTINGS_ENABLEFILE:        "false"
       # Local mode: unix socket for mmctl --local, used by the healthcheck
-      # (the 12.x distroless image has no curl for the old HTTP healthcheck).
+      # (11.x/12.x distroless images have no curl for the old HTTP healthcheck).
       MM_SERVICESETTINGS_ENABLELOCALMODE: "true"
       # ── Gitea OAuth2 (wired through Mattermost's built-in "GitLab" SSO) ─────────
       # Endpoint env vars are pinned here so they always override any stale value
@@ -88,6 +86,8 @@ services:
       MM_GITLABSETTINGS_AUTHENDPOINT:    "${GITEA_BASE_URL:-http://localhost:3000}/login/oauth/authorize"
       MM_GITLABSETTINGS_TOKENENDPOINT:   "${GITEA_BASE_URL:-http://localhost:3000}/login/oauth/access_token"
       MM_GITLABSETTINGS_USERAPIENDPOINT: "${GITEA_BASE_URL:-http://localhost:3000}/api/v1/user"
+      # Label of the SSO button on the login page (default would be "GitLab").
+      MM_GITLABSETTINGS_BUTTONTEXT:      "Gitea"
     volumes:
       - mattermost-data:/mattermost/data
       - mattermost-logs:/mattermost/logs
