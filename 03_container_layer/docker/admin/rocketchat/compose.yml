@@ -50,7 +50,7 @@ services:
     restart: "no"
 
   nginx:
-    image: nginx:alpine
+    image: nginx:1.31.10-alpine
     container_name: rocketchat-nginx
     ports:
       - "${HTTP_PORT:-3500}:443"
@@ -65,7 +65,8 @@ services:
     restart: unless-stopped
 
   rocketchat: &main
-    image: rocketchat/rocket.chat:latest
+    # Stay on 8.x: Rocket.Chat 9.0 makes Custom OAuth (Gitea SSO) a Premium feature (PR #42477).
+    image: rocketchat/rocket.chat:8.9.1
     container_name: rocketchat
     env_file:
       - path: .env
